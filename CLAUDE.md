@@ -21,7 +21,7 @@
 
 ## 금지사항
 
-`any` · `@ts-ignore` · `@ts-nocheck` · `console.log` · `eslint-disable` 남발 · `.env` 직접 수정 · 테스트 없는 PR
+`any` · `@ts-ignore` · `@ts-nocheck` · `@ts-expect-error` · `console.log` · `eslint-disable` 남발 · `.env` 직접 수정 · 테스트 없는 PR
 
 ## 검증
 

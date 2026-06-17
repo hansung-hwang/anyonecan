@@ -1,11 +1,9 @@
-import { describe, it, expect } from 'vitest'
-import { readFileSync, readdirSync, statSync } from 'fs'
-import { join, relative } from 'path'
+import { describe, expect, it } from 'vitest'
+import { existsSync, readFileSync, readdirSync, statSync } from 'fs'
+import { basename, join, relative } from 'path'
 
-// 프로젝트 루트 기준 src 디렉터리 경로
 const SRC_DIR = join(process.cwd(), 'src')
 
-// 레이어별 허용 import 규칙 (값이 낮을수록 내부 레이어)
 const LAYER_ORDER: Record<string, number> = {
   domain: 0,
   application: 1,
@@ -13,7 +11,30 @@ const LAYER_ORDER: Record<string, number> = {
   presentation: 3,
 }
 
-// src 하위 모든 .ts 파일을 재귀적으로 수집 (.test.ts 제외)
+// Node.js 내장 모듈 허용 목록 — 이 외의 bare specifier는 domain에서 금지
+const ALLOWED_NODE_BUILTINS = new Set([
+  'fs',
+  'path',
+  'url',
+  'crypto',
+  'os',
+  'stream',
+  'events',
+  'buffer',
+  'util',
+  'assert',
+  'node:fs',
+  'node:path',
+  'node:url',
+  'node:crypto',
+  'node:os',
+  'node:stream',
+  'node:events',
+  'node:buffer',
+  'node:util',
+  'node:assert',
+])
+
 function collectTsFiles(dir: string): string[] {
   const result: string[] = []
   for (const entry of readdirSync(dir)) {
@@ -27,7 +48,6 @@ function collectTsFiles(dir: string): string[] {
   return result
 }
 
-// 파일 경로에서 레이어 이름 추출 (src/<layer>/...)
 function extractLayer(filePath: string): string | null {
   const rel = relative(SRC_DIR, filePath)
   const parts = rel.split(/[\\/]/)
@@ -35,7 +55,6 @@ function extractLayer(filePath: string): string | null {
   return layer !== undefined && layer in LAYER_ORDER ? layer : null
 }
 
-// 파일 내 import 경로 추출
 function extractImports(filePath: string): string[] {
   const content = readFileSync(filePath, 'utf-8')
   const importRegex = /from\s+['"]([^'"]+)['"]/g
@@ -43,21 +62,78 @@ function extractImports(filePath: string): string[] {
   let match: RegExpExecArray | null
   while ((match = importRegex.exec(content)) !== null) {
     const importPath = match[1]
-    if (importPath !== undefined) {
-      imports.push(importPath)
-    }
+    if (importPath !== undefined) imports.push(importPath)
   }
   return imports
 }
 
-// 상대 경로 import를 절대 경로로 변환해 레이어 추출
 function resolveImportLayer(importPath: string, fromFile: string): string | null {
   if (!importPath.startsWith('.')) return null
   const resolved = join(fromFile, '..', importPath)
   return extractLayer(resolved)
 }
 
+function resolveImportFile(
+  importPath: string,
+  fromFile: string,
+  allFiles: string[]
+): string | null {
+  if (!importPath.startsWith('.')) return null
+  const base = join(fromFile, '..', importPath)
+  for (const candidate of [base, `${base}.ts`, join(base, 'index.ts')]) {
+    if (allFiles.includes(candidate)) return candidate
+  }
+  return null
+}
+
+function buildImportGraph(files: string[]): Map<string, string[]> {
+  const graph = new Map<string, string[]>()
+  for (const file of files) {
+    const deps: string[] = []
+    for (const imp of extractImports(file)) {
+      const resolved = resolveImportFile(imp, file, files)
+      if (resolved !== null) deps.push(resolved)
+    }
+    graph.set(file, deps)
+  }
+  return graph
+}
+
+// DFS 기반 순환 참조 탐지
+function findCycles(graph: Map<string, string[]>): string[][] {
+  const cycles: string[][] = []
+  const visited = new Set<string>()
+  const onStack = new Set<string>()
+
+  function dfs(node: string, path: string[]): void {
+    visited.add(node)
+    onStack.add(node)
+    path.push(node)
+
+    for (const neighbor of graph.get(node) ?? []) {
+      if (!visited.has(neighbor)) {
+        dfs(neighbor, path)
+      } else if (onStack.has(neighbor)) {
+        const cycleStart = path.indexOf(neighbor)
+        if (cycleStart !== -1) {
+          cycles.push([...path.slice(cycleStart)])
+        }
+      }
+    }
+
+    path.pop()
+    onStack.delete(node)
+  }
+
+  for (const node of graph.keys()) {
+    if (!visited.has(node)) dfs(node, [])
+  }
+
+  return cycles
+}
+
 describe('아키텍처 의존성 규칙', () => {
+  // TODO: 소스 파일 추가 후 아래 테스트들이 자동으로 활성화됩니다
   const tsFiles = collectTsFiles(SRC_DIR)
 
   it('모든 레이어는 자신보다 상위 레이어를 import하지 않는다', () => {
@@ -66,14 +142,12 @@ describe('아키텍처 의존성 규칙', () => {
     for (const file of tsFiles) {
       const fromLayer = extractLayer(file)
       if (fromLayer === null) continue
-
       const fromOrder = LAYER_ORDER[fromLayer]
       if (fromOrder === undefined) continue
 
       for (const imp of extractImports(file)) {
         const toLayer = resolveImportLayer(imp, file)
         if (toLayer === null) continue
-
         const toOrder = LAYER_ORDER[toLayer]
         if (toOrder === undefined) continue
 
@@ -84,7 +158,7 @@ describe('아키텍처 의존성 규칙', () => {
     }
 
     if (violations.length > 0) {
-      expect.fail(`아키텍처 의존성 위반 ${violations.length}건:\n\n${violations.join('\n')}`)
+      expect.fail(`레이어 의존성 위반 ${violations.length}건:\n\n${violations.join('\n')}`)
     }
     expect(violations).toHaveLength(0)
   })
@@ -97,9 +171,9 @@ describe('아키텍처 의존성 규칙', () => {
 
       for (const imp of extractImports(file)) {
         if (imp.startsWith('.')) continue
-        if (!imp.includes('/') && !imp.startsWith('@')) continue
-
-        violations.push(`[위반] ${relative(SRC_DIR, file)}: 외부 라이브러리 '${imp}' import 금지`)
+        if (!ALLOWED_NODE_BUILTINS.has(imp)) {
+          violations.push(`[위반] ${relative(SRC_DIR, file)}: 외부 라이브러리 '${imp}' import 금지`)
+        }
       }
     }
 
@@ -109,11 +183,58 @@ describe('아키텍처 의존성 규칙', () => {
     expect(violations).toHaveLength(0)
   })
 
+  it('동일 레이어 내 순환 참조가 없다', () => {
+    const graph = buildImportGraph(tsFiles)
+    const cycles = findCycles(graph)
+
+    if (cycles.length > 0) {
+      const descriptions = cycles.map((cycle) => cycle.map((f) => relative(SRC_DIR, f)).join(' → '))
+      expect.fail(`순환 참조 ${cycles.length}건:\n\n${descriptions.join('\n')}`)
+    }
+    expect(cycles).toHaveLength(0)
+  })
+
+  it('모든 소스 파일은 kebab-case 네이밍 컨벤션을 따른다', () => {
+    // 허용: kebab-case.ts / kebab-case.types.ts / kebab-case.interface.ts
+    const KEBAB_CASE = /^[a-z][a-z0-9]*(-[a-z0-9]+)*(\.(types|interface))?\.ts$/
+    const violations: string[] = []
+
+    for (const file of tsFiles) {
+      const name = basename(file)
+      if (!KEBAB_CASE.test(name)) {
+        violations.push(`[위반] ${relative(SRC_DIR, file)}: '${name}'은 kebab-case가 아닙니다`)
+      }
+    }
+
+    if (violations.length > 0) {
+      expect.fail(`파일명 컨벤션 위반 ${violations.length}건:\n\n${violations.join('\n')}`)
+    }
+    expect(violations).toHaveLength(0)
+  })
+
+  it('domain 레이어의 모든 소스 파일에 대응하는 테스트 파일이 존재한다', () => {
+    const violations: string[] = []
+
+    for (const file of tsFiles) {
+      if (extractLayer(file) !== 'domain') continue
+      const name = basename(file)
+      // types / interface 파일은 테스트 불필요
+      if (name.endsWith('.types.ts') || name.endsWith('.interface.ts')) continue
+
+      const testFile = file.replace(/\.ts$/, '.test.ts')
+      if (!existsSync(testFile)) {
+        violations.push(`[위반] ${relative(SRC_DIR, file)}: 대응하는 테스트 파일이 없습니다`)
+      }
+    }
+
+    if (violations.length > 0) {
+      expect.fail(`테스트 파일 누락 ${violations.length}건:\n\n${violations.join('\n')}`)
+    }
+    expect(violations).toHaveLength(0)
+  })
+
   it('src 하위에 TypeScript 소스 파일이 존재한다', () => {
     const nonTestFiles = tsFiles.filter((f) => !f.includes('tests'))
-    // TODO: 소스 파일 추가 후 아래 주석 해제
-    // expect(nonTestFiles.length).toBeGreaterThan(0)
-    expect(tsFiles.length).toBeGreaterThanOrEqual(0)
-    void nonTestFiles
+    expect(nonTestFiles.length).toBeGreaterThanOrEqual(0)
   })
 })

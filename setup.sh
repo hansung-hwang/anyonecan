@@ -104,7 +104,12 @@ ok "플레이스홀더 치환 완료"
 step "pnpm install 실행 중..."
 cd "$OUTPUT_DIR"
 if command -v pnpm &>/dev/null; then
-    pnpm install --silent
+    if ! pnpm install --silent 2>/dev/null; then
+        # esbuild 등 빌드 스크립트가 차단된 경우 승인 후 재시도
+        echo -e "${GRAY}  빌드 스크립트 승인 중 (esbuild)...${NC}"
+        pnpm approve-builds esbuild --silent 2>/dev/null || true
+        pnpm install --silent
+    fi
     ok "의존성 설치 완료"
 else
     echo -e "${YELLOW}  ⚠ pnpm이 없습니다. 수동으로 실행하세요: cd $OUTPUT_DIR && pnpm install${NC}"
@@ -117,7 +122,15 @@ git add .
 git commit --quiet -m "chore: initialize project with harness engineering framework"
 ok "git 초기화 완료 (첫 커밋 생성)"
 
-# ── 5. 완료 메시지 ──────────────────────────────────────────────────────────────
+# ── 5. 최종 검증 ────────────────────────────────────────────────────────────────
+step "최종 검증 중..."
+if pnpm validate 2>/dev/null; then
+    ok "검증 통과 — 프로젝트 준비 완료"
+else
+    echo -e "${YELLOW}  ⚠ 검증 실패. 수동으로 확인하세요: pnpm validate${NC}"
+fi
+
+# ── 6. 완료 메시지 ──────────────────────────────────────────────────────────────
 header "✅ 설정 완료!"
 
 echo -e "생성된 프로젝트: ${CYAN}$OUTPUT_DIR${NC}"

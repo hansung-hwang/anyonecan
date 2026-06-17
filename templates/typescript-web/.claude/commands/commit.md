@@ -4,7 +4,24 @@
 
 ## 실행 순서
 
-### 1단계: 검증
+### 1단계: 사전 스캔
+
+커밋 전 아래 항목을 grep으로 확인합니다:
+
+```bash
+# 테스트 고정(test.only / describe.only) 잔존 여부
+grep -rn "\.only(" src/
+
+# console.log 잔존 여부
+grep -rn "console\.log" src/
+
+# @ts-ignore / @ts-expect-error 잔존 여부
+grep -rn "@ts-ignore\|@ts-expect-error" src/
+```
+
+잔존 항목 발견 시 커밋을 **중단**하고 해당 위치를 보고합니다.
+
+### 2단계: 검증
 
 ```bash
 pnpm typecheck && pnpm lint && pnpm test
@@ -12,11 +29,13 @@ pnpm typecheck && pnpm lint && pnpm test
 
 검증 실패 시 커밋을 중단하고 오류 내용을 보고합니다.
 
-### 2단계: 변경 분석
+### 3단계: 변경 분석
 
 `git diff --staged` 를 분석해 변경 내용을 파악합니다.
 
-### 3단계: 커밋 메시지 제안
+### 4단계: 커밋 메시지 제안
+
+아래 형식으로 커밋 메시지를 제안합니다:
 
 ```
 <type>(<scope>): <한국어 설명>
@@ -26,11 +45,13 @@ pnpm typecheck && pnpm lint && pnpm test
 [Closes #이슈번호 — 선택]
 ```
 
-### 4단계: 사용자 확인
+### 5단계: 사용자 확인
 
 제안된 메시지를 사용자에게 보여주고 승인 또는 수정 요청을 받습니다.
 
-### 5단계: 커밋 실행
+### 6단계: 커밋 실행
+
+승인 시:
 
 ```bash
 git commit -m "<승인된 메시지>"
@@ -50,6 +71,6 @@ git commit -m "<승인된 메시지>"
 
 ## 주의사항
 
-- 검증 3단계(typecheck + lint + test) 모두 통과해야만 커밋합니다
+- 사전 스캔 + 검증 모두 통과해야만 커밋합니다
 - `--no-verify` 옵션은 사용하지 않습니다
 - staged 파일이 없으면 커밋하지 않고 안내합니다

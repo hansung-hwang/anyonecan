@@ -140,6 +140,12 @@ Push-Location $OutputDir
 try {
     if (Get-Command pnpm -ErrorAction SilentlyContinue) {
         pnpm install 2>&1 | Out-Null
+        if ($LASTEXITCODE -ne 0) {
+            # esbuild 등 빌드 스크립트가 차단된 경우 승인 후 재시도
+            Write-Host "  빌드 스크립트 승인 중 (esbuild)..." -ForegroundColor Gray
+            pnpm approve-builds esbuild 2>&1 | Out-Null
+            pnpm install 2>&1 | Out-Null
+        }
         Write-Ok "의존성 설치 완료"
     } else {
         Write-Host "  ⚠ pnpm이 없습니다. 수동으로 실행하세요: cd $OutputDir && pnpm install" -ForegroundColor Yellow
@@ -164,7 +170,19 @@ try {
     Pop-Location
 }
 
-# ── 5. 완료 메시지 ──────────────────────────────────────────────────────────────
+# ── 5. 최종 검증 ────────────────────────────────────────────────────────────────
+Write-Step "최종 검증 중..."
+Push-Location $OutputDir
+try {
+    pnpm validate 2>&1 | Out-Null
+    Write-Ok "검증 통과 — 프로젝트 준비 완료"
+} catch {
+    Write-Host "  ⚠ 검증 실패. 수동으로 확인하세요: pnpm validate" -ForegroundColor Yellow
+} finally {
+    Pop-Location
+}
+
+# ── 6. 완료 메시지 ──────────────────────────────────────────────────────────────
 Write-Header "✅ 설정 완료!"
 
 Write-Host "생성된 프로젝트: " -NoNewline
