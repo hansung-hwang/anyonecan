@@ -1,0 +1,16 @@
+node_modules/
+dist/
+.next/
+coverage/
+*.local
+
+.env
+.env.local
+.env.*.local
+
+harness-prompt.txt
+harness-upgrade-prompt.txt
+
+*.log
+.DS_Store
+Thumbs.db
