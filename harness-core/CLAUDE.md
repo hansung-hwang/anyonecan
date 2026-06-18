@@ -20,7 +20,7 @@ Layer dependency (unidirectional): `domain` ← `application` ← `infrastructur
 
 {{LANGUAGE_RULES}}
 
-- Comments: English, WHY only (WHAT is explained by the code)
+- Comments: {{COMMENT_LANGUAGE}}, WHY only (WHAT is explained by the code)
 
 ## Prohibited
 

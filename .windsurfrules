@@ -1,35 +1,35 @@
-# anyonecan (하네스 엔지니어링 프레임워크) — 코딩 규칙 (TypeScript)
+# anyonecan (Harness Engineering Framework) — Coding Rules (TypeScript)
 #
-# ⚠ 이 파일은 프레임워크 자체 개발용입니다.
-# 새 프로젝트를 만들려면 setup.ps1 (Windows) 또는 ./setup.sh (Mac/Linux) 실행 후
-# 생성된 프로젝트 디렉터리에서 AI 도구를 실행하세요.
+# ⚠ This file is for framework development only.
+# To create a new project, run setup.ps1 (Windows) or ./setup.sh (Mac/Linux),
+# then run the AI tool from the generated project directory.
 #
-# 이 파일은 Windsurf AI에서 읽힙니다.
-# 동일한 규칙이 AGENTS.md에도 있습니다.
+# This file is read by Windsurf AI.
+# The same rules also live in AGENTS.md.
 
-## 아키텍처
+## Architecture
 
-레이어 의존성 (단방향): domain ← application ← infrastructure ← presentation
-src/domain은 외부 라이브러리 import 금지.
+Layer dependency (unidirectional): domain ← application ← infrastructure ← presentation
+src/domain must not import external libraries.
 
-## 코딩 규칙
+## Coding Rules
 
-- any 금지 → unknown + 타입 가드
-- 모든 함수에 반환 타입 명시 (explicit-function-return-type)
-- as 단언은 불가피한 경우에만, 한국어 주석으로 이유 설명
-- 파일명: kebab-case.ts / .test.ts / .types.ts / .interface.ts
-- 주석: 한국어, WHY만 작성 (WHAT은 코드가 설명)
+- No any → use unknown + type guards
+- Explicit return type on every function (explicit-function-return-type)
+- as assertions only when unavoidable; explain the reason in an English comment
+- File names: kebab-case.ts / .test.ts / .types.ts / .interface.ts
+- Comments: English, WHY only (WHAT is explained by the code)
 
-## 금지사항
+## Prohibited
 
-any · @ts-ignore · @ts-nocheck · @ts-expect-error · console.log · eslint-disable 남발 · .env 직접 수정 · 테스트 없는 PR
+any · @ts-ignore · @ts-nocheck · @ts-expect-error · console.log · excessive eslint-disable · direct .env edits · PRs without tests
 
-## 검증
+## Validation
 
-코드 수정 후 항상 실행:
+Always run after modifying code:
 pnpm validate
 
-## 워크플로우 프롬프트
+## Workflow Prompts
 
-.claude/commands/ 폴더의 마크다운 파일을 복사하여 프롬프트로 사용하세요.
-start.md(세션 시작) / fix.md(오류 수정) / commit.md(커밋 전 검사) / review.md(코드 리뷰)
+Copy a markdown file from .claude/commands/ and use it as a prompt.
+start.md (session start) / fix.md (error fix) / commit.md (pre-commit checks) / review.md (code review)

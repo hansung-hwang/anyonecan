@@ -1,63 +1,63 @@
-# Git 워크플로우 가이드
+# Git Workflow Guide
 
-## 커밋 메시지 형식
+## Commit Message Format
 
 ```
-<type>(<scope>): <한국어 설명>
+<type>(<scope>): <short description>
 
-[선택] 본문 — 변경 이유와 맥락을 한국어로 설명
+[optional] body — explain the reason for and context of the change
 
-[선택] footer — 관련 이슈 번호 (Closes #123)
+[optional] footer — related issue number (Closes #123)
 ```
 
-## 타입 목록
+## Type List
 
-| 타입 | 사용 상황 |
+| Type | When to use |
 |------|-----------|
-| `feat` | 새로운 기능 추가 |
-| `fix` | 버그 수정 |
-| `refactor` | 기능 변경 없는 코드 개선 |
-| `test` | 테스트 추가 또는 수정 |
-| `docs` | 문서 작성 또는 수정 |
-| `chore` | 빌드/설정 변경 (기능 무관) |
-| `perf` | 성능 개선 |
+| `feat` | Add a new feature |
+| `fix` | Fix a bug |
+| `refactor` | Improve code without changing behavior |
+| `test` | Add or modify tests |
+| `docs` | Write or modify documentation |
+| `chore` | Build/config changes (no functional impact) |
+| `perf` | Performance improvement |
 
-## 커밋 예시
+## Commit Example
 
 ```
-feat(user): 사용자 프로필 수정 API 추가
+feat(user): add user profile update API
 
-기존 조회 전용 API에서 수정 기능을 분리하여
-단일 책임 원칙을 준수하도록 개선
+Split the update capability out of the read-only API so the
+single-responsibility principle is respected.
 
 Closes #42
 ```
 
-## 브랜치 전략
+## Branch Strategy
 
-| 브랜치 | 용도 |
+| Branch | Purpose |
 |--------|------|
-| `main` | 배포 가능한 안정 브랜치 |
-| `feat/<기능명>` | 새 기능 개발 |
-| `fix/<버그명>` | 버그 수정 |
-| `chore/<작업명>` | 설정·의존성 변경 |
+| `main` | Stable, deployable branch |
+| `feat/<feature-name>` | New feature development |
+| `fix/<bug-name>` | Bug fix |
+| `chore/<task-name>` | Config / dependency changes |
 
-## 커밋 전 체크리스트
+## Pre-commit Checklist
 
 ```bash
-pnpm validate   # typecheck + lint + test 전체 통과 확인
+pnpm validate   # confirm typecheck + lint + test all pass
 ```
 
-- [ ] `pnpm validate` 전체 통과
-- [ ] 비즈니스 로직 변경 시 테스트 추가
-- [ ] 아키텍처 의존성 규칙 준수
-- [ ] `console.log` 제거
-- [ ] `.env` 파일 스테이징 여부 확인
+- [ ] `pnpm validate` fully passes
+- [ ] Tests added when business logic changes
+- [ ] Architecture dependency rules respected
+- [ ] `console.log` removed
+- [ ] Checked whether any `.env` file is staged
 
-## 주의사항
+## Cautions
 
-- `--no-verify` 사용 금지 — 훅 우회 불가
-- `.env`, `.env.local` 커밋 금지
-- staged 파일 없이 커밋 금지
-- 민감한 정보(API 키, 토큰) 코드에 하드코딩 금지
-- 새로운 환경 변수는 `.env.example`에만 추가 후 사용자 안내
+- Do not use `--no-verify` — hooks must not be bypassed
+- Do not commit `.env` or `.env.local`
+- Do not commit with no staged files
+- Do not hardcode sensitive information (API keys, tokens) in code
+- Add new environment variables only to `.env.example`, then inform the user

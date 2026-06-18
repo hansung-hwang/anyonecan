@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# PostToolUse hook: Write/Edit 후 ruff로 자동 포맷
+# PostToolUse hook: auto-format with ruff after Write/Edit
 INPUT=$(cat)
 FILE=$(echo "$INPUT" | python3 -c "
 import sys, json

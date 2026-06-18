@@ -1,4 +1,4 @@
-"""아키텍처 의존성 규칙 테스트"""
+"""Architecture dependency rule tests"""
 from __future__ import annotations
 
 import ast
@@ -15,7 +15,7 @@ LAYER_ORDER: dict[str, int] = {
     "presentation": 3,
 }
 
-# Python 표준 라이브러리 허용 목록 (domain에서 사용 가능)
+# Python standard-library allowlist (usable from the domain layer)
 STDLIB_ROOTS: set[str] = {
     "os", "sys", "re", "json", "typing", "pathlib", "datetime",
     "collections", "functools", "itertools", "abc", "dataclasses",
@@ -63,7 +63,7 @@ def resolve_layer(imp: str) -> str | None:
 
 
 def test_layer_dependencies() -> None:
-    """모든 레이어는 자신보다 상위 레이어를 import하지 않는다"""
+    """No layer imports a layer above itself"""
     violations: list[str] = []
 
     for file in collect_py_files(SRC_DIR):
@@ -78,16 +78,16 @@ def test_layer_dependencies() -> None:
                 continue
             if LAYER_ORDER[to_layer] > from_order:
                 violations.append(
-                    f"[위반] {file.relative_to(SRC_DIR)} ({from_layer}) → {imp} ({to_layer})"
+                    f"[violation] {file.relative_to(SRC_DIR)} ({from_layer}) → {imp} ({to_layer})"
                 )
 
     assert not violations, (
-        f"레이어 의존성 위반 {len(violations)}건:\n\n" + "\n".join(violations)
+        f"{len(violations)} layer dependency violation(s):\n\n" + "\n".join(violations)
     )
 
 
 def test_domain_purity() -> None:
-    """domain 레이어는 외부 라이브러리를 import하지 않는다"""
+    """The domain layer does not import external libraries"""
     violations: list[str] = []
 
     for file in collect_py_files(SRC_DIR):
@@ -99,22 +99,22 @@ def test_domain_purity() -> None:
             if root in STDLIB_ROOTS or root in LAYER_ORDER:
                 continue
             violations.append(
-                f"[위반] {file.relative_to(SRC_DIR)}: 외부 라이브러리 '{imp}' import 금지"
+                f"[violation] {file.relative_to(SRC_DIR)}: external library '{imp}' must not be imported"
             )
 
     assert not violations, (
-        f"domain 순수성 위반 {len(violations)}건:\n\n" + "\n".join(violations)
+        f"{len(violations)} domain purity violation(s):\n\n" + "\n".join(violations)
     )
 
 
 def test_source_files_exist() -> None:
-    """src 하위에 Python 소스 파일이 존재한다"""
+    """Python source files exist under src"""
     py_files = collect_py_files(SRC_DIR)
-    assert len(py_files) > 0, "src 하위에 Python 소스 파일이 있어야 합니다"
+    assert len(py_files) > 0, "There must be Python source files under src"
 
 
 def test_no_import_cycles() -> None:
-    """레이어 간 순환 참조가 없어야 한다 (DFS)"""
+    """There must be no circular references between layers (DFS)"""
     graph: dict[str, set[str]] = {layer: set() for layer in LAYER_ORDER}
 
     for file in collect_py_files(SRC_DIR):
@@ -142,11 +142,11 @@ def test_no_import_cycles() -> None:
         return False
 
     cycle_roots = [n for n in graph if n not in visited and has_cycle(n)]
-    assert not cycle_roots, f"순환 참조 감지된 레이어: {cycle_roots}"
+    assert not cycle_roots, f"Layers with detected circular references: {cycle_roots}"
 
 
 def test_file_naming_convention() -> None:
-    """Python 소스 파일명은 snake_case여야 한다"""
+    """Python source file names must be snake_case"""
     pattern = re.compile(r'^[a-z][a-z0-9_]*\.py$')
     violations: list[str] = []
 
@@ -157,12 +157,12 @@ def test_file_naming_convention() -> None:
             violations.append(str(file.relative_to(ROOT_DIR)))
 
     assert not violations, (
-        f"snake_case 위반 파일명 {len(violations)}건:\n" + "\n".join(violations)
+        f"{len(violations)} file name(s) violating snake_case:\n" + "\n".join(violations)
     )
 
 
 def test_domain_modules_have_tests() -> None:
-    """src/domain의 각 모듈에 대응하는 테스트 파일이 있어야 한다"""
+    """Each module in src/domain must have a matching test file"""
     domain_dir = SRC_DIR / "domain"
     tests_domain_dir = ROOT_DIR / "tests" / "domain"
 
@@ -176,9 +176,9 @@ def test_domain_modules_have_tests() -> None:
         expected = tests_domain_dir / f"test_{src_file.name}"
         if not expected.exists():
             violations.append(
-                f"src/domain/{src_file.name} → tests/domain/test_{src_file.name} 없음"
+                f"src/domain/{src_file.name} → tests/domain/test_{src_file.name} missing"
             )
 
     assert not violations, (
-        f"테스트 파일 누락 {len(violations)}건:\n" + "\n".join(violations)
+        f"{len(violations)} missing test file(s):\n" + "\n".join(violations)
     )

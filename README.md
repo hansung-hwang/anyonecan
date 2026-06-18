@@ -98,6 +98,7 @@ Project name (lowercase, hyphens allowed): my-service
 Project description: Order management service
 Author: hansung-hwang
 Language: 1=TypeScript / 2=Python / 3=Java
+Comment/description language: 1=English / 2=Korean (한국어)
 Output directory (default: ./my-service):
 ```
 

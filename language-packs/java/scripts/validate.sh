@@ -7,6 +7,6 @@ ok()   { echo -e "${GREEN}✓ $1${NC}"; }
 
 step "build + checkstyle + test (Maven)..."
 mvn verify -q
-ok "모든 검증 통과"
+ok "All checks passed"
 
 echo -e "${GREEN}✅ All validations passed.${NC}"

@@ -2,7 +2,7 @@
 .DS_Store
 Thumbs.db
 
-# 환경 변수
+# Environment variables
 .env
 .env.local
 .env.*.local
@@ -19,18 +19,18 @@ build/
 *.egg-info/
 .eggs/
 
-# 테스트 / 커버리지
+# Tests / coverage
 .pytest_cache/
 .coverage
 htmlcov/
 .mypy_cache/
 .ruff_cache/
 
-# 로그
+# Logs
 *.log
 logs/
 
-# 에디터
+# Editor
 .idea/
 .vscode/
 *.swp

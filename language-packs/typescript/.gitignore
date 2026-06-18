@@ -2,7 +2,7 @@
 .DS_Store
 Thumbs.db
 
-# 환경 변수
+# Environment variables
 .env
 .env.local
 .env.*.local
@@ -12,11 +12,11 @@ node_modules/
 dist/
 coverage/
 
-# 로그
+# Logs
 *.log
 logs/
 
-# 에디터
+# Editor
 .idea/
 .vscode/
 *.swp

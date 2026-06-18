@@ -34,10 +34,23 @@ echo "  2. Python"
 echo "  3. Java"
 read -rp "Enter number: " LANG_CHOICE
 
-case "${LANG_CHOICE:-1}" in
-    2) LANGUAGE="python";     LANGUAGE_DISPLAY="Python" ;;
-    3) LANGUAGE="java";       LANGUAGE_DISPLAY="Java" ;;
-    *) LANGUAGE="typescript"; LANGUAGE_DISPLAY="TypeScript" ;;
+# Normalize so a number or a language name (e.g. "python") is accepted, matching setup.ps1
+LANG_CHOICE_NORM=$(echo "${LANG_CHOICE:-1}" | tr '[:upper:]' '[:lower:]' | tr -d '[:space:]')
+case "$LANG_CHOICE_NORM" in
+    2|python)         LANGUAGE="python";     LANGUAGE_DISPLAY="Python" ;;
+    3|java)           LANGUAGE="java";       LANGUAGE_DISPLAY="Java" ;;
+    *)                LANGUAGE="typescript"; LANGUAGE_DISPLAY="TypeScript" ;;
+esac
+
+echo ""
+echo "Select comment/description language (controls the language the AI writes comments in):"
+echo "  1. English (default)"
+echo "  2. Korean (한국어)"
+read -rp "Enter number: " COMMENT_CHOICE
+COMMENT_CHOICE_NORM=$(echo "${COMMENT_CHOICE:-1}" | tr '[:upper:]' '[:lower:]' | tr -d '[:space:]')
+case "$COMMENT_CHOICE_NORM" in
+    2|korean|ko|kr|한국어) COMMENT_LANGUAGE="한국어 (Korean)" ;;
+    *)                     COMMENT_LANGUAGE="English" ;;
 esac
 
 BASE_PACKAGE=""
@@ -68,6 +81,7 @@ info "Project name  : $PROJECT_NAME"
 info "Description   : $PROJECT_DESCRIPTION"
 info "Author        : $AUTHOR"
 info "Language      : $LANGUAGE_DISPLAY"
+info "Comment lang  : $COMMENT_LANGUAGE"
 [[ "$LANGUAGE" == "java" ]] && info "Base package  : $BASE_PACKAGE"
 info "Output dir    : $OUTPUT_DIR"
 echo "────────────────────────────────────────────────"
@@ -90,7 +104,7 @@ ok "Language pack copied"
 # ── 3. Substitute language-specific rules into CLAUDE.md (uses python3) ────────
 step "Applying language-specific rules..."
 
-export LANGUAGE OUTPUT_DIR LANGUAGE_DISPLAY
+export LANGUAGE OUTPUT_DIR LANGUAGE_DISPLAY COMMENT_LANGUAGE
 
 python3 << 'PYEOF'
 import os, pathlib
@@ -98,6 +112,7 @@ import os, pathlib
 lang    = os.environ["LANGUAGE"]
 output  = pathlib.Path(os.environ["OUTPUT_DIR"])
 display = os.environ["LANGUAGE_DISPLAY"]
+comment = os.environ["COMMENT_LANGUAGE"]
 
 rules = {
     "typescript": (
@@ -136,6 +151,7 @@ for rel in ["CLAUDE.md", "AGENTS.md", ".cursorrules", ".windsurfrules", ".cursor
     content = content.replace("{{LANGUAGE_RULES}}", rules[lang])
     content = content.replace("{{BANNED_ITEMS}}", banned[lang])
     content = content.replace("{{LANGUAGE_DISPLAY}}", display)
+    content = content.replace("{{COMMENT_LANGUAGE}}", comment)
     p.write_text(content, encoding="utf-8")
 PYEOF
 
@@ -143,6 +159,12 @@ ok "Language-specific rules applied"
 
 # ── 4. Substitute standard placeholders ────────────────────────────────────────
 step "Substituting placeholders..."
+
+# Pass values through the environment and reference them as $ENV{...} in the
+# replacement so special characters (|, \, $, @, /) in free-text fields cannot
+# break the regex or inject perl code.
+# BASE_PACKAGE is empty for non-Java; only Java files contain that placeholder (e.g. pom.xml groupId)
+export PROJECT_NAME PROJECT_DESCRIPTION AUTHOR TODAY BASE_PACKAGE
 
 find "$OUTPUT_DIR" -type f \( \
     -name "*.md" -o -name "*.mdc" -o -name "*.json" \
@@ -152,10 +174,11 @@ find "$OUTPUT_DIR" -type f \( \
     -o -name ".cursorrules" -o -name ".windsurfrules" \
 \) ! -path "*/node_modules/*" ! -path "*/target/*" | while IFS= read -r file; do
     perl -pi \
-        -e "s|\{\{PROJECT_NAME\}\}|$PROJECT_NAME|g" \
-        -e "s|\{\{PROJECT_DESCRIPTION\}\}|$PROJECT_DESCRIPTION|g" \
-        -e "s|\{\{AUTHOR\}\}|$AUTHOR|g" \
-        -e "s|\{\{DATE\}\}|$TODAY|g" \
+        -e 's/\{\{PROJECT_NAME\}\}/$ENV{PROJECT_NAME}/g' \
+        -e 's/\{\{PROJECT_DESCRIPTION\}\}/$ENV{PROJECT_DESCRIPTION}/g' \
+        -e 's/\{\{AUTHOR\}\}/$ENV{AUTHOR}/g' \
+        -e 's/\{\{DATE\}\}/$ENV{TODAY}/g' \
+        -e 's/\{\{BASE_PACKAGE\}\}/$ENV{BASE_PACKAGE}/g' \
         "$file"
 done
 
@@ -175,10 +198,10 @@ package $BASE_PACKAGE.$layer;
 EOF
     done
 
-    # Substitute BASE_PACKAGE in DependencyTest.java
+    # Substitute BASE_PACKAGE in DependencyTest.java (env-passed for the same safety reason as above)
     ARCH_TEST="$OUTPUT_DIR/src/test/java/arch/DependencyTest.java"
     if [[ -f "$ARCH_TEST" ]]; then
-        perl -pi -e "s|\{\{BASE_PACKAGE\}\}|$BASE_PACKAGE|g" "$ARCH_TEST"
+        BASE_PACKAGE="$BASE_PACKAGE" perl -pi -e 's/\{\{BASE_PACKAGE\}\}/$ENV{BASE_PACKAGE}/g' "$ARCH_TEST"
     fi
 
     ok "Java package structure created ($BASE_PACKAGE)"
@@ -221,10 +244,12 @@ esac
 
 # ── 7. git init + initial commit ─────────────────────────────────────────────────
 step "Initializing git..."
-git init --quiet
-git add .
-git commit --quiet -m "chore: initialize project with harness engineering framework"
-ok "Git initialized (initial commit created)"
+if git init --quiet && git add . && \
+   git commit --quiet -m "chore: initialize project with harness engineering framework"; then
+    ok "Git initialized (initial commit created)"
+else
+    echo -e "${YELLOW}  ⚠ Git initialization failed (is user.name/user.email set?). Commit manually.${NC}"
+fi
 
 # ── 8. Done ───────────────────────────────────────────────────────────────────────
 header "✅ Setup Complete!"

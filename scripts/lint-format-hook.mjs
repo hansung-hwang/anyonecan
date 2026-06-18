@@ -1,6 +1,6 @@
 import { execSync } from 'child_process'
 
-// PostToolUse Hook: Write/Edit 후 ESLint --fix 및 Prettier --write 자동 실행
+// PostToolUse hook: run ESLint --fix and Prettier --write after Write/Edit
 let data = ''
 process.stdin.setEncoding('utf8')
 process.stdin.on('data', (chunk) => {
@@ -15,6 +15,6 @@ process.stdin.on('end', () => {
     execSync(`npx eslint --fix "${filePath}"`, { stdio: 'pipe' })
     execSync(`npx prettier --write "${filePath}"`, { stdio: 'pipe' })
   } catch {
-    // 포맷 오류는 에이전트 작업 흐름을 중단시키지 않음
+    // Formatting errors must not interrupt the agent's workflow
   }
 })

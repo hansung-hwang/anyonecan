@@ -25,7 +25,7 @@
       <version>5.11.0</version>
       <scope>test</scope>
     </dependency>
-    <!-- ArchUnit: 레이어 의존성 자동 검증 -->
+    <!-- ArchUnit: automated layer dependency checks -->
     <dependency>
       <groupId>com.tngtech.archunit</groupId>
       <artifactId>archunit-junit5</artifactId>

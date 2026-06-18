@@ -7,8 +7,8 @@ import org.junit.jupiter.api.Test;
 import static com.tngtech.archunit.lang.syntax.ArchRuleDefinition.noClasses;
 
 /**
- * Clean Architecture 레이어 의존성 자동 검증 (ArchUnit).
- * 위반 시 빌드가 실패합니다.
+ * Automated Clean Architecture layer dependency checks (ArchUnit).
+ * The build fails on any violation.
  */
 class DependencyTest {
 
@@ -17,7 +17,7 @@ class DependencyTest {
 
     @Test
     void domainShouldNotDependOnOtherLayers() {
-        // domain 레이어는 다른 레이어에 의존하지 않는다
+        // The domain layer must not depend on other layers
         noClasses()
                 .that().resideInAPackage("..domain..")
                 .should().dependOnClassesThat()
@@ -27,7 +27,7 @@ class DependencyTest {
 
     @Test
     void applicationShouldNotDependOnInfrastructureOrPresentation() {
-        // application 레이어는 infrastructure·presentation에 의존하지 않는다
+        // The application layer must not depend on infrastructure or presentation
         noClasses()
                 .that().resideInAPackage("..application..")
                 .should().dependOnClassesThat()
@@ -37,7 +37,7 @@ class DependencyTest {
 
     @Test
     void infrastructureShouldNotDependOnPresentation() {
-        // infrastructure 레이어는 presentation에 의존하지 않는다
+        // The infrastructure layer must not depend on presentation
         noClasses()
                 .that().resideInAPackage("..infrastructure..")
                 .should().dependOnClassesThat()

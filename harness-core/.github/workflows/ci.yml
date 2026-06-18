@@ -9,7 +9,7 @@ on:
 jobs:
   validate:
     runs-on: ubuntu-latest
-    # language-pack의 ci.yml이 이 파일을 덮어씁니다. 이 파일은 언어팩 없이 직접 사용하는 경우의 최소 폴백입니다.
+    # A language pack's ci.yml overwrites this file. This is a minimal fallback for using harness-core without a language pack.
     steps:
       - uses: actions/checkout@v4
       - name: Validate

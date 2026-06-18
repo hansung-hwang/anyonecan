@@ -1,11 +1,11 @@
-"""User 도메인 모델 및 비즈니스 규칙"""
+"""User domain model and business rules"""
 from __future__ import annotations
 
 import re
 from dataclasses import dataclass
 from datetime import datetime
 
-# RFC 5322 간소화 버전 — 서버 측 정밀 검증과 병행 사용 전제
+# Simplified RFC 5322 — meant to run alongside precise server-side validation
 _EMAIL_REGEX = re.compile(r"^[^\s@]+@[^\s@]+\.[^\s@]+$")
 
 
@@ -19,7 +19,7 @@ class UserId:
 
     def __post_init__(self) -> None:
         if not self.value or not self.value.strip():
-            raise ValueError("UserId는 비어 있을 수 없습니다")
+            raise ValueError("UserId must not be empty")
 
 
 @dataclass(frozen=True)
@@ -32,15 +32,15 @@ class User:
 
 def validate_email(email: str) -> None:
     if not _EMAIL_REGEX.match(email):
-        raise ValidationError(f"유효하지 않은 이메일 형식: {email}")
+        raise ValidationError(f"Invalid email format: {email}")
 
 
 def validate_name(name: str) -> None:
     stripped = name.strip()
     if not stripped:
-        raise ValidationError("이름은 빈 값일 수 없습니다")
+        raise ValidationError("Name must not be empty")
     if len(stripped) > 100:
-        raise ValidationError("이름은 100자를 초과할 수 없습니다")
+        raise ValidationError("Name must not exceed 100 characters")
 
 
 def create_user(user_id: UserId, name: str, email: str) -> User:

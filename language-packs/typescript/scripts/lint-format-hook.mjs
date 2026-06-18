@@ -10,5 +10,5 @@ process.stdin.on('end', () => {
     if (!filePath || !/\.tsx?$/.test(filePath)) return
     execSync(`npx eslint --fix "${filePath}"`, { stdio: 'pipe' })
     execSync(`npx prettier --write "${filePath}"`, { stdio: 'pipe' })
-  } catch { /* 포맷 오류는 작업 흐름 중단 안 함 */ }
+  } catch { /* Formatting errors must not interrupt the workflow */ }
 })

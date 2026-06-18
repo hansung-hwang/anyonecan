@@ -1,4 +1,4 @@
-#!/usr/bin/env pwsh
+﻿#!/usr/bin/env pwsh
 # setup.ps1 — Harness Engineering Framework project generator (Windows)
 #
 # Usage: .\setup.ps1
@@ -50,6 +50,16 @@ $LanguageDisplay = switch ($Language) {
     default  { "TypeScript" }
 }
 
+Write-Host ""
+Write-Host "Select comment/description language (controls the language the AI writes comments in):" -ForegroundColor White
+Write-Host "  1. English (default)"
+Write-Host "  2. Korean (한국어)"
+$CommentChoice = Read-Host "Enter number"
+$CommentLanguage = switch ($CommentChoice.Trim().ToLower()) {
+    { $_ -in "2", "korean", "한국어", "ko", "kr" } { "한국어 (Korean)" }
+    default                                        { "English" }
+}
+
 $BasePackage = ""
 if ($Language -eq "java") {
     $BasePackageInput = Read-Host "Java base package (e.g. com.example.myproject)"
@@ -77,6 +87,7 @@ Write-Info "Project name  : $ProjectName"
 Write-Info "Description   : $ProjectDescription"
 Write-Info "Author        : $Author"
 Write-Info "Language      : $LanguageDisplay"
+Write-Info "Comment lang  : $CommentLanguage"
 if ($Language -eq "java") { Write-Info "Base package  : $BasePackage" }
 Write-Info "Output dir    : $OutputDir"
 Write-Host "────────────────────────────────────────────────" -ForegroundColor DarkGray
@@ -141,6 +152,7 @@ foreach ($relPath in $langFiles) {
     $fc = $fc.Replace('{{LANGUAGE_RULES}}', $LanguageRules)
     $fc = $fc.Replace('{{BANNED_ITEMS}}', $BannedItems)
     $fc = $fc.Replace('{{LANGUAGE_DISPLAY}}', $LanguageDisplay)
+    $fc = $fc.Replace('{{COMMENT_LANGUAGE}}', $CommentLanguage)
     [System.IO.File]::WriteAllText($fp, $fc, $utf8NoBom)
 }
 Write-Ok "Language-specific rules applied"
@@ -153,6 +165,7 @@ $replacements = [ordered]@{
     "{{PROJECT_DESCRIPTION}}" = $ProjectDescription
     "{{AUTHOR}}"              = $Author
     "{{DATE}}"                = $Today
+    "{{BASE_PACKAGE}}"        = $BasePackage  # empty for non-Java; only Java files contain this placeholder (e.g. pom.xml groupId)
 }
 
 $targetExts  = @(".md", ".mdc", ".json", ".ts", ".tsx", ".js", ".mjs", ".sh", ".yaml", ".yml", ".toml", ".xml", ".java")

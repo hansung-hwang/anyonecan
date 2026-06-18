@@ -2,16 +2,16 @@
 .DS_Store
 Thumbs.db
 
-# 환경 변수 (절대 커밋 금지)
+# Environment variables (never commit)
 .env
 .env.local
 .env.*.local
 
-# 로그
+# Logs
 *.log
 logs/
 
-# 에디터
+# Editor
 .idea/
 .vscode/
 *.swp

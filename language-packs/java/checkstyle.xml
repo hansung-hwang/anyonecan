@@ -7,7 +7,7 @@
   <property name="fileEncoding" value="UTF-8"/>
 
   <module name="TreeWalker">
-    <!-- 네이밍 컨벤션 -->
+    <!-- Naming conventions -->
     <module name="TypeName"/>
     <module name="MethodName"/>
     <module name="MemberName"/>
@@ -17,7 +17,7 @@
       <property name="format" value="^[a-z]+(\.[a-z][a-z0-9]*)*$"/>
     </module>
 
-    <!-- 코드 품질 -->
+    <!-- Code quality -->
     <module name="NeedBraces"/>
     <module name="NoFinalizer"/>
     <module name="EqualsHashCode"/>
