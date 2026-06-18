@@ -1,5 +1,9 @@
 # AGENTS.md — anyonecan (하네스 엔지니어링 프레임워크)
 
+> **⚠ 이 파일은 프레임워크 자체 개발용입니다.**
+> 새 프로젝트를 만들려면 `setup.ps1` (Windows) 또는 `./setup.sh` (Mac/Linux) 실행 후,
+> 생성된 프로젝트 디렉터리에서 AI 도구를 실행하세요.
+>
 > **언어**: TypeScript
 > 이 파일은 **모든 AI 코딩 도구**에서 읽힙니다 (Claude Code, Cursor, Windsurf, Codex 등).
 > Claude Code 사용 시 `CLAUDE.md`의 슬래시 커맨드도 함께 사용할 수 있습니다.

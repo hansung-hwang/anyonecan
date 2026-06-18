@@ -1,5 +1,9 @@
 # CLAUDE.md
 
+> **⚠ 이 파일은 프레임워크 자체 개발용입니다.**
+> 새 프로젝트를 만들려면 `setup.ps1` (Windows) 또는 `./setup.sh` (Mac/Linux) 실행 후,
+> 생성된 프로젝트 디렉터리에서 AI 도구를 실행하세요.
+>
 > Claude Code 전용 설정 파일입니다. 다른 AI 도구는 `AGENTS.md`를 참조하세요.
 > 상세 가이드: `docs/how-to/` | 아키텍처 결정: `docs/adr/`
 
