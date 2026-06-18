@@ -11,6 +11,8 @@ coverage/
 harness-prompt.txt
 harness-upgrade-prompt.txt
 
+screenshots/
+
 *.log
 .DS_Store
 Thumbs.db
