@@ -1,26 +1,26 @@
-# 테스트 작성 가이드
+# Testing Guide
 
-## 기본 원칙
+## Core Principles
 
-- 모든 비즈니스 로직 함수에는 단위 테스트가 있어야 합니다
-- 테스트는 구현 세부 사항이 아닌 **동작(behavior)**을 검증합니다
-- 정상 케이스와 예외 케이스를 모두 커버합니다
-- 커버리지 목표: 핵심 도메인 로직 80% 이상
+- Every business logic function must have unit tests
+- Tests verify **behavior**, not implementation details
+- Cover both happy path and edge cases
+- Coverage target: 80%+ for core domain logic
 
-## 파일 위치
+## File Location
 
 ```
 src/
   domain/
     user/
       user-service.ts
-      user-service.test.ts    ← 소스 파일과 같은 디렉터리 (권장)
+      user-service.test.ts    ← co-located with source (recommended)
   tests/
     arch/
-      dependencies.test.ts    ← 아키텍처 규칙 자동 검증
+      dependencies.test.ts    ← automated architecture rule validation
 ```
 
-## 테스트 구조 (Arrange–Act–Assert)
+## Test Structure (Arrange–Act–Assert)
 
 ```typescript
 import { describe, it, expect, beforeEach } from 'vitest'
@@ -34,7 +34,7 @@ describe('UserService', () => {
   })
 
   describe('findById', () => {
-    it('존재하는 사용자 ID로 조회 시 사용자를 반환한다', async () => {
+    it('returns a user when given an existing user ID', async () => {
       // Arrange
       const userId = 'user-1'
 
@@ -46,40 +46,40 @@ describe('UserService', () => {
       expect(result?.id).toBe(userId)
     })
 
-    it('존재하지 않는 ID로 조회 시 null을 반환한다', async () => {
+    it('returns null when given a non-existent ID', async () => {
       const result = await service.findById('nonexistent')
       expect(result).toBeNull()
     })
   })
 
   describe('create', () => {
-    it('이메일 형식이 올바르지 않으면 ValidationError를 던진다', async () => {
+    it('throws ValidationError when the email format is invalid', async () => {
       await expect(service.create({ email: 'invalid' })).rejects.toThrow('ValidationError')
     })
   })
 })
 ```
 
-## 명명 규칙
+## Naming Rules
 
-- `describe` 블록: 테스트 대상 클래스 또는 함수명 (영문)
-- `it` 블록: 동작 설명 (한국어, "~하면 ~한다" 형식)
+- `describe` block: name of the class or function under test (English)
+- `it` block: describe the behavior in plain English (e.g., "returns X when Y")
 
-## 주의사항
+## Notes
 
-- `it.only` / `describe.only`는 로컬 디버깅 전용 — 커밋 금지
-- 구현 세부 사항(내부 메서드, 프라이빗 변수)을 직접 테스트하지 않음
-- 테스트 간 상태 공유 금지 — `beforeEach`로 초기화
+- `it.only` / `describe.only` are for local debugging only — never commit
+- Do not test implementation details (internal methods, private variables) directly
+- No shared state between tests — reset with `beforeEach`
 
-## 실행 명령어
+## Run Commands
 
 ```bash
-pnpm test              # 전체 테스트 1회 실행
-pnpm test:watch        # 파일 변경 시 자동 재실행
-pnpm test:coverage     # 커버리지 리포트 생성 (coverage/ 디렉터리)
+pnpm test              # run all tests once
+pnpm test:watch        # re-run on file changes
+pnpm test:coverage     # generate coverage report (coverage/ directory)
 ```
 
-## 아키텍처 테스트
+## Architecture Tests
 
-`src/tests/arch/dependencies.test.ts`는 모든 소스 파일의 레이어 의존성을 자동 검증합니다.
-소스 파일 추가 후 `pnpm test`를 실행하면 의존성 위반을 즉시 탐지합니다.
+`src/tests/arch/dependencies.test.ts` automatically validates layer dependencies across all source files.
+Run `pnpm test` after adding source files to immediately catch dependency violations.

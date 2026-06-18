@@ -11,7 +11,7 @@ const LAYER_ORDER: Record<string, number> = {
   presentation: 3,
 }
 
-// Node.js 내장 모듈 허용 목록 — 이 외의 bare specifier는 domain에서 금지
+// Allowed Node.js built-ins — any other bare specifier is forbidden in domain
 const ALLOWED_NODE_BUILTINS = new Set([
   'fs',
   'path',
@@ -99,7 +99,7 @@ function buildImportGraph(files: string[]): Map<string, string[]> {
   return graph
 }
 
-// DFS 기반 순환 참조 탐지
+// DFS-based cycle detection
 function findCycles(graph: Map<string, string[]>): string[][] {
   const cycles: string[][] = []
   const visited = new Set<string>()
@@ -132,10 +132,10 @@ function findCycles(graph: Map<string, string[]>): string[][] {
   return cycles
 }
 
-describe('아키텍처 의존성 규칙', () => {
+describe('Architecture Dependency Rules', () => {
   const tsFiles = collectTsFiles(SRC_DIR)
 
-  it('모든 레이어는 자신보다 상위 레이어를 import하지 않는다', () => {
+  it('no layer imports from a higher layer', () => {
     const violations: string[] = []
 
     for (const file of tsFiles) {
@@ -151,18 +151,20 @@ describe('아키텍처 의존성 규칙', () => {
         if (toOrder === undefined) continue
 
         if (toOrder > fromOrder) {
-          violations.push(`[위반] ${relative(SRC_DIR, file)} (${fromLayer}) → ${imp} (${toLayer})`)
+          violations.push(
+            `[violation] ${relative(SRC_DIR, file)} (${fromLayer}) → ${imp} (${toLayer})`
+          )
         }
       }
     }
 
     if (violations.length > 0) {
-      expect.fail(`레이어 의존성 위반 ${violations.length}건:\n\n${violations.join('\n')}`)
+      expect.fail(`Layer dependency violations (${violations.length}):\n\n${violations.join('\n')}`)
     }
     expect(violations).toHaveLength(0)
   })
 
-  it('domain 레이어는 외부 라이브러리를 import하지 않는다', () => {
+  it('domain layer does not import external libraries', () => {
     const violations: string[] = []
 
     for (const file of tsFiles) {
@@ -171,68 +173,72 @@ describe('아키텍처 의존성 규칙', () => {
       for (const imp of extractImports(file)) {
         if (imp.startsWith('.')) continue
         if (!ALLOWED_NODE_BUILTINS.has(imp)) {
-          violations.push(`[위반] ${relative(SRC_DIR, file)}: 외부 라이브러리 '${imp}' import 금지`)
+          violations.push(
+            `[violation] ${relative(SRC_DIR, file)}: external library '${imp}' import forbidden`
+          )
         }
       }
     }
 
     if (violations.length > 0) {
-      expect.fail(`domain 순수성 위반 ${violations.length}건:\n\n${violations.join('\n')}`)
+      expect.fail(`Domain purity violations (${violations.length}):\n\n${violations.join('\n')}`)
     }
     expect(violations).toHaveLength(0)
   })
 
-  it('동일 레이어 내 순환 참조가 없다', () => {
+  it('no circular references within the same layer', () => {
     const graph = buildImportGraph(tsFiles)
     const cycles = findCycles(graph)
 
     if (cycles.length > 0) {
       const descriptions = cycles.map((cycle) => cycle.map((f) => relative(SRC_DIR, f)).join(' → '))
-      expect.fail(`순환 참조 ${cycles.length}건:\n\n${descriptions.join('\n')}`)
+      expect.fail(`Circular references (${cycles.length}):\n\n${descriptions.join('\n')}`)
     }
     expect(cycles).toHaveLength(0)
   })
 
-  it('모든 소스 파일은 kebab-case 네이밍 컨벤션을 따른다', () => {
-    // 허용: kebab-case.ts / kebab-case.types.ts / kebab-case.interface.ts
+  it('all source files follow kebab-case naming convention', () => {
+    // Allowed: kebab-case.ts / kebab-case.types.ts / kebab-case.interface.ts
     const KEBAB_CASE = /^[a-z][a-z0-9]*(-[a-z0-9]+)*(\.(types|interface))?\.ts$/
     const violations: string[] = []
 
     for (const file of tsFiles) {
       const name = basename(file)
       if (!KEBAB_CASE.test(name)) {
-        violations.push(`[위반] ${relative(SRC_DIR, file)}: '${name}'은 kebab-case가 아닙니다`)
+        violations.push(`[violation] ${relative(SRC_DIR, file)}: '${name}' is not kebab-case`)
       }
     }
 
     if (violations.length > 0) {
-      expect.fail(`파일명 컨벤션 위반 ${violations.length}건:\n\n${violations.join('\n')}`)
+      expect.fail(
+        `File naming convention violations (${violations.length}):\n\n${violations.join('\n')}`
+      )
     }
     expect(violations).toHaveLength(0)
   })
 
-  it('domain 레이어의 모든 소스 파일에 대응하는 테스트 파일이 존재한다', () => {
+  it('every domain layer source file has a corresponding test file', () => {
     const violations: string[] = []
 
     for (const file of tsFiles) {
       if (extractLayer(file) !== 'domain') continue
       const name = basename(file)
-      // types / interface 파일은 테스트 불필요
+      // types / interface files do not require tests
       if (name.endsWith('.types.ts') || name.endsWith('.interface.ts')) continue
 
       const testFile = file.replace(/\.ts$/, '.test.ts')
       if (!existsSync(testFile)) {
-        violations.push(`[위반] ${relative(SRC_DIR, file)}: 대응하는 테스트 파일이 없습니다`)
+        violations.push(`[violation] ${relative(SRC_DIR, file)}: no corresponding test file found`)
       }
     }
 
     if (violations.length > 0) {
-      expect.fail(`테스트 파일 누락 ${violations.length}건:\n\n${violations.join('\n')}`)
+      expect.fail(`Missing test files (${violations.length}):\n\n${violations.join('\n')}`)
     }
     expect(violations).toHaveLength(0)
   })
 
-  it('src 하위에 TypeScript 소스 파일이 존재한다', () => {
+  it('TypeScript source files exist under src', () => {
     const nonTestFiles = tsFiles.filter((f) => !f.includes('tests'))
     expect(nonTestFiles.length).toBeGreaterThan(0)
   })

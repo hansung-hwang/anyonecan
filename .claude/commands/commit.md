@@ -1,76 +1,76 @@
-# /commit — 커밋 자동화
+# /commit — Commit Automation
 
-변경 사항을 분석해 커밋 메시지를 제안하고, 검증 통과 시 커밋합니다.
+Analyzes changes, proposes a commit message, and commits if validation passes.
 
-## 실행 순서
+## Steps
 
-### 1단계: 사전 스캔
+### Step 1: Pre-scan
 
-커밋 전 아래 항목을 grep으로 확인합니다:
+Before committing, grep for the following:
 
 ```bash
-# 테스트 고정(test.only / describe.only) 잔존 여부
+# Check for pinned tests (test.only / describe.only)
 grep -rn "\.only(" src/
 
-# console.log 잔존 여부
+# Check for leftover console.log
 grep -rn "console\.log" src/
 
-# @ts-ignore / @ts-expect-error 잔존 여부
+# Check for @ts-ignore / @ts-expect-error
 grep -rn "@ts-ignore\|@ts-expect-error" src/
 ```
 
-잔존 항목 발견 시 커밋을 **중단**하고 해당 위치를 보고합니다.
+If any are found, **abort** the commit and report the locations.
 
-### 2단계: 검증
+### Step 2: Validate
 
 ```bash
 pnpm typecheck && pnpm lint && pnpm test
 ```
 
-검증 실패 시 커밋을 중단하고 오류 내용을 보고합니다.
+If validation fails, abort the commit and report the errors.
 
-### 3단계: 변경 분석
+### Step 3: Analyze Changes
 
-`git diff --staged` 를 분석해 변경 내용을 파악합니다.
+Analyze `git diff --staged` to understand what changed.
 
-### 4단계: 커밋 메시지 제안
+### Step 4: Propose Commit Message
 
-아래 형식으로 커밋 메시지를 제안합니다:
+Propose a commit message in this format:
 
 ```
-<type>(<scope>): <한국어 설명>
+<type>(<scope>): <English description>
 
-[변경 이유 및 맥락 — 선택]
+[reason and context — optional]
 
-[Closes #이슈번호 — 선택]
+[Closes #issue-number — optional]
 ```
 
-### 5단계: 사용자 확인
+### Step 5: Confirm with User
 
-제안된 메시지를 사용자에게 보여주고 승인 또는 수정 요청을 받습니다.
+Show the proposed message to the user and await approval or revision.
 
-### 6단계: 커밋 실행
+### Step 6: Execute Commit
 
-승인 시:
+On approval:
 
 ```bash
-git commit -m "<승인된 메시지>"
+git commit -m "<approved message>"
 ```
 
-## 커밋 타입 선택 기준
+## Commit Type Guide
 
-| 타입 | 선택 기준 |
-|------|-----------|
-| `feat` | 새 기능, 새 API 엔드포인트, 새 컴포넌트 |
-| `fix` | 버그 수정, 잘못된 동작 교정 |
-| `refactor` | 동작 변화 없는 구조 개선, 이름 변경 |
-| `test` | 테스트 추가/수정 (소스 변경 없음) |
-| `docs` | README, 주석, CLAUDE.md 등 문서 변경 |
-| `chore` | 패키지 업데이트, 설정 파일 변경 |
-| `perf` | 성능 최적화 (알고리즘 개선, 캐싱 등) |
+| Type | When to Use |
+|------|-------------|
+| `feat` | New feature, new API endpoint, new component |
+| `fix` | Bug fix, incorrect behavior correction |
+| `refactor` | Structural improvement without behavior change, rename |
+| `test` | Add/update tests (no source change) |
+| `docs` | README, comments, CLAUDE.md, or other doc changes |
+| `chore` | Package updates, config file changes |
+| `perf` | Performance optimization (algorithm improvement, caching, etc.) |
 
-## 주의사항
+## Notes
 
-- 사전 스캔 + 검증 모두 통과해야만 커밋합니다
-- `--no-verify` 옵션은 사용하지 않습니다
-- staged 파일이 없으면 커밋하지 않고 안내합니다
+- Both pre-scan and validation must pass before committing
+- Do not use `--no-verify`
+- If there are no staged files, do not commit and notify the user

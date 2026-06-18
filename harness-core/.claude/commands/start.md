@@ -1,42 +1,42 @@
-# /start — 세션 시작 루틴
+# /start — Session Start Routine
 
-세션 시작 시 현재 상태를 파악하고 작업 목표를 명확히 합니다.
+Understand the current state and clarify work goals at the start of a session.
 
-## 실행 순서
+## Steps
 
-### 1. 현재 변경 사항 확인
+### 1. Check Current Changes
 
 ```bash
 git status
 ```
 
-스테이징 여부, 미추적 파일, 충돌 여부를 파악합니다.
+Identify staging status, untracked files, and conflicts.
 
-### 2. 최근 커밋 확인
+### 2. Check Recent Commits
 
 ```bash
 git log --oneline -5
 ```
 
-직전 작업 맥락을 파악합니다.
+Understand the context of previous work.
 
-### 3. 프로젝트 문서 읽기
+### 3. Read Project Docs
 
-`CLAUDE.md` (Claude Code) 또는 `AGENTS.md` (다른 AI 도구)를 읽어 현재 규칙과 컨벤션을 확인합니다.
+Read `CLAUDE.md` (Claude Code) or `AGENTS.md` (other AI tools) to review current rules and conventions.
 
-### 4. 현재 상태 요약
+### 4. Summarize Current State
 
-아래 항목을 간결하게 요약합니다:
+Summarize the following concisely:
 
-- **현재 브랜치**: `git branch --show-current`
-- **미커밋 변경 사항**: 있을 경우 파일 목록과 요약
-- **최근 작업 맥락**: 커밋 메시지 기반 추론
-- **진행 중인 작업 목표**: 사용자에게 확인 또는 추론하여 제시
+- **Current branch**: `git branch --show-current`
+- **Uncommitted changes**: list of files and summary, if any
+- **Recent work context**: inferred from commit messages
+- **Current work goal**: confirm with user or infer and present
 
-### 5. 준비 완료 메시지
+### 5. Ready Message
 
-요약 출력 후 아래 메시지로 마무리합니다:
+After the summary, finish with:
 
 ```
-준비 완료. 작업 목표를 알려주세요.
+Ready. What would you like to work on?
 ```

@@ -1,31 +1,31 @@
-# ADR 002 — ESLint + Prettier 툴체인 선택
+# ADR 002 — ESLint + Prettier Toolchain
 
-- **날짜**: 2026-06-17
-- **상태**: Accepted
+- **Date**: 2026-06-17
+- **Status**: Accepted
 
-## 결정
+## Decision
 
-코드 품질 검사는 ESLint(`@typescript-eslint/recommended-requiring-type-checking`),
-포맷팅은 Prettier로 역할을 분리한다.
+Separate responsibilities: ESLint (`@typescript-eslint/recommended-requiring-type-checking`) for code quality checks,
+Prettier for formatting.
 
-PostToolUse Hook(`scripts/lint-format-hook.mjs`)으로 파일 저장 시 자동 실행한다.
+Auto-run on file save via the PostToolUse Hook (`scripts/lint-format-hook.mjs`).
 
-## 이유
+## Rationale
 
-- ESLint와 Prettier의 역할 분리로 각각의 강점만 활용
-- `@typescript-eslint/recommended-requiring-type-checking`으로 타입 기반 린팅 활성화
-  — 타입 정보를 활용한 `no-floating-promises`, `await-thenable` 등 오류 자동 탐지
-- PostToolUse Hook으로 파일 저장 시 자동 포맷 → 수동 포맷 작업 제거
-- ESLint flat config(`eslint.config.js`) 사용으로 v9 호환성 확보
+- Leverages the strengths of ESLint and Prettier in their respective roles
+- `@typescript-eslint/recommended-requiring-type-checking` enables type-aware linting
+  — auto-detects errors like `no-floating-promises` and `await-thenable` using type information
+- PostToolUse Hook auto-formats on save → eliminates manual formatting
+- ESLint flat config (`eslint.config.js`) ensures v9 compatibility
 
-## 결과
+## Consequences
 
-**허용**
-- 특정 줄에 한해 `// eslint-disable-next-line <rule>` (이유 주석 필수)
-- `eslint.config.js`의 `ignores` 배열에 빌드 산출물 추가
+**Allowed**
+- `// eslint-disable-next-line <rule>` for specific lines (reason comment required)
+- Adding build artifacts to the `ignores` array in `eslint.config.js`
 
-**금지**
-- `// eslint-disable` 블록 단위 비활성화
-- 소스 파일을 `ignores`에 추가
-- 직접 수동 포맷팅(Hook이 자동 처리)
-- Prettier 설정(`.prettierrc`) 임의 변경
+**Prohibited**
+- Block-level `// eslint-disable` disabling
+- Adding source files to `ignores`
+- Manual formatting (the hook handles it automatically)
+- Arbitrary changes to Prettier config (`.prettierrc`)

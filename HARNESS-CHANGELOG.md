@@ -1,16 +1,16 @@
 # HARNESS-CHANGELOG
 
-에이전트 실수로 추가된 하네스 규칙 변경 이력입니다.
-실수 발생 시 `/fix` 실행 후 이 파일에 기록합니다.
+History of harness rule changes added due to agent mistakes.
+Run `/fix` when a mistake occurs, then record it in this file.
 
-## 기록 형식
+## Format
 
-| 날짜 | 발생한 실수 | 추가된 규칙 | 위치 |
-|------|------------|-------------|------|
-| yyyy-mm-dd | 어떤 실수였나 | 어떤 규칙을 추가했나 | `eslint.config.js` / `CLAUDE.md` / `docs/adr/NNN` |
+| Date | Mistake | Rule Added | Location |
+|------|---------|------------|----------|
+| yyyy-mm-dd | What the mistake was | What rule was added | `eslint.config.js` / `CLAUDE.md` / `docs/adr/NNN` |
 
 ---
 
-| 날짜 | 발생한 실수 | 추가된 규칙 | 위치 |
-|------|------------|-------------|------|
-| 2026-06-17 | (초기 감사) `npm test` 훅, bare-module 허용 버그 | 전체 초기 하네스 강화 일괄 적용 | 전체 |
+| Date | Mistake | Rule Added | Location |
+|------|---------|------------|----------|
+| 2026-06-17 | (initial audit) `npm test` hook, bare-module allowlist bug | Full initial harness hardening applied in bulk | entire repo |

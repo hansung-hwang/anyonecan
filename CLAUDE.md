@@ -1,42 +1,42 @@
 # CLAUDE.md
 
-> **⚠ 이 파일은 프레임워크 자체 개발용입니다.**
-> 새 프로젝트를 만들려면 `setup.ps1` (Windows) 또는 `./setup.sh` (Mac/Linux) 실행 후,
-> 생성된 프로젝트 디렉터리에서 AI 도구를 실행하세요.
+> **⚠ This file is for framework development only.**
+> To create a new project, run `setup.ps1` (Windows) or `./setup.sh` (Mac/Linux),
+> then run the AI tool from the generated project directory.
 >
-> Claude Code 전용 설정 파일입니다. 다른 AI 도구는 `AGENTS.md`를 참조하세요.
-> 상세 가이드: `docs/how-to/` | 아키텍처 결정: `docs/adr/`
+> This is a Claude Code-only configuration file. For other AI tools, see `AGENTS.md`.
+> Detailed guides: `docs/how-to/` | Architecture decisions: `docs/adr/`
 
-## 세션 시작
+## Session Start
 
-새 세션마다 `/start` 실행 — git 상태·최근 커밋·현재 목표를 요약합니다.
+Run `/start` at the beginning of each session — summarizes git status, recent commits, and current goals.
 
-## 아키텍처
+## Architecture
 
-레이어 의존성 (단방향): `domain` ← `application` ← `infrastructure` ← `presentation`
-`src/domain`은 외부 라이브러리 import 금지. (→ `docs/adr/001`)
+Layer dependency (unidirectional): `domain` ← `application` ← `infrastructure` ← `presentation`
+`src/domain` must not import external libraries. (→ `docs/adr/001`)
 
-## 코딩 규칙
+## Coding Rules
 
-- `any` 금지 → `unknown` + 타입 가드
-- 모든 함수에 반환 타입 명시 (`explicit-function-return-type`)
-- `as` 단언은 불가피한 경우에만, 한국어 주석으로 이유 설명
-- 파일명: `kebab-case.ts` / `.test.ts` / `.types.ts` / `.interface.ts`
-- 주석: 한국어, WHY만 작성 (WHAT은 코드가 설명)
+- No `any` → use `unknown` + type guards
+- Explicit return type on every function (`explicit-function-return-type`)
+- `as` assertions only when unavoidable; explain the reason in a comment
+- File names: `kebab-case.ts` / `.test.ts` / `.types.ts` / `.interface.ts`
+- Comments: English, WHY only (WHAT is explained by the code)
 
-## 금지사항
+## Prohibited
 
-`any` · `@ts-ignore` · `@ts-nocheck` · `@ts-expect-error` · `console.log` · `eslint-disable` 남발 · `.env` 직접 수정 · 테스트 없는 PR
+`any` · `@ts-ignore` · `@ts-nocheck` · `@ts-expect-error` · `console.log` · excessive `eslint-disable` · direct `.env` edits · PRs without tests
 
-## 검증
+## Validation
 
 ```bash
 pnpm validate   # typecheck + lint + test
 ```
 
-## 스티어링 루프
+## Steering Loop
 
-실수 발생 시 `/fix` 실행 →
-- 린터로 막을 수 있으면 `eslint.config.js`에 규칙 추가
-- 습관/패턴 문제면 이 파일(CLAUDE.md)과 `AGENTS.md`에 추가 (두 파일 동기화)
-- 아키텍처 결정이면 `docs/adr/`에 신규 ADR 작성
+On a mistake, run `/fix` →
+- If a linter rule can catch it, add a rule to `eslint.config.js`
+- If it's a habit/pattern issue, add it to this file (CLAUDE.md) and `AGENTS.md` (keep both in sync)
+- If it's an architecture decision, write a new ADR in `docs/adr/`

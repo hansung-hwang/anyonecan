@@ -1,24 +1,24 @@
-# ADR 001 — Clean Architecture 레이어 의존성
+# ADR 001 — Clean Architecture Layer Dependencies
 
-- **날짜**: {{DATE}}
-- **상태**: Accepted
+- **Date**: {{DATE}}
+- **Status**: Accepted
 
-## 결정
+## Decision
 
-`domain` ← `application` ← `infrastructure` ← `presentation` 단방향 의존성을 강제한다.
-아키텍처 테스트(`src/tests/arch/` 또는 `tests/arch/`)로 이를 자동 감시한다.
+Enforce unidirectional dependency: `domain` ← `application` ← `infrastructure` ← `presentation`.
+Automatically monitor this with architecture tests (`src/tests/arch/` or `tests/arch/`).
 
-## 이유
+## Rationale
 
-- `domain` 레이어를 외부 라이브러리와 분리해 변경에 강한 비즈니스 로직 구성
-- 레이어 경계를 자동화 테스트로 감시해 회귀 방지
-- 의존성 방향이 명확하면 코드 리뷰 시 구조적 논의 최소화
+- Isolates the `domain` layer from external libraries, making business logic resilient to change
+- Architecture tests automatically catch regressions at the layer boundary
+- Clear dependency direction minimizes structural discussion during code reviews
 
-## 결과
+## Consequences
 
-**허용**
-- `domain`에서 표준 라이브러리 사용 (예: `java.util`, `os`, Node.js `path`)
+**Allowed**
+- Standard library usage in `domain` (e.g., `java.util`, `os`, Node.js `path`)
 
-**금지**
-- `domain`에서 외부 라이브러리 직접 import
-- 하위 레이어(`domain`)에서 상위 레이어(`application` 이상) import
+**Prohibited**
+- Direct external library imports in `domain`
+- Importing from a higher layer (`application` or above) in a lower layer (`domain`)

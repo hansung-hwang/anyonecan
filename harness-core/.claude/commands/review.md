@@ -1,44 +1,44 @@
-# /review — 코드 리뷰
+# /review — Code Review
 
-현재 변경된 코드를 아래 기준으로 검토합니다.
+Review the currently changed code against the following criteria.
 
-## 검토 항목
+## Review Checklist
 
-### 1. 타입 안전성
-- 동적 타입·any 사용 여부 (언어별: TypeScript의 `any`, Python의 `Any`, Java의 raw type)
-- 반환 타입 명시 여부
-- null/undefined/None 처리 누락 여부
+### 1. Type Safety
+- Dynamic types / `any` usage (TypeScript `any`, Python `Any`, Java raw types)
+- Missing explicit return types
+- Missing null/undefined/None handling
 
-### 2. 아키텍처 원칙
-- 레이어 의존성 방향 준수 여부 (`domain` ← `application` ← `infrastructure` ← `presentation`)
-- `domain` 레이어에서 외부 라이브러리 import 여부
-- 단일 책임 원칙 준수 여부
+### 2. Architecture Principles
+- Layer dependency direction (`domain` ← `application` ← `infrastructure` ← `presentation`)
+- External library imports inside `domain` layer
+- Single responsibility principle
 
-### 3. 엣지 케이스
-- null/None/Optional 처리 누락 여부
-- 비동기 오류 처리 여부
-- 입력값 검증 로직 존재 여부
+### 3. Edge Cases
+- Missing null/None/Optional handling
+- Missing async error handling
+- Missing input validation logic
 
-### 4. 테스트 충분성
-- 핵심 비즈니스 로직에 단위 테스트 존재 여부
-- 정상 케이스와 예외 케이스 모두 커버 여부
-- 테스트가 구현 세부사항 대신 동작을 검증하는지 여부
+### 4. Test Coverage
+- Unit tests for core business logic
+- Both happy path and edge cases covered
+- Tests verify behavior, not implementation details
 
-## 출력 형식
+## Output Format
 
 ```
-## 리뷰 결과
+## Review Results
 
-### 🔴 필수 수정 (블로커)
-- [ ] `파일:줄` — 문제 설명
+### 🔴 Must Fix (blockers)
+- [ ] `file:line` — description of issue
 
-### 🟡 권장 수정
-- [ ] `파일:줄` — 개선 제안
+### 🟡 Recommended Fix
+- [ ] `file:line` — improvement suggestion
 
-### 🟢 테스트 보완 필요
-- [ ] `파일` — 누락된 케이스
+### 🟢 Tests Needed
+- [ ] `file` — missing test case
 
-### ✅ 통과
+### ✅ Passed
 ```
 
-문제가 없으면 `✅ 모든 검토 항목 통과`를 출력합니다.
+If there are no issues, output `✅ All review items passed`.

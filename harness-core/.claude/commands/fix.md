@@ -1,44 +1,44 @@
-# /fix — 실수 스티어링 루프
+# /fix — Mistake Steering Loop
 
-에이전트 실수 발생 시 해당 실수가 재발하지 않도록 하네스를 강화합니다.
+When an agent mistake occurs, harden the harness so the same mistake does not recur.
 
-## 실행 순서
+## Steps
 
-### 1. 실수 분석
+### 1. Analyze the Mistake
 
-- 어떤 파일, 어떤 줄에서 발생했나
-- 실수의 근본 원인은 무엇인가
-- 어떤 규칙이 있었다면 자동으로 막을 수 있었나
+- Which file and line did it occur in?
+- What is the root cause?
+- What rule, if it existed, would have caught it automatically?
 
-### 2. 규칙 추가 경로 결정
+### 2. Decide Where to Add the Rule
 
-| 실수 유형 | 추가 위치 |
-|-----------|-----------|
-| 린터로 자동 감지 가능한 코드 패턴 | 린터 설정 파일 규칙 추가 |
-| 코드 습관·네이밍·주석 문제 | `CLAUDE.md` + `AGENTS.md` 동기화하여 추가 |
-| 아키텍처·설계 결정 사항 | `docs/adr/NNN-<제목>.md` 신규 ADR 작성 |
+| Mistake Type | Where to Add |
+|---|---|
+| Code pattern detectable by linter | Add rule to linter config file |
+| Code habit, naming, or comment issue | Sync addition to `CLAUDE.md` + `AGENTS.md` |
+| Architecture or design decision | Write new ADR at `docs/adr/NNN-<title>.md` |
 
-### 3. 규칙 적용
+### 3. Apply the Rule
 
-결정된 위치에 규칙을 추가합니다.
+Add the rule to the decided location.
 
-### 4. 검증
+### 4. Validate
 
 ```bash
 ./scripts/validate.sh
 ```
 
-### 5. HARNESS-CHANGELOG.md 기록
+### 5. Record in HARNESS-CHANGELOG.md
 
-`HARNESS-CHANGELOG.md`에 아래 형식으로 행을 추가합니다:
+Add a row to `HARNESS-CHANGELOG.md` in this format:
 
-| 오늘날짜 | 발생한 실수 요약 | 추가된 규칙 | 위치 |
-|----------|----------------|-------------|------|
+| Today's date | Summary of mistake | Rule added | Location |
+|---|---|---|---|
 
-### 6. 규칙 요약 출력
+### 6. Output Rule Summary
 
 ```
-## 추가된 규칙
-- [위치]: [규칙 내용]
-- 재발 방지 근거: [왜 이 규칙이 해당 실수를 막는지]
+## Rules Added
+- [location]: [rule content]
+- Recurrence prevention rationale: [why this rule prevents the mistake]
 ```

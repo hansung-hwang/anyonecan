@@ -1,50 +1,50 @@
-# /adr — ADR 생성
+# /adr — ADR Creation
 
-새로운 아키텍처 결정 기록(ADR)을 `docs/adr/` 에 작성합니다.
+Write a new Architecture Decision Record (ADR) in `docs/adr/`.
 
-## 실행 순서
+## Steps
 
-### 1. 기존 ADR 번호 확인
+### 1. Check Existing ADR Numbers
 
 ```bash
 ls docs/adr/
 ```
 
-다음 번호(NNN)를 결정합니다.
+Determine the next number (NNN).
 
-### 2. ADR 파일 생성
+### 2. Create the ADR File
 
-`docs/adr/NNN-<kebab-case-제목>.md` 파일을 아래 형식으로 작성합니다:
+Write `docs/adr/NNN-<kebab-case-title>.md` in this format:
 
 ```markdown
-# ADR NNN — <결정 제목>
+# ADR NNN — <Decision Title>
 
-- **날짜**: YYYY-MM-DD
-- **상태**: Accepted | Deprecated | Superseded by ADR NNN
+- **Date**: YYYY-MM-DD
+- **Status**: Accepted | Deprecated | Superseded by ADR NNN
 
-## 배경
+## Background
 
-왜 이 결정이 필요했는가.
+Why this decision was needed.
 
-## 결정
+## Decision
 
-무엇을 하기로 했는가.
+What was decided.
 
-## 이유
+## Rationale
 
-왜 이 선택이 대안보다 나은가.
+Why this choice is better than the alternatives.
 
-## 결과
+## Consequences
 
-- 긍정: ...
-- 부정(트레이드오프): ...
-- 금지사항: ...
+- Positive: ...
+- Negative (trade-offs): ...
+- Prohibited: ...
 ```
 
-### 3. CLAUDE.md 참조 추가
+### 3. Add Reference to CLAUDE.md
 
-관련 제약사항이 있으면 `CLAUDE.md` 아키텍처 섹션에 `(→ docs/adr/NNN)` 링크를 추가합니다.
+If there are related constraints, add a `(→ docs/adr/NNN)` link to the architecture section of `CLAUDE.md`.
 
-### 4. 완료 확인
+### 4. Confirm Completion
 
-생성한 ADR 경로와 핵심 결정 내용을 한 줄로 요약합니다.
+Summarize the created ADR path and the key decision in one line.

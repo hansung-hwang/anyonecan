@@ -1,40 +1,40 @@
 # CLAUDE.md — {{PROJECT_NAME}}
 
-> **프로젝트**: {{PROJECT_DESCRIPTION}}
-> **언어**: {{LANGUAGE_DISPLAY}}
-> **작성자**: {{AUTHOR}} | **생성일**: {{DATE}}
+> **Project**: {{PROJECT_DESCRIPTION}}
+> **Language**: {{LANGUAGE_DISPLAY}}
+> **Author**: {{AUTHOR}} | **Created**: {{DATE}}
 >
-> Claude Code 전용 설정 파일입니다. 다른 AI 도구는 `AGENTS.md`를 참조하세요.
-> 상세 가이드: `docs/how-to/` | 아키텍처 결정: `docs/adr/`
+> This is a Claude Code-only configuration file. For other AI tools, see `AGENTS.md`.
+> Detailed guides: `docs/how-to/` | Architecture decisions: `docs/adr/`
 
-## 세션 시작
+## Session Start
 
-새 세션마다 `/start` 실행 — git 상태·최근 커밋·현재 목표를 요약합니다.
+Run `/start` at the beginning of each session — summarizes git status, recent commits, and current goals.
 
-## 아키텍처
+## Architecture
 
-레이어 의존성 (단방향): `domain` ← `application` ← `infrastructure` ← `presentation`
-`domain` 레이어는 외부 라이브러리 의존 금지. (→ `docs/adr/001`)
+Layer dependency (unidirectional): `domain` ← `application` ← `infrastructure` ← `presentation`
+`domain` layer must not depend on external libraries. (→ `docs/adr/001`)
 
-## 코딩 규칙
+## Coding Rules
 
 {{LANGUAGE_RULES}}
 
-- 주석: 한국어, WHY만 작성 (WHAT은 코드가 설명)
+- Comments: English, WHY only (WHAT is explained by the code)
 
-## 금지사항
+## Prohibited
 
-{{BANNED_ITEMS}} · `.env` 직접 수정 · 테스트 없는 PR
+{{BANNED_ITEMS}} · direct `.env` edits · PRs without tests
 
-## 검증
+## Validation
 
 ```bash
 ./scripts/validate.sh
 ```
 
-## 스티어링 루프
+## Steering Loop
 
-실수 발생 시 `/fix` 실행 →
-- 린터로 막을 수 있으면 린터 설정 파일에 규칙 추가
-- 습관/패턴 문제면 이 파일(CLAUDE.md)과 `AGENTS.md`에 추가 (두 파일 동기화)
-- 아키텍처 결정이면 `docs/adr/`에 신규 ADR 작성
+On a mistake, run `/fix` →
+- If a linter rule can catch it, add a rule to the linter config file
+- If it's a habit/pattern issue, add it to this file (CLAUDE.md) and `AGENTS.md` (keep both in sync)
+- If it's an architecture decision, write a new ADR in `docs/adr/`

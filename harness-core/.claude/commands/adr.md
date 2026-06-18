@@ -1,40 +1,40 @@
-# /adr — ADR 생성
+# /adr — ADR Creation
 
-새로운 아키텍처 결정 기록(ADR)을 `docs/adr/`에 작성합니다.
+Write a new Architecture Decision Record (ADR) in `docs/adr/`.
 
-## 실행 순서
+## Steps
 
-### 1. 기존 ADR 번호 확인
+### 1. Check Existing ADR Numbers
 
 ```bash
 ls docs/adr/
 ```
 
-### 2. ADR 파일 생성
+### 2. Create the ADR File
 
-`docs/adr/NNN-<kebab-case-제목>.md`:
+`docs/adr/NNN-<kebab-case-title>.md`:
 
 ```markdown
-# ADR NNN — <결정 제목>
+# ADR NNN — <Decision Title>
 
-- **날짜**: YYYY-MM-DD
-- **상태**: Accepted
+- **Date**: YYYY-MM-DD
+- **Status**: Accepted
 
-## 배경
-왜 이 결정이 필요했는가.
+## Background
+Why this decision was needed.
 
-## 결정
-무엇을 하기로 했는가.
+## Decision
+What was decided.
 
-## 이유
-왜 이 선택이 대안보다 나은가.
+## Rationale
+Why this choice is better than the alternatives.
 
-## 결과
-- 긍정: ...
-- 부정(트레이드오프): ...
-- 금지사항: ...
+## Consequences
+- Positive: ...
+- Negative (trade-offs): ...
+- Prohibited: ...
 ```
 
-### 3. CLAUDE.md 참조 추가
+### 3. Add Reference to CLAUDE.md
 
-관련 제약사항이 있으면 `CLAUDE.md` 및 `AGENTS.md` 아키텍처 섹션에 `(→ docs/adr/NNN)` 링크를 추가합니다.
+If there are related constraints, add a `(→ docs/adr/NNN)` link to the architecture section of `CLAUDE.md` and `AGENTS.md`.

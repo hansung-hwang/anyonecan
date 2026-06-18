@@ -1,10 +1,10 @@
 # HARNESS-CHANGELOG
 
-에이전트 실수로 추가된 하네스 규칙 변경 이력입니다.
-실수 발생 시 `/fix` 실행 후 이 파일에 기록합니다.
+History of harness rule changes added due to agent mistakes.
+Run `/fix` when a mistake occurs, then record it in this file.
 
-## 기록 형식
+## Format
 
-| 날짜 | 발생한 실수 | 추가된 규칙 | 위치 |
-|------|------------|-------------|------|
-| yyyy-mm-dd | 어떤 실수였나 | 어떤 규칙을 추가했나 | 린터 설정 / CLAUDE.md + AGENTS.md / docs/adr/NNN |
+| Date | Mistake | Rule Added | Location |
+|------|---------|------------|----------|
+| yyyy-mm-dd | What the mistake was | What rule was added | linter config / CLAUDE.md + AGENTS.md / docs/adr/NNN |

@@ -1,6 +1,6 @@
 import type { CreateUserInput, User, UserId } from './user.types'
 
-// RFC 5322 간소화 버전 — 서버 측 정밀 검증과 병행 사용 전제
+// Simplified RFC 5322 — intended to run alongside server-side precision validation
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
 export class ValidationError extends Error {
@@ -12,14 +12,14 @@ export class ValidationError extends Error {
 
 export function validateEmail(email: string): void {
   if (!EMAIL_REGEX.test(email)) {
-    throw new ValidationError(`유효하지 않은 이메일 형식: ${email}`)
+    throw new ValidationError(`Invalid email format: ${email}`)
   }
 }
 
 export function validateName(name: string): void {
   const trimmed = name.trim()
-  if (trimmed.length === 0) throw new ValidationError('이름은 빈 값일 수 없습니다')
-  if (trimmed.length > 100) throw new ValidationError('이름은 100자를 초과할 수 없습니다')
+  if (trimmed.length === 0) throw new ValidationError('Name cannot be empty')
+  if (trimmed.length > 100) throw new ValidationError('Name cannot exceed 100 characters')
 }
 
 export function createUser(id: UserId, input: CreateUserInput): User {
