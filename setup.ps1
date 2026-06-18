@@ -39,10 +39,10 @@ Write-Host "  2. Python"
 Write-Host "  3. Java"
 $LangChoice = Read-Host "Enter number"
 
-$Language = switch ($LangChoice) {
-    "2" { "python" }
-    "3" { "java" }
-    default { "typescript" }
+$Language = switch ($LangChoice.Trim().ToLower()) {
+    { $_ -in "2", "python" }     { "python" }
+    { $_ -in "3", "java" }       { "java" }
+    default                       { "typescript" }
 }
 $LanguageDisplay = switch ($Language) {
     "python" { "Python" }
@@ -64,6 +64,7 @@ if ([string]::IsNullOrWhiteSpace($OutputDir)) {
 
 $Today = Get-Date -Format "yyyy-MM-dd"
 $ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
+$utf8NoBom = New-Object System.Text.UTF8Encoding $false  # WriteAllText with Encoding.UTF8 emits a BOM; JSON.parse rejects it
 $HarnessCoreDir = Join-Path $ScriptDir "harness-core"
 $LangPackDir    = Join-Path $ScriptDir "language-packs\$Language"
 
@@ -87,6 +88,7 @@ if ($Confirm -notmatch '^[yY]') { Write-Host "Cancelled." -ForegroundColor Yello
 # ── 1. Copy harness-core ────────────────────────────────────────────────────────
 Write-Step "Copying harness-core..."
 New-Item -ItemType Directory -Force -Path $OutputDir | Out-Null
+$OutputDir = (Resolve-Path $OutputDir).Path  # prevent .NET APIs from resolving relative paths against a different working directory than PowerShell
 foreach ($item in Get-ChildItem -Path $HarnessCoreDir -Force) {
     Copy-Item -Path $item.FullName -Destination $OutputDir -Recurse -Force
 }
@@ -139,7 +141,7 @@ foreach ($relPath in $langFiles) {
     $fc = $fc.Replace('{{LANGUAGE_RULES}}', $LanguageRules)
     $fc = $fc.Replace('{{BANNED_ITEMS}}', $BannedItems)
     $fc = $fc.Replace('{{LANGUAGE_DISPLAY}}', $LanguageDisplay)
-    [System.IO.File]::WriteAllText($fp, $fc, [System.Text.Encoding]::UTF8)
+    [System.IO.File]::WriteAllText($fp, $fc, $utf8NoBom)
 }
 Write-Ok "Language-specific rules applied"
 
@@ -167,7 +169,7 @@ Get-ChildItem -Path $OutputDir -Recurse -File -Force |
         foreach ($key in $replacements.Keys) {
             if ($fc.Contains($key)) { $fc = $fc.Replace($key, $replacements[$key]); $modified = $true }
         }
-        if ($modified) { [System.IO.File]::WriteAllText($fp, $fc, [System.Text.Encoding]::UTF8) }
+        if ($modified) { [System.IO.File]::WriteAllText($fp, $fc, $utf8NoBom) }
     }
 
 Write-Ok "Placeholders substituted"
@@ -180,13 +182,13 @@ if ($Language -eq "java") {
     foreach ($layer in @("domain", "application", "infrastructure", "presentation")) {
         New-Item -ItemType Directory -Force -Path "$JavaSrcRoot\$layer" | Out-Null
         $pkgInfo = "/** $layer layer */`npackage $BasePackage.$layer;`n"
-        [System.IO.File]::WriteAllText("$JavaSrcRoot\$layer\package-info.java", $pkgInfo, [System.Text.Encoding]::UTF8)
+        [System.IO.File]::WriteAllText("$JavaSrcRoot\$layer\package-info.java", $pkgInfo, $utf8NoBom)
     }
     $archTestPath = Join-Path $OutputDir "src\test\java\arch\DependencyTest.java"
     if (Test-Path $archTestPath) {
         $atContent = [System.IO.File]::ReadAllText($archTestPath, [System.Text.Encoding]::UTF8)
         $atContent = $atContent.Replace('{{BASE_PACKAGE}}', $BasePackage)
-        [System.IO.File]::WriteAllText($archTestPath, $atContent, [System.Text.Encoding]::UTF8)
+        [System.IO.File]::WriteAllText($archTestPath, $atContent, $utf8NoBom)
     }
     Write-Ok "Java package structure created ($BasePackage)"
 }
