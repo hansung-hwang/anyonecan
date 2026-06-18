@@ -128,12 +128,15 @@ banned = {
     "java":       "`null` 반환 · raw type 사용 · `System.out.println` · `@SuppressWarnings` 남발",
 }
 
-p = output / "CLAUDE.md"
-content = p.read_text(encoding="utf-8")
-content = content.replace("{{LANGUAGE_RULES}}", rules[lang])
-content = content.replace("{{BANNED_ITEMS}}", banned[lang])
-content = content.replace("{{LANGUAGE_DISPLAY}}", display)
-p.write_text(content, encoding="utf-8")
+for rel in ["CLAUDE.md", "AGENTS.md", ".cursorrules", ".windsurfrules", ".cursor/rules/harness.mdc"]:
+    p = output / rel
+    if not p.exists():
+        continue
+    content = p.read_text(encoding="utf-8")
+    content = content.replace("{{LANGUAGE_RULES}}", rules[lang])
+    content = content.replace("{{BANNED_ITEMS}}", banned[lang])
+    content = content.replace("{{LANGUAGE_DISPLAY}}", display)
+    p.write_text(content, encoding="utf-8")
 PYEOF
 
 ok "언어별 규칙 적용 완료"

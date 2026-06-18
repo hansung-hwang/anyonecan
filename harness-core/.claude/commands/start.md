@@ -22,7 +22,7 @@ git log --oneline -5
 
 ### 3. 프로젝트 문서 읽기
 
-`CLAUDE.md`를 읽어 현재 규칙과 컨벤션을 확인합니다.
+`CLAUDE.md` (Claude Code) 또는 `AGENTS.md` (다른 AI 도구)를 읽어 현재 규칙과 컨벤션을 확인합니다.
 
 ### 4. 현재 상태 요약
 

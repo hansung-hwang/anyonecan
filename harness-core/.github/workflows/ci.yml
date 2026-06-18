@@ -9,11 +9,8 @@ on:
 jobs:
   validate:
     runs-on: ubuntu-latest
+    # language-pack의 ci.yml이 이 파일을 덮어씁니다. 이 파일은 언어팩 없이 직접 사용하는 경우의 최소 폴백입니다.
     steps:
       - uses: actions/checkout@v4
-
-      - name: Setup (언어별 환경은 language-pack의 ci-setup.yml 참고)
-        run: echo "CI setup defined by language pack"
-
       - name: Validate
         run: bash scripts/validate.sh

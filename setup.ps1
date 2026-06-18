@@ -131,12 +131,16 @@ $BannedItems = switch ($Language) {
     "java"       { '`null` 반환 · raw type 사용 · `System.out.println` · `@SuppressWarnings` 남발' }
 }
 
-$claudePath = Join-Path $OutputDir "CLAUDE.md"
-$claudeContent = [System.IO.File]::ReadAllText($claudePath, [System.Text.Encoding]::UTF8)
-$claudeContent = $claudeContent.Replace('{{LANGUAGE_RULES}}', $LanguageRules)
-$claudeContent = $claudeContent.Replace('{{BANNED_ITEMS}}', $BannedItems)
-$claudeContent = $claudeContent.Replace('{{LANGUAGE_DISPLAY}}', $LanguageDisplay)
-[System.IO.File]::WriteAllText($claudePath, $claudeContent, [System.Text.Encoding]::UTF8)
+$langFiles = @("CLAUDE.md", "AGENTS.md", ".cursorrules", ".windsurfrules", ".cursor\rules\harness.mdc")
+foreach ($relPath in $langFiles) {
+    $fp = Join-Path $OutputDir $relPath
+    if (-not (Test-Path $fp)) { continue }
+    $fc = [System.IO.File]::ReadAllText($fp, [System.Text.Encoding]::UTF8)
+    $fc = $fc.Replace('{{LANGUAGE_RULES}}', $LanguageRules)
+    $fc = $fc.Replace('{{BANNED_ITEMS}}', $BannedItems)
+    $fc = $fc.Replace('{{LANGUAGE_DISPLAY}}', $LanguageDisplay)
+    [System.IO.File]::WriteAllText($fp, $fc, [System.Text.Encoding]::UTF8)
+}
 Write-Ok "언어별 규칙 적용 완료"
 
 # ── 4. 표준 플레이스홀더 치환 ───────────────────────────────────────────────────

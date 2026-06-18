@@ -37,4 +37,4 @@ ls docs/adr/
 
 ### 3. CLAUDE.md 참조 추가
 
-관련 제약사항이 있으면 `CLAUDE.md` 아키텍처 섹션에 `(→ docs/adr/NNN)` 링크를 추가합니다.
+관련 제약사항이 있으면 `CLAUDE.md` 및 `AGENTS.md` 아키텍처 섹션에 `(→ docs/adr/NNN)` 링크를 추가합니다.

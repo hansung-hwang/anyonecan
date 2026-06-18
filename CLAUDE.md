@@ -1,5 +1,6 @@
 # CLAUDE.md
 
+> Claude Code 전용 설정 파일입니다. 다른 AI 도구는 `AGENTS.md`를 참조하세요.
 > 상세 가이드: `docs/how-to/` | 아키텍처 결정: `docs/adr/`
 
 ## 세션 시작
@@ -33,5 +34,5 @@ pnpm validate   # typecheck + lint + test
 
 실수 발생 시 `/fix` 실행 →
 - 린터로 막을 수 있으면 `eslint.config.js`에 규칙 추가
-- 습관/패턴 문제면 이 파일(CLAUDE.md)에 추가
+- 습관/패턴 문제면 이 파일(CLAUDE.md)과 `AGENTS.md`에 추가 (두 파일 동기화)
 - 아키텍처 결정이면 `docs/adr/`에 신규 ADR 작성
