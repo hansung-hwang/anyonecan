@@ -142,10 +142,11 @@ ok "언어별 규칙 적용 완료"
 step "플레이스홀더 치환 중..."
 
 find "$OUTPUT_DIR" -type f \( \
-    -name "*.md" -o -name "*.json" -o -name "*.ts" -o -name "*.tsx" \
-    -o -name "*.js"  -o -name "*.mjs" -o -name "*.sh" \
-    -o -name "*.yaml" -o -name "*.yml" -o -name "*.toml" \
-    -o -name "*.xml"  -o -name "*.java" \
+    -name "*.md" -o -name "*.mdc" -o -name "*.json" \
+    -o -name "*.ts" -o -name "*.tsx" -o -name "*.js" -o -name "*.mjs" \
+    -o -name "*.sh" -o -name "*.yaml" -o -name "*.yml" \
+    -o -name "*.toml" -o -name "*.xml" -o -name "*.java" \
+    -o -name ".cursorrules" -o -name ".windsurfrules" \
 \) ! -path "*/node_modules/*" ! -path "*/target/*" | while IFS= read -r file; do
     perl -pi \
         -e "s|\{\{PROJECT_NAME\}\}|$PROJECT_NAME|g" \

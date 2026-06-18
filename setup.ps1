@@ -149,10 +149,11 @@ $replacements = [ordered]@{
     "{{DATE}}"                = $Today
 }
 
-$targetExts = @(".md", ".json", ".ts", ".tsx", ".js", ".mjs", ".sh", ".yaml", ".yml", ".toml", ".xml", ".java")
+$targetExts  = @(".md", ".mdc", ".json", ".ts", ".tsx", ".js", ".mjs", ".sh", ".yaml", ".yml", ".toml", ".xml", ".java")
+$targetNames = @("AGENTS.md", "CLAUDE.md", ".cursorrules", ".windsurfrules")
 
 Get-ChildItem -Path $OutputDir -Recurse -File -Force |
-    Where-Object { $targetExts -contains $_.Extension } |
+    Where-Object { $targetExts -contains $_.Extension -or $targetNames -contains $_.Name } |
     Where-Object { $_.FullName -notlike "*\node_modules\*" -and $_.FullName -notlike "*\target\*" } |
     ForEach-Object {
         $fp = $_.FullName

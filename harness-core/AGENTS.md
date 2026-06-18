@@ -1,37 +1,40 @@
-# AGENTS.md — anyonecan (하네스 엔지니어링 프레임워크)
+# AGENTS.md — {{PROJECT_NAME}}
 
-> **언어**: TypeScript
+> **프로젝트**: {{PROJECT_DESCRIPTION}}
+> **언어**: {{LANGUAGE_DISPLAY}}
+> **작성자**: {{AUTHOR}} | **생성일**: {{DATE}}
+>
 > 이 파일은 **모든 AI 코딩 도구**에서 읽힙니다 (Claude Code, Cursor, Windsurf, Codex 등).
-> Claude Code 사용 시 `CLAUDE.md`의 슬래시 커맨드도 함께 사용할 수 있습니다.
+> 상세 가이드: `docs/how-to/` | 아키텍처 결정: `docs/adr/`
 
 ## 아키텍처
 
 레이어 의존성 (단방향): `domain` ← `application` ← `infrastructure` ← `presentation`
-`src/domain`은 외부 라이브러리 import 금지. (→ `docs/adr/001`)
+`domain` 레이어는 외부 라이브러리 의존 금지. (→ `docs/adr/001`)
 
 ## 코딩 규칙
 
-- `any` 금지 → `unknown` + 타입 가드
-- 모든 함수에 반환 타입 명시 (`explicit-function-return-type`)
-- `as` 단언은 불가피한 경우에만, 한국어 주석으로 이유 설명
-- 파일명: `kebab-case.ts` / `.test.ts` / `.types.ts` / `.interface.ts`
+{{LANGUAGE_RULES}}
+
 - 주석: 한국어, WHY만 작성 (WHAT은 코드가 설명)
 
 ## 금지사항
 
-`any` · `@ts-ignore` · `@ts-nocheck` · `@ts-expect-error` · `console.log` · `eslint-disable` 남발 · `.env` 직접 수정 · 테스트 없는 PR
+{{BANNED_ITEMS}} · `.env` 직접 수정 · 테스트 없는 PR
 
 ## 검증
 
+코드 수정 후 항상 실행:
+
 ```bash
-pnpm validate   # typecheck + lint + test
+./scripts/validate.sh
 ```
 
 ## 스티어링 루프
 
 실수 발생 시:
-1. `pnpm validate`로 오류 확인
-2. 린터로 막을 수 있으면 `eslint.config.js`에 규칙 추가
+1. `./scripts/validate.sh`로 오류 확인
+2. 린터로 막을 수 있으면 린터 설정 파일에 규칙 추가
 3. 습관/패턴 문제면 이 파일(AGENTS.md)과 `CLAUDE.md`에 추가 (두 파일 동기화)
 4. 아키텍처 결정이면 `docs/adr/`에 신규 ADR 작성
 5. `HARNESS-CHANGELOG.md`에 변경 내용 기록

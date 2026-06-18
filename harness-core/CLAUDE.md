@@ -4,6 +4,7 @@
 > **언어**: {{LANGUAGE_DISPLAY}}
 > **작성자**: {{AUTHOR}} | **생성일**: {{DATE}}
 >
+> Claude Code 전용 설정 파일입니다. 다른 AI 도구는 `AGENTS.md`를 참조하세요.
 > 상세 가이드: `docs/how-to/` | 아키텍처 결정: `docs/adr/`
 
 ## 세션 시작

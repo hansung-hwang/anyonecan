@@ -1,0 +1,31 @@
+# anyonecan (하네스 엔지니어링 프레임워크) — 코딩 규칙 (TypeScript)
+#
+# 이 파일은 Windsurf AI에서 읽힙니다.
+# 동일한 규칙이 AGENTS.md에도 있습니다.
+
+## 아키텍처
+
+레이어 의존성 (단방향): domain ← application ← infrastructure ← presentation
+src/domain은 외부 라이브러리 import 금지.
+
+## 코딩 규칙
+
+- any 금지 → unknown + 타입 가드
+- 모든 함수에 반환 타입 명시 (explicit-function-return-type)
+- as 단언은 불가피한 경우에만, 한국어 주석으로 이유 설명
+- 파일명: kebab-case.ts / .test.ts / .types.ts / .interface.ts
+- 주석: 한국어, WHY만 작성 (WHAT은 코드가 설명)
+
+## 금지사항
+
+any · @ts-ignore · @ts-nocheck · @ts-expect-error · console.log · eslint-disable 남발 · .env 직접 수정 · 테스트 없는 PR
+
+## 검증
+
+코드 수정 후 항상 실행:
+pnpm validate
+
+## 워크플로우 프롬프트
+
+.claude/commands/ 폴더의 마크다운 파일을 복사하여 프롬프트로 사용하세요.
+start.md(세션 시작) / fix.md(오류 수정) / commit.md(커밋 전 검사) / review.md(코드 리뷰)
