@@ -1,0 +1,22 @@
+# OS
+.DS_Store
+Thumbs.db
+
+# 환경 변수
+.env
+.env.local
+.env.*.local
+
+# Node.js
+node_modules/
+dist/
+coverage/
+
+# 로그
+*.log
+logs/
+
+# 에디터
+.idea/
+.vscode/
+*.swp

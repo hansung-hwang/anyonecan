@@ -1,0 +1,19 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup (언어별 환경은 language-pack의 ci-setup.yml 참고)
+        run: echo "CI setup defined by language pack"
+
+      - name: Validate
+        run: bash scripts/validate.sh
