@@ -49,13 +49,19 @@ The same harness rules apply regardless of which AI coding tool you use.
 │   ├── .claude/
 │   │   ├── settings.json      # Stop hook (auto-runs validate.sh)
 │   │   └── commands/          # Workflow prompts (shared across all tools)
-│   │       ├── start.md       # Session start
+│   │       ├── start.md       # Session start (reads .workspace/STATUS.md)
+│   │       ├── plan.md        # Create a design/progress doc
+│   │       ├── done.md        # Session close-out (worklog + STATUS.md)
 │   │       ├── fix.md         # Error fix loop
 │   │       ├── commit.md      # Pre-commit checks
 │   │       ├── review.md      # Code review
 │   │       ├── test.md        # Test writing
 │   │       ├── adr.md         # Architecture decision record
 │   │       └── coverage.md    # Coverage check
+│   ├── .workspace/            # Session-to-session work journal (survives session end)
+│   │   ├── STATUS.md          # Current snapshot, overwritten each close-out
+│   │   ├── worklog.md         # Append-only history of completed sessions
+│   │   └── plans/             # Per-task design docs with progress checklists
 │   ├── .husky/pre-commit      # Auto-runs validate.sh before commit
 │   ├── .github/workflows/ci.yml
 │   ├── .editorconfig
@@ -114,7 +120,9 @@ In the generated project:
 ```bash
 cd my-service
 claude        # when using Claude Code
-# /start      # start session
+# /start      # start session — reads .workspace/STATUS.md for where you left off
+# /plan       # before non-trivial work — write a design doc to .workspace/plans/
+# /done       # at session end — log progress so the next session can resume instantly
 ```
 
 ---
@@ -133,6 +141,23 @@ domain  ←  application  ←  infrastructure  ←  presentation
 - `presentation`: UI, REST/GraphQL routers
 
 These rules are automatically enforced by per-language architecture tests.
+
+---
+
+## Work Journal
+
+Every generated project ships with `.workspace/`, so work survives an
+unplanned session end and a fresh session can resume immediately:
+
+- **`STATUS.md`** — current snapshot (goal, progress, next steps, blockers), overwritten each session close-out
+- **`worklog.md`** — append-only history of completed sessions
+- **`plans/`** — per-task design docs with progress checklists, written via `/plan` before non-trivial work so the user can see what's being designed and how far along it is
+
+`/start` reads `STATUS.md` (and the active plan, if any) to resume instantly.
+`/done` closes the checklist, appends to `worklog.md`, and resets `STATUS.md`.
+`CLAUDE.md`/`AGENTS.md`/`README.md` are **not** used for this — they stay
+lean and are only touched when a rule, convention, or user-facing behavior
+actually changes.
 
 ---
 

@@ -15,7 +15,7 @@ When an agent mistake occurs, harden the harness so the same mistake does not re
 | Mistake Type | Where to Add |
 |---|---|
 | Code pattern detectable by linter | Add rule to linter config file |
-| Code habit, naming, or comment issue | Sync addition to `CLAUDE.md` + `AGENTS.md` |
+| Code habit, naming, or comment issue | Add to `AGENTS.md` (single rule source — `CLAUDE.md` imports it, other tool files point to it) |
 | Architecture or design decision | Write new ADR at `docs/adr/NNN-<title>.md` |
 
 ### 3. Apply the Rule

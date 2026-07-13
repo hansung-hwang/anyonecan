@@ -3,38 +3,15 @@ description: Harness Engineering Framework — coding rules and architecture gui
 alwaysApply: true
 ---
 
-# {{PROJECT_NAME}} — {{LANGUAGE_DISPLAY}} Coding Rules
+# {{PROJECT_NAME}} — Rules Pointer
 
-## Architecture
+This file is a **pointer, not a copy**. All project rules (architecture,
+coding rules, prohibited items, validation, steering loop) live in
+`AGENTS.md` at the repository root — the single source of truth shared by
+every AI tool. Read it before making changes, and edit rules only there.
 
-Layer dependency (unidirectional): `domain` ← `application` ← `infrastructure` ← `presentation`
-The `domain` layer must not depend on external libraries. (→ `docs/adr/001`)
+Quick reference (mirrors `AGENTS.md` headings — content lives there):
 
-## Coding Rules
-
-{{LANGUAGE_RULES}}
-
-- Comments: {{COMMENT_LANGUAGE}}, WHY only (WHAT is explained by the code)
-
-## Prohibited
-
-{{BANNED_ITEMS}} · direct `.env` edits · PRs without tests
-
-## Validation
-
-Always run after modifying code:
-
-```bash
-./scripts/validate.sh
-```
-
-## Workflow Prompts
-
-Copy a markdown file from `.claude/commands/` and use it as a prompt.
-
-| File | Purpose |
-|---|---|
-| `start.md` | Session start |
-| `fix.md` | Error fix loop |
-| `commit.md` | Pre-commit checks |
-| `review.md` | Code review |
+- Architecture: `domain` ← `application` ← `infrastructure` ← `presentation`
+- Validation: `./scripts/validate.sh`
+- Workflow prompts: `.claude/commands/*.md` (start, plan, done, fix, commit, review, test, adr, coverage)

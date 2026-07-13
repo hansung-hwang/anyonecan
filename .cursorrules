@@ -1,35 +1,15 @@
-# anyonecan (Harness Engineering Framework) — Coding Rules (TypeScript)
+# anyonecan (Harness Engineering Framework) — Coding Rules Pointer
 #
 # ⚠ This file is for framework development only.
 # To create a new project, run setup.ps1 (Windows) or ./setup.sh (Mac/Linux),
 # then run the AI tool from the generated project directory.
 #
-# This file is read by Cursor AI.
-# The same rules also live in AGENTS.md.
+# This file is read by Cursor AI. It is a POINTER, not a copy — do not add
+# rules here. All rules (architecture, coding rules, prohibited items,
+# validation, steering loop) live in AGENTS.md at the repository root.
+# Read it before making changes, and edit rules only there.
 
-## Architecture
-
-Layer dependency (unidirectional): domain ← application ← infrastructure ← presentation
-src/domain must not import external libraries.
-
-## Coding Rules
-
-- No any → use unknown + type guards
-- Explicit return type on every function (explicit-function-return-type)
-- as assertions only when unavoidable; explain the reason in an English comment
-- File names: kebab-case.ts / .test.ts / .types.ts / .interface.ts
-- Comments: English, WHY only (WHAT is explained by the code)
-
-## Prohibited
-
-any · @ts-ignore · @ts-nocheck · @ts-expect-error · console.log · excessive eslint-disable · direct .env edits · PRs without tests
-
-## Validation
-
-Always run after modifying code:
-pnpm validate
-
-## Workflow Prompts
-
-Copy a markdown file from .claude/commands/ and use it as a prompt.
-start.md (session start) / fix.md (error fix) / commit.md (pre-commit checks) / review.md (code review)
+Quick reference (mirrors AGENTS.md headings — content lives there):
+- Architecture: domain <- application <- infrastructure <- presentation
+- Validation: pnpm validate
+- Workflow prompts: .claude/commands/*.md (start, plan, done, fix, commit, review, test, adr, coverage)

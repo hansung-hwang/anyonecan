@@ -57,3 +57,4 @@ Analyze `git diff --staged` to understand what changed.
 - Both pre-scan and validation must pass before committing
 - Do not use `--no-verify`
 - If there are no staged files, do not commit
+- After a successful commit, if this closes out the work session, run `/done`

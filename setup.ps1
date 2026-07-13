@@ -144,7 +144,10 @@ $BannedItems = switch ($Language) {
     "java"       { '`null` returns · raw type usage · `System.out.println` · excessive `@SuppressWarnings`' }
 }
 
-$langFiles = @("CLAUDE.md", "AGENTS.md", ".cursorrules", ".windsurfrules", ".cursor\rules\harness.mdc")
+# AGENTS.md is the single source of truth for rules — CLAUDE.md/.cursorrules/
+# .windsurfrules/harness.mdc are thin pointers with no {{LANGUAGE_RULES}}/
+# {{BANNED_ITEMS}} placeholders, so only AGENTS.md needs this substitution.
+$langFiles = @("AGENTS.md")
 foreach ($relPath in $langFiles) {
     $fp = Join-Path $OutputDir $relPath
     if (-not (Test-Path $fp)) { continue }

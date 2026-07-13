@@ -143,7 +143,10 @@ banned = {
     "java":       "`null` returns · raw type usage · `System.out.println` · excessive `@SuppressWarnings`",
 }
 
-for rel in ["CLAUDE.md", "AGENTS.md", ".cursorrules", ".windsurfrules", ".cursor/rules/harness.mdc"]:
+# AGENTS.md is the single source of truth for rules — CLAUDE.md/.cursorrules/
+# .windsurfrules/harness.mdc are thin pointers with no {{LANGUAGE_RULES}}/
+# {{BANNED_ITEMS}} placeholders, so only AGENTS.md needs this substitution.
+for rel in ["AGENTS.md"]:
     p = output / rel
     if not p.exists():
         continue
@@ -173,13 +176,16 @@ find "$OUTPUT_DIR" -type f \( \
     -o -name "*.toml" -o -name "*.xml" -o -name "*.java" \
     -o -name ".cursorrules" -o -name ".windsurfrules" \
 \) ! -path "*/node_modules/*" ! -path "*/target/*" | while IFS= read -r file; do
-    perl -pi \
-        -e 's/\{\{PROJECT_NAME\}\}/$ENV{PROJECT_NAME}/g' \
-        -e 's/\{\{PROJECT_DESCRIPTION\}\}/$ENV{PROJECT_DESCRIPTION}/g' \
-        -e 's/\{\{AUTHOR\}\}/$ENV{AUTHOR}/g' \
-        -e 's/\{\{DATE\}\}/$ENV{TODAY}/g' \
-        -e 's/\{\{BASE_PACKAGE\}\}/$ENV{BASE_PACKAGE}/g' \
-        "$file"
+    # A single multi-statement -e (not multiple -e flags) — some perl builds
+    # (observed: Cygwin/Git-for-Windows perl 5.42.2) fail to concatenate
+    # separate -e arguments into one program and error on the 2nd statement.
+    perl -pi -e '
+        s/\{\{PROJECT_NAME\}\}/$ENV{PROJECT_NAME}/g;
+        s/\{\{PROJECT_DESCRIPTION\}\}/$ENV{PROJECT_DESCRIPTION}/g;
+        s/\{\{AUTHOR\}\}/$ENV{AUTHOR}/g;
+        s/\{\{DATE\}\}/$ENV{TODAY}/g;
+        s/\{\{BASE_PACKAGE\}\}/$ENV{BASE_PACKAGE}/g;
+    ' "$file"
 done
 
 ok "Placeholders substituted"

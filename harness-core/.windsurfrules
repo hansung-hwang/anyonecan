@@ -1,29 +1,12 @@
-# {{PROJECT_NAME}} — Coding Rules ({{LANGUAGE_DISPLAY}})
+# {{PROJECT_NAME}} — Coding Rules Pointer
 #
 # This file is read by Windsurf AI.
-# The same rules also live in AGENTS.md.
+# It is a POINTER, not a copy — do not add rules here.
+# All rules (architecture, coding rules, prohibited items, validation,
+# steering loop) live in AGENTS.md at the repository root. Read it before
+# making changes, and edit rules only there.
 
-## Architecture
-
-Layer dependency (unidirectional): domain ← application ← infrastructure ← presentation
-The domain layer must not depend on external libraries.
-
-## Coding Rules
-
-{{LANGUAGE_RULES}}
-
-Comments: {{COMMENT_LANGUAGE}}, WHY only (WHAT is explained by the code)
-
-## Prohibited
-
-{{BANNED_ITEMS}} · direct .env edits · PRs without tests
-
-## Validation
-
-Always run after modifying code:
-./scripts/validate.sh
-
-## Workflow Prompts
-
-Copy a markdown file from .claude/commands/ and use it as a prompt.
-start.md (session start) / fix.md (error fix) / commit.md (pre-commit checks) / review.md (code review)
+Quick reference (mirrors AGENTS.md headings — content lives there):
+- Architecture: domain <- application <- infrastructure <- presentation
+- Validation: ./scripts/validate.sh
+- Workflow prompts: .claude/commands/*.md (start, plan, done, fix, commit, review, test, adr, coverage)

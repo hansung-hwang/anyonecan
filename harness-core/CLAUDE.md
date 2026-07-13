@@ -1,40 +1,16 @@
 # CLAUDE.md — {{PROJECT_NAME}}
 
-> **Project**: {{PROJECT_DESCRIPTION}}
-> **Language**: {{LANGUAGE_DISPLAY}}
-> **Author**: {{AUTHOR}} | **Created**: {{DATE}}
->
-> This is a Claude Code-only configuration file. For other AI tools, see `AGENTS.md`.
-> Detailed guides: `docs/how-to/` | Architecture decisions: `docs/adr/`
+> Claude Code reads this file plus the rules imported below.
+> All project rules (architecture, coding rules, prohibited items,
+> validation, steering loop) live in `AGENTS.md` — the single source of
+> truth shared by every AI tool. **Edit rules there, not here.**
 
-## Session Start
+@AGENTS.md
 
-Run `/start` at the beginning of each session — summarizes git status, recent commits, and current goals.
+## Claude Code Extras
 
-## Architecture
-
-Layer dependency (unidirectional): `domain` ← `application` ← `infrastructure` ← `presentation`
-`domain` layer must not depend on external libraries. (→ `docs/adr/001`)
-
-## Coding Rules
-
-{{LANGUAGE_RULES}}
-
-- Comments: {{COMMENT_LANGUAGE}}, WHY only (WHAT is explained by the code)
-
-## Prohibited
-
-{{BANNED_ITEMS}} · direct `.env` edits · PRs without tests
-
-## Validation
-
-```bash
-./scripts/validate.sh
-```
-
-## Steering Loop
-
-On a mistake, run `/fix` →
-- If a linter rule can catch it, add a rule to the linter config file
-- If it's a habit/pattern issue, add it to this file (CLAUDE.md) and `AGENTS.md` (keep both in sync)
-- If it's an architecture decision, write a new ADR in `docs/adr/`
+- Slash commands live in `.claude/commands/` — see the Workflow Prompts
+  table in `AGENTS.md` for what each one does (`/start`, `/plan`, `/done`,
+  `/fix`, `/commit`, `/review`, `/test`, `/adr`, `/coverage`).
+- `.claude/settings.json` wires hooks: auto lint/format after Write/Edit,
+  and auto `./scripts/validate.sh` on Stop.

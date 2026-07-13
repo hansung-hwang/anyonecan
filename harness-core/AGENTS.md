@@ -4,8 +4,24 @@
 > **Language**: {{LANGUAGE_DISPLAY}}
 > **Author**: {{AUTHOR}} | **Created**: {{DATE}}
 >
-> This file is read by **all AI coding tools** (Claude Code, Cursor, Windsurf, Codex, etc.).
+> This is the **single source of truth** for project rules, read by
+> **all AI coding tools** (Claude Code, Cursor, Windsurf, Codex, etc.).
+> `CLAUDE.md`, `.cursorrules`, `.windsurfrules`, and `.cursor/rules/harness.mdc`
+> are thin pointers to this file — edit rules here only, never in those files.
+> Claude Code additionally has slash commands — see `CLAUDE.md`.
 > Detailed guides: `docs/how-to/` | Architecture decisions: `docs/adr/`
+
+## Work Journal
+
+`.workspace/` tracks session-to-session state so work survives an unplanned session end:
+
+- `.workspace/STATUS.md` — current snapshot (overwritten each session close-out)
+- `.workspace/worklog.md` — append-only history of completed sessions
+- `.workspace/plans/` — per-task design docs with progress checklists
+
+Run `/plan` before non-trivial work, `/done` at the end of a session.
+AGENTS.md/README.md stay lean — only update them when a rule, convention, or
+user-facing behavior actually changes (see `/done` step 4).
 
 ## Architecture
 
@@ -35,7 +51,7 @@ Always run after modifying code:
 On a mistake:
 1. Run `./scripts/validate.sh` to identify errors
 2. If a linter rule can catch it, add a rule to the linter config file
-3. If it's a habit/pattern issue, add it to this file (AGENTS.md) and `CLAUDE.md` (keep both in sync)
+3. If it's a habit/pattern issue, add it to this file (`AGENTS.md` — the single rule source; `CLAUDE.md` and the other tool files import/point to it automatically)
 4. If it's an architecture decision, write a new ADR in `docs/adr/`
 5. Record the change in `HARNESS-CHANGELOG.md`
 
@@ -46,6 +62,8 @@ Markdown files in `.claude/commands/` are **shared AI tool prompts**.
 | File | Purpose | Claude Code |
 |---|---|---|
 | `start.md` | Session start — git status, recent commits, goal summary | `/start` |
+| `plan.md` | Create a design/progress doc before non-trivial work | `/plan` |
+| `done.md` | Session close-out — worklog entry, STATUS.md reset | `/done` |
 | `fix.md` | Error fix loop — root cause analysis, rule addition | `/fix` |
 | `commit.md` | Pre-commit checks | `/commit` |
 | `review.md` | Code review | `/review` |

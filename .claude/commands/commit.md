@@ -74,3 +74,4 @@ git commit -m "<approved message>"
 - Both pre-scan and validation must pass before committing
 - Do not use `--no-verify`
 - If there are no staged files, do not commit and notify the user
+- After a successful commit, if this closes out the work session, run `/done`

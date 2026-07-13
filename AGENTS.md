@@ -5,8 +5,23 @@
 > then run the AI tool from the generated project directory.
 >
 > **Language**: TypeScript
-> This file is read by **all AI coding tools** (Claude Code, Cursor, Windsurf, Codex, etc.).
-> When using Claude Code, you can also use the slash commands defined in `CLAUDE.md`.
+> This is the **single source of truth** for project rules, read by
+> **all AI coding tools** (Claude Code, Cursor, Windsurf, Codex, etc.).
+> `CLAUDE.md`, `.cursorrules`, and `.windsurfrules` are thin pointers to
+> this file — edit rules here only, never in those files.
+> Claude Code additionally has slash commands — see `CLAUDE.md`.
+
+## Work Journal
+
+`.workspace/` tracks session-to-session state so work survives an unplanned session end:
+
+- `.workspace/STATUS.md` — current snapshot (overwritten each session close-out)
+- `.workspace/worklog.md` — append-only history of completed sessions
+- `.workspace/plans/` — per-task design docs with progress checklists
+
+Run `/plan` before non-trivial work, `/done` at the end of a session.
+AGENTS.md/README.md stay lean — only update them when a rule, convention, or
+user-facing behavior actually changes (see `/done` step 4).
 
 ## Architecture
 
@@ -36,7 +51,7 @@ pnpm validate   # typecheck + lint + test
 On a mistake:
 1. Run `pnpm validate` to identify errors
 2. If a linter rule can catch it, add a rule to `eslint.config.js`
-3. If it's a habit/pattern issue, add it to this file (AGENTS.md) and `CLAUDE.md` (keep both in sync)
+3. If it's a habit/pattern issue, add it to this file (`AGENTS.md` — the single rule source; `CLAUDE.md` and the other tool files import/point to it automatically)
 4. If it's an architecture decision, write a new ADR in `docs/adr/`
 5. Record the change in `HARNESS-CHANGELOG.md`
 
@@ -47,6 +62,8 @@ Markdown files in `.claude/commands/` are **shared AI tool prompts**.
 | File | Purpose | Claude Code |
 |---|---|---|
 | `start.md` | Session start — git status, recent commits, goal summary | `/start` |
+| `plan.md` | Create a design/progress doc before non-trivial work | `/plan` |
+| `done.md` | Session close-out — worklog entry, STATUS.md reset | `/done` |
 | `fix.md` | Error fix loop — root cause analysis, rule addition | `/fix` |
 | `commit.md` | Pre-commit checks | `/commit` |
 | `review.md` | Code review | `/review` |
