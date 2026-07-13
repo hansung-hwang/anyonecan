@@ -16,10 +16,14 @@ The same harness rules apply regardless of which AI coding tool you use.
 
 | Tool | Config File |
 |------|-------------|
-| Claude Code | `CLAUDE.md` + `.claude/commands/` (slash commands) |
-| Cursor | `.cursor/rules/harness.mdc` or `.cursorrules` |
-| Windsurf | `.windsurfrules` |
+| Claude Code | `CLAUDE.md` (imports `AGENTS.md`) + `.claude/commands/` (slash commands) |
+| Cursor | `.cursor/rules/harness.mdc` or `.cursorrules` (pointer to `AGENTS.md`) |
+| Windsurf | `.windsurfrules` (pointer to `AGENTS.md`) |
 | Codex / Antigravity / others | `AGENTS.md` |
+
+`AGENTS.md` is the **single source of truth** for all rules. The other
+files never duplicate rule content — they either import it (`CLAUDE.md`) or
+point to it (Cursor/Windsurf) — so every tool always sees the same rules.
 
 > Workflow prompts in `.claude/commands/*.md` can also be used by non-Claude Code tools
 > by copying the file contents and using them as prompts.
@@ -41,11 +45,13 @@ The same harness rules apply regardless of which AI coding tool you use.
 ```
 .
 ├── harness-core/              # Language-agnostic core (copied into every project)
-│   ├── CLAUDE.md              # Claude Code rule template
-│   ├── AGENTS.md              # Universal agent rule template
-│   ├── .cursorrules           # Cursor legacy
-│   ├── .cursor/rules/harness.mdc  # Cursor MDC
-│   ├── .windsurfrules         # Windsurf
+│   ├── HARNESS-VERSION        # Semver, compared by upgrade.ps1/upgrade.sh
+│   ├── harness-manifest.json  # Which files upgrade is allowed to overwrite
+│   ├── AGENTS.md               # Single source of truth for all rules
+│   ├── CLAUDE.md               # Thin: header + @AGENTS.md import + Claude extras
+│   ├── .cursorrules            # Thin pointer to AGENTS.md (Cursor legacy)
+│   ├── .cursor/rules/harness.mdc  # Thin pointer to AGENTS.md (Cursor MDC)
+│   ├── .windsurfrules          # Thin pointer to AGENTS.md (Windsurf)
 │   ├── .claude/
 │   │   ├── settings.json      # Stop hook (auto-runs validate.sh)
 │   │   └── commands/          # Workflow prompts (shared across all tools)
@@ -74,7 +80,10 @@ The same harness rules apply regardless of which AI coding tool you use.
 │   └── java/                  # pom.xml · Checkstyle · ArchUnit
 │
 ├── setup.ps1                  # Project generator (Windows)
-└── setup.sh                   # Project generator (Mac / Linux)
+├── setup.sh                   # Project generator (Mac / Linux)
+├── upgrade.ps1                 # Pull framework updates into an existing project (Windows)
+├── upgrade.sh / upgrade.py     # Same, for Mac / Linux
+└── FRAMEWORK-CHANGELOG.md      # This repo's own changelog (not copied into projects)
 ```
 
 ---
@@ -155,9 +164,9 @@ unplanned session end and a fresh session can resume immediately:
 
 `/start` reads `STATUS.md` (and the active plan, if any) to resume instantly.
 `/done` closes the checklist, appends to `worklog.md`, and resets `STATUS.md`.
-`CLAUDE.md`/`AGENTS.md`/`README.md` are **not** used for this — they stay
-lean and are only touched when a rule, convention, or user-facing behavior
-actually changes.
+`AGENTS.md`/`README.md` are **not** used for this — they stay lean and are
+only touched when a rule, convention, or user-facing behavior actually
+changes.
 
 ---
 
@@ -172,7 +181,7 @@ Run /fix  (Claude Code)  or  use fix.md prompt  (other tools)
     ↓
 Classify mistake type
     ├── Auto-detectable by linter  →  Add rule to linter config
-    ├── Code habit/pattern issue   →  Add to AGENTS.md + CLAUDE.md
+    ├── Code habit/pattern issue   →  Add to AGENTS.md (single rule source)
     └── Architecture decision      →  Write new ADR in docs/adr/
     ↓
 Confirm ./scripts/validate.sh passes
@@ -181,6 +190,37 @@ Record in HARNESS-CHANGELOG.md
     ↓
 Harness hardened
 ```
+
+---
+
+## Framework Versioning & Upgrades
+
+Every generated project carries `HARNESS-VERSION` and `.harness-meta.json`
+(the answers given at generation time). When the framework itself improves,
+existing projects don't have to stay frozen at their generation date:
+
+```bash
+# Windows
+.\upgrade.ps1 -ProjectDir "C:\projects\my-service"
+
+# Mac / Linux
+./upgrade.sh /path/to/my-service
+```
+
+Upgrade only touches files listed as **framework-owned** in
+`harness-core/harness-manifest.json` — workflow commands, hooks, arch
+tests, `scripts/validate.sh`, CI config, ADR 001. It never touches
+`AGENTS.md`, `CLAUDE.md`, `README.md`, `HARNESS-CHANGELOG.md`,
+`.workspace/STATUS.md`/`worklog.md`/`plans/*.md`, or any build config
+(`eslint.config.js`, `tsconfig.json`, `pom.xml`, ...) — those are yours.
+A few files that a project might not have yet (e.g. `.workspace/STATUS.md`
+for a project generated before it existed) are created only if missing,
+never overwritten. Changes are left uncommitted so you can review
+`git diff` before committing.
+
+Any change to a framework-owned file requires bumping
+`harness-core/HARNESS-VERSION` and logging it in `FRAMEWORK-CHANGELOG.md`
+(see `AGENTS.md` → "Framework Versioning").
 
 ---
 
@@ -194,4 +234,7 @@ Harness hardened
    - `.github/workflows/ci.yml` — CI configuration
    - Architecture tests at `src/tests/arch/` or equivalent path
 3. Add language choice and language-specific rules to `setup.ps1` / `setup.sh`
-4. Confirm framework self-validation passes with `pnpm validate`
+4. Register the language's `scripts/validate.sh` and arch-test path under
+   `languageSpecific` in `harness-core/harness-manifest.json`, so `upgrade`
+   knows which files to update for that language
+5. Confirm framework self-validation passes with `pnpm validate`

@@ -162,12 +162,31 @@ Design (applies to both `harness-core/` templates and this repo's root):
   Re-verified `setup.sh` end-to-end — output matches `setup.ps1`.
 
 ### P2 — Versioning & upgrade
-- [ ] harness-core/HARNESS-VERSION (1.0.0) + copy verified in setup output
-- [ ] harness-manifest.json (framework-owned path list)
-- [ ] upgrade.ps1 (Windows)
-- [ ] upgrade.sh (Mac/Linux)
-- [ ] Version-bump rule documented in root AGENTS.md + README
-- [ ] Verify: generate project with old file, run upgrade, confirm manifest files updated & user files untouched
+- [x] harness-core/HARNESS-VERSION (1.0.0) + copy verified in setup output
+  (setup.ps1/setup.sh now print "Harness version: 1.0.0" in the summary)
+- [x] harness-manifest.json (framework-owned path list) — revised mid-verification:
+  `.claude/settings.json`, `.github/workflows/ci.yml`, `.husky/pre-commit` moved
+  OUT of frameworkOwned into each language's `languageSpecific` list (every
+  language pack overlays these with its own hook wiring; treating them as
+  language-agnostic silently downgraded a TS project's PostToolUse hook — see Notes)
+- [x] upgrade.ps1 (Windows)
+- [x] upgrade.sh + upgrade.py (Mac/Linux — upgrade.py holds the manifest-driven
+  logic, matching how setup.sh already delegates to a python3 heredoc)
+- [x] Version-bump rule documented in root AGENTS.md ("Framework Versioning"
+  section) + README ("Framework Versioning & Upgrades" section) + new
+  `FRAMEWORK-CHANGELOG.md` at repo root (not copied into generated projects,
+  distinct from the per-project HARNESS-CHANGELOG.md)
+- [x] Verify: generate project with old file, run upgrade, confirm manifest files
+  updated & user files untouched — done via both setup.ps1+upgrade.ps1 and
+  setup.sh+upgrade.sh+upgrade.py. Found and fixed 3 real bugs during
+  verification (see Notes): (1) docs/adr/001's {{DATE}} placeholder was
+  reintroduced unsubstituted by upgrade -- added to needsSubstitution using
+  the project's original createdDate; (2) settings.json/ci.yml/husky
+  language-pack overlays were being silently downgraded to the generic
+  harness-core fallback -- moved to languageSpecific; (3) CRLF-vs-LF checkout
+  noise caused spurious "changed" reports -- normalized before comparing.
+  Confirmed: custom AGENTS.md content survives, HARNESS-VERSION advances,
+  `git diff` after upgrade shows only the deliberately-reverted files.
 
 ### P3 — Hard gates
 - [ ] TS: eslint no-console + no-.only rules (root eslint.config.js + language pack)
@@ -209,3 +228,18 @@ Design (applies to both `harness-core/` templates and this repo's root):
   documenting the omission is an acceptable outcome.
 - Each P-phase ends with a commit (user approves message) + worklog entry
   via /done when the session closes.
+- **P2 lesson (apply to P3/P5 too when they touch manifest-like lists)**:
+  "framework-owned = safe to overwrite from harness-core" is only true for
+  files with ONE canonical version across all languages. Anything a
+  language pack overlays (hooks, CI, husky) must live under
+  `languageSpecific`, never `frameworkOwned` — otherwise upgrading a known
+  project with an unknown/missing language silently downgrades it to the
+  generic fallback instead of just skipping. Caught this empirically by
+  actually generating a project and diffing, not by inspection — worth
+  repeating that pattern (generate → mutate → upgrade → diff) for any future
+  manifest change.
+- Local environment note: this machine's perl (Cygwin/Git-for-Windows,
+  5.42.2) breaks on multiple `-e` flags; PowerShell tool's `Read-Host` also
+  fails under `-NonInteractive` so `setup.ps1`/interactive scripts must be
+  driven via Bash-invoked `powershell.exe -File ...` with piped stdin, not
+  via the PowerShell tool directly, when input needs to be supplied.

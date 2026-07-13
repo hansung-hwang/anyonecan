@@ -1,0 +1,52 @@
+{
+  "_comment": "Framework-owned files: safe for upgrade.ps1/upgrade.sh to overwrite in a generated project. Never lists AGENTS.md, CLAUDE.md, README.md, HARNESS-CHANGELOG.md, .workspace/STATUS.md, .workspace/worklog.md, .workspace/plans/*.md (except plans/README.md), or any build-config file a user is expected to customize (eslint.config.js, tsconfig.json, pom.xml, checkstyle.xml, pyproject.toml, package.json) -- those stay user-owned and upgrade never touches them.",
+  "frameworkOwned": [
+    "HARNESS-VERSION",
+    ".claude/commands/adr.md",
+    ".claude/commands/commit.md",
+    ".claude/commands/coverage.md",
+    ".claude/commands/done.md",
+    ".claude/commands/fix.md",
+    ".claude/commands/plan.md",
+    ".claude/commands/review.md",
+    ".claude/commands/start.md",
+    ".claude/commands/test.md",
+    ".editorconfig",
+    "docs/adr/001-clean-architecture-layers.md",
+    ".workspace/plans/README.md"
+  ],
+  "_languageSpecificComment": "Every language pack overlays .claude/settings.json, .github/workflows/ci.yml, and .husky/pre-commit with its own hook wiring (e.g. TypeScript adds a PostToolUse lint-format hook + 'pnpm validate'), so these are NOT in frameworkOwned -- overwriting them from the language-agnostic harness-core fallback would silently strip a project's language-specific hooks. When the project's language is unknown (no .harness-meta.json), upgrade skips this whole list rather than downgrading to the generic fallback.",
+  "languageSpecific": {
+    "typescript": [
+      "scripts/validate.sh",
+      "src/tests/arch/dependencies.test.ts",
+      ".claude/settings.json",
+      ".github/workflows/ci.yml",
+      ".husky/pre-commit"
+    ],
+    "python": [
+      "scripts/validate.sh",
+      "scripts/lint-format-hook.sh",
+      "tests/arch/test_dependencies.py",
+      ".claude/settings.json",
+      ".github/workflows/ci.yml",
+      ".husky/pre-commit"
+    ],
+    "java": [
+      "scripts/validate.sh",
+      "src/test/java/arch/DependencyTest.java",
+      ".claude/settings.json",
+      ".github/workflows/ci.yml",
+      ".husky/pre-commit"
+    ]
+  },
+  "_bootstrapComment": "Created only if missing (never overwritten) -- lets an upgrade backfill .workspace/ for a project generated before it existed, without clobbering a project that already has its own STATUS.md/worklog.md history.",
+  "bootstrapIfMissing": [
+    ".workspace/STATUS.md",
+    ".workspace/worklog.md"
+  ],
+  "needsSubstitution": {
+    "src/test/java/arch/DependencyTest.java": ["BASE_PACKAGE"],
+    "docs/adr/001-clean-architecture-layers.md": ["DATE"]
+  }
+}

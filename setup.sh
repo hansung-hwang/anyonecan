@@ -213,6 +213,22 @@ EOF
     ok "Java package structure created ($BASE_PACKAGE)"
 fi
 
+# ── 5b. Write .harness-meta.json (lets upgrade.sh re-render templated files later) ──
+HARNESS_VERSION=$(cat "$HARNESS_CORE_DIR/HARNESS-VERSION" | tr -d '[:space:]')
+json_escape() { printf '%s' "$1" | sed 's/\\/\\\\/g; s/"/\\"/g'; }
+cat > "$OUTPUT_DIR/.harness-meta.json" << EOF
+{
+  "projectName": "$(json_escape "$PROJECT_NAME")",
+  "projectDescription": "$(json_escape "$PROJECT_DESCRIPTION")",
+  "author": "$(json_escape "$AUTHOR")",
+  "createdDate": "$(json_escape "$TODAY")",
+  "language": "$(json_escape "$LANGUAGE")",
+  "commentLanguage": "$(json_escape "$COMMENT_LANGUAGE")",
+  "basePackage": "$(json_escape "$BASE_PACKAGE")",
+  "harnessVersion": "$(json_escape "$HARNESS_VERSION")"
+}
+EOF
+
 # ── 6. Install dependencies ──────────────────────────────────────────────────────
 step "Installing dependencies..."
 cd "$OUTPUT_DIR"
@@ -260,6 +276,7 @@ fi
 # ── 8. Done ───────────────────────────────────────────────────────────────────────
 header "✅ Setup Complete!"
 echo -e "Generated project: ${CYAN}$OUTPUT_DIR${NC}"
+echo -e "Harness version  : ${CYAN}$HARNESS_VERSION${NC}"
 echo ""
 echo -e "${YELLOW}Next steps:${NC}"
 echo -e "  1. ${CYAN}cd $OUTPUT_DIR${NC}"

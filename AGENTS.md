@@ -23,6 +23,26 @@ Run `/plan` before non-trivial work, `/done` at the end of a session.
 AGENTS.md/README.md stay lean — only update them when a rule, convention, or
 user-facing behavior actually changes (see `/done` step 4).
 
+## Framework Versioning
+
+`harness-core/HARNESS-VERSION` (semver) is what every generated project
+carries and what `upgrade.ps1`/`upgrade.sh` compares against. Any change to
+a **framework-owned** file (anything listed in
+`harness-core/harness-manifest.json`: `.claude/commands/`,
+`.claude/settings.json`, arch tests, `scripts/validate.sh`,
+`.github/workflows/ci.yml`, `.husky/pre-commit`, `.editorconfig`,
+`docs/adr/001-*`, `.workspace/plans/README.md`) requires:
+
+1. Bump `harness-core/HARNESS-VERSION` (patch for fixes/wording, minor for
+   new commands/checks, major for breaking manifest changes)
+2. Add an entry to `FRAMEWORK-CHANGELOG.md` (this repo's own changelog —
+   distinct from the per-project `HARNESS-CHANGELOG.md` that tracks agent
+   mistakes)
+
+Changes to user-owned files (`AGENTS.md`/`CLAUDE.md` rule content,
+`README.md`, build configs) do **not** need a version bump — `upgrade`
+never touches those files anyway.
+
 ## Architecture
 
 Layer dependency (unidirectional): `domain` ← `application` ← `infrastructure` ← `presentation`

@@ -209,6 +209,20 @@ if ($Language -eq "java") {
     Write-Ok "Java package structure created ($BasePackage)"
 }
 
+# ── 5b. Write .harness-meta.json (lets upgrade.ps1 re-render templated files later) ──
+$HarnessVersion = (Get-Content (Join-Path $HarnessCoreDir "HARNESS-VERSION") -Raw).Trim()
+$MetaJson = @{
+    projectName        = $ProjectName
+    projectDescription = $ProjectDescription
+    author              = $Author
+    createdDate         = $Today
+    language            = $Language
+    commentLanguage     = $CommentLanguage
+    basePackage         = $BasePackage
+    harnessVersion      = $HarnessVersion
+} | ConvertTo-Json
+[System.IO.File]::WriteAllText((Join-Path $OutputDir ".harness-meta.json"), $MetaJson, $utf8NoBom)
+
 # ── 6. Install dependencies ──────────────────────────────────────────────────────
 Write-Step "Installing dependencies..."
 Push-Location $OutputDir
@@ -267,6 +281,7 @@ try {
 # ── 8. Done ───────────────────────────────────────────────────────────────────────
 Write-Header "✅ Setup Complete!"
 Write-Host "Generated project: " -NoNewline; Write-Host $OutputDir -ForegroundColor Cyan
+Write-Host "Harness version  : " -NoNewline; Write-Host $HarnessVersion -ForegroundColor Cyan
 Write-Host ""
 Write-Host "Next steps:" -ForegroundColor Yellow
 Write-Host "  1. " -NoNewline; Write-Host "cd $OutputDir" -ForegroundColor Cyan
