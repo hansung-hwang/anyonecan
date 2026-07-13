@@ -4,33 +4,22 @@ Analyzes changes, proposes a commit message, and commits if validation passes.
 
 ## Steps
 
-### Step 1: Pre-scan
-
-Before committing, grep for the following:
-
-```bash
-# Check for pinned tests (test.only / describe.only, etc.)
-grep -rn "\.only(" src/ tests/ 2>/dev/null || true
-
-# Check for leftover debug output (language-specific)
-grep -rn "console\.log\|print(\|System\.out\.print" src/ 2>/dev/null || true
-```
-
-If any are found, **abort** the commit and report the locations.
-
-### Step 2: Validate
+### Step 1: Validate
 
 ```bash
 ./scripts/validate.sh
 ```
 
-If validation fails, abort the commit and report the errors.
+The linter enforces the `.only()` / debug-output items from `AGENTS.md`'s
+Prohibited list directly (no manual grep needed — see the arch-test and
+lint config for each language). If validation fails, abort the commit and
+report the errors.
 
-### Step 3: Analyze Changes
+### Step 2: Analyze Changes
 
 Analyze `git diff --staged` to understand what changed.
 
-### Step 4: Propose Commit Message
+### Step 3: Propose Commit Message
 
 ```
 <type>(<scope>): <English description>
@@ -39,7 +28,7 @@ Analyze `git diff --staged` to understand what changed.
 [Closes #issue-number — optional]
 ```
 
-### Step 5: Confirm with User, Then Commit
+### Step 4: Confirm with User, Then Commit
 
 ## Commit Types
 
@@ -54,7 +43,7 @@ Analyze `git diff --staged` to understand what changed.
 
 ## Notes
 
-- Both pre-scan and validation must pass before committing
+- Validation must pass before committing
 - Do not use `--no-verify`
 - If there are no staged files, do not commit
 - After a successful commit, if this closes out the work session, run `/done`

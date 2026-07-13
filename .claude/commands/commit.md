@@ -4,36 +4,23 @@ Analyzes changes, proposes a commit message, and commits if validation passes.
 
 ## Steps
 
-### Step 1: Pre-scan
-
-Before committing, grep for the following:
-
-```bash
-# Check for pinned tests (test.only / describe.only)
-grep -rn "\.only(" src/
-
-# Check for leftover console.log
-grep -rn "console\.log" src/
-
-# Check for @ts-ignore / @ts-expect-error
-grep -rn "@ts-ignore\|@ts-expect-error" src/
-```
-
-If any are found, **abort** the commit and report the locations.
-
-### Step 2: Validate
+### Step 1: Validate
 
 ```bash
 pnpm typecheck && pnpm lint && pnpm test
 ```
 
-If validation fails, abort the commit and report the errors.
+`eslint.config.js` enforces the Prohibited-list items directly
+(`no-console`, `@typescript-eslint/ban-ts-comment` for `@ts-ignore`/
+`@ts-nocheck`/`@ts-expect-error`, `no-restricted-syntax` for `.only()`) — no
+manual grep needed. If validation fails, abort the commit and report the
+errors.
 
-### Step 3: Analyze Changes
+### Step 2: Analyze Changes
 
 Analyze `git diff --staged` to understand what changed.
 
-### Step 4: Propose Commit Message
+### Step 3: Propose Commit Message
 
 Propose a commit message in this format:
 
@@ -45,11 +32,11 @@ Propose a commit message in this format:
 [Closes #issue-number — optional]
 ```
 
-### Step 5: Confirm with User
+### Step 4: Confirm with User
 
 Show the proposed message to the user and await approval or revision.
 
-### Step 6: Execute Commit
+### Step 5: Execute Commit
 
 On approval:
 
@@ -71,7 +58,7 @@ git commit -m "<approved message>"
 
 ## Notes
 
-- Both pre-scan and validation must pass before committing
+- Validation must pass before committing
 - Do not use `--no-verify`
 - If there are no staged files, do not commit and notify the user
 - After a successful commit, if this closes out the work session, run `/done`

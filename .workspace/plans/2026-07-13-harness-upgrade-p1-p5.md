@@ -189,17 +189,61 @@ Design (applies to both `harness-core/` templates and this repo's root):
   `git diff` after upgrade shows only the deliberately-reverted files.
 
 ### P3 — Hard gates
-- [ ] TS: eslint no-console + no-.only rules (root eslint.config.js + language pack)
-- [ ] Python: ruff T20 enabled in pyproject.toml
-- [ ] Java: Checkstyle Regexp for System.out.print
-- [ ] commit.md (both copies): shrink pre-scan step, point to linter
-- [ ] TS: vitest coverage thresholds for src/domain + CI coverage step
-- [ ] Python: --cov-fail-under CI step
-- [ ] Java: JaCoCo domain rule in pom.xml
-- [ ] Audit Python arch tests vs 5-check matrix; add missing (cycles, naming, test-exists)
-- [ ] Audit Java arch tests vs 5-check matrix; add missing
-- [ ] Java PostToolUse hook: implement or document why omitted
-- [ ] Verify: each language pack's validate.sh + CI passes on generated sample
+- [x] TS: eslint no-console (already existed) + no-.only rule added (root +
+  language pack). Bonus: found `@ts-ignore`/`@ts-nocheck`/`@ts-expect-error`
+  were only soft-banned by eslint's recommended default (allows
+  `@ts-expect-error` with a description) despite AGENTS.md's outright ban —
+  added an explicit `@typescript-eslint/ban-ts-comment` override to close
+  the gap.
+- [x] Python: ruff T20 enabled in pyproject.toml — verified live with the
+  real `ruff` CLI installed in this environment (flags `print()`, silent
+  otherwise); also removed two long-dead `ANN101`/`ANN102` ignores
+  (deprecated by ruff, were silently no-ops) found while editing.
+- [x] Java: Checkstyle `RegexpSinglelineJava` for `System.out.print*`
+- [x] commit.md (both copies): pre-scan step removed — Step 1 is now just
+  Validate, since the linter now covers every item that was previously
+  manually grepped
+- [x] TS: vitest coverage `include` narrowed to `src/domain/**` (root +
+  language pack) + CI coverage step (`pnpm test:coverage`) in both ci.yml files
+- [x] Python: `--cov=src/domain --cov-fail-under=80` CI step — verified live
+  with real pytest+pytest-cov (installed in this environment): confirmed it
+  FAILS at 67% coverage and PASSES at 100%, and that files outside
+  `src/domain` don't affect the gate
+- [x] Java: JaCoCo `coverage` Maven profile added to pom.xml, wired into
+  `mvn verify -P coverage` in CI. **Scope note**: project-wide (BUNDLE), not
+  domain-scoped like TS/Python — JaCoCo's include/exclude patterns need
+  slash-separated package globs, which would require a second
+  `{{BASE_PACKAGE}}`-in-slash-form template placeholder; deferred rather
+  than risk unverified templating (no Java/Maven available in this session
+  to test). Documented in a pom.xml comment.
+- [x] Audit Python arch tests vs 5-check matrix — **already complete**, no
+  changes needed (layer deps, domain purity, no cycles, snake_case naming,
+  domain→test existence all present)
+- [x] Audit Java arch tests vs 5-check matrix — was missing 3 of 5; added
+  `domainShouldNotDependOnExternalLibraries` (ArchUnit `onlyDependOnClassesThat`),
+  `layersShouldBeFreeOfCycles` (ArchUnit `SlicesRuleDefinition`), and
+  `domainClassesShouldHaveMatchingTests` (plain filesystem walk, mirroring
+  the TS/Python style since ArchUnit operates on compiled classes, not
+  source-file existence). File-naming (PascalCase) intentionally NOT
+  duplicated in ArchUnit — already enforced by Checkstyle's `TypeName`
+  module, noted in a class-level comment.
+- [x] Java PostToolUse hook: decided to omit. No fast, dependency-free CLI
+  Java formatter is bundled by default (Spotless/google-java-format would
+  need adding a Maven plugin + likely network access on first run); the
+  Stop hook (`mvn verify` via validate.sh... actually `bash scripts/validate.sh`)
+  already gates formatting-adjacent issues via Checkstyle. Documented here
+  rather than adding an untested hook.
+- [x] Verify (partial — see Notes): Python fully verified live (real
+  ruff + pytest + pytest-cov). TypeScript verified only at the config/syntax
+  level (`node --check` on both eslint.config.js files, valid; no pnpm/
+  node_modules in this session to actually run eslint/vitest). Java verified
+  only at the file-well-formedness level (pom.xml and checkstyle.xml
+  confirmed well-formed XML after fixing an XML-comment `--` violation I
+  introduced in pom.xml; the new ArchUnit test methods and JaCoCo profile
+  were NOT compiled or run — no Java/Maven in this environment). **Action
+  item for the user**: run `mvn verify -P coverage` and `pnpm validate` /
+  `pnpm test:coverage` once on a generated project in an environment with
+  those tools, to confirm before relying on this in production.
 
 ### P4 — Team layer
 - [ ] harness-core/.github/PULL_REQUEST_TEMPLATE.md

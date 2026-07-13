@@ -32,11 +32,18 @@ point to it (Cursor/Windsurf) — so every tool always sees the same rules.
 
 ## Supported Languages
 
-| Language | Validation Tools | Architecture Test |
-|----------|-----------------|-------------------|
-| TypeScript | tsc + ESLint + Vitest | `src/tests/arch/dependencies.test.ts` |
-| Python | mypy + ruff + pytest | `tests/arch/test_dependencies.py` |
-| Java | Maven + Checkstyle + JUnit5 | `src/test/java/arch/DependencyTest.java` (ArchUnit) |
+| Language | Validation Tools | Architecture Test | Coverage Gate (CI) |
+|----------|-----------------|-------------------|---------------------|
+| TypeScript | tsc + ESLint + Vitest | `src/tests/arch/dependencies.test.ts` (5-check parity) | domain ≥ 80% (`vitest run --coverage`) |
+| Python | mypy + ruff + pytest | `tests/arch/test_dependencies.py` (5-check parity) | domain ≥ 80% (`pytest --cov-fail-under=80`) |
+| Java | Maven + Checkstyle + JUnit5 | `src/test/java/arch/DependencyTest.java` (ArchUnit, 5-check parity) | project-wide ≥ 80% (`mvn verify -P coverage`, JaCoCo) |
+
+All three languages enforce the same 5 architecture checks (layer
+dependency direction, domain purity, no circular refs, file naming, domain
+file → test file exists) and ban the same items (`.only()`/pinned tests,
+debug print statements, type-checking escape hatches) via each language's
+linter — see each language pack's `harness-manifest.json` entry and
+`AGENTS.md`'s Prohibited list.
 
 ---
 

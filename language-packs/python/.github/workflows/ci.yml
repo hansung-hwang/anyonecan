@@ -20,3 +20,6 @@ jobs:
         run: uv sync
       - name: Validate
         run: bash scripts/validate.sh
+
+      - name: Coverage gate (domain >= 80%)
+        run: uv run pytest --cov=src/domain --cov-report=term-missing --cov-fail-under=80

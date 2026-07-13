@@ -9,42 +9,41 @@
 ## Current Goal
 
 Upgrade the framework across 5 priorities so every member — any AI tool, any
-language — gets consistent, enforced quality. P1 (single-source rules) is
-done; P2~P5 remain.
+language — gets consistent, enforced quality. P1, P2, P3 are done (P3 not
+yet committed). P4~P5 remain.
 
 ## Progress
 
-- **P1 done**: `AGENTS.md` is now the single rule source in both
-  `harness-core/` and root. `CLAUDE.md` shrank to a header + `@AGENTS.md`
-  import + Claude-only extras. `.cursorrules`/`.windsurfrules`/
-  `.cursor/rules/harness.mdc` shrank to thin pointers. `setup.ps1`/`setup.sh`
-  now only substitute `{{LANGUAGE_RULES}}`/`{{BANNED_ITEMS}}` into
-  `AGENTS.md`. `/fix` and `/done` (both copies) now say "edit AGENTS.md
-  only". Added `scripts/check-sync.mjs` (command-file parity + stale
-  dual-edit-instruction grep) wired into `pnpm validate` and `pnpm
-  check-sync`. Verified end-to-end by generating a TypeScript project via
-  `setup.ps1` — no leftover `{{...}}` placeholders anywhere, all 9 commands
-  present.
-- Nothing committed yet — all P1 changes + the earlier `.workspace`/`/plan`/
-  `/done` work sit uncommitted in the working tree.
-- Fixed a pre-existing `setup.sh` bug found during P1 verification: this
-  machine's Cygwin/Git-for-Windows perl 5.42.2 fails to concatenate
-  multiple `-e` flags into one program (repros with `perl -e 'print 1' -e
-  'print 2'`, unrelated to `{{...}}` content). Rewrote the step-4
-  placeholder substitution to a single multi-statement `-e '...'` block.
-  Re-verified `setup.sh` end-to-end (TypeScript project) — no leftover
-  `{{...}}`, matches `setup.ps1` output.
+- **P1 done** (commit f34eb77): AGENTS.md single rule source, check-sync guard.
+- **P2 done** (commit cf39a92): HARNESS-VERSION + manifest + upgrade path,
+  verified end-to-end, 3 real bugs found and fixed.
+- **P3 done, awaiting commit**: promoted documented rules to hard gates.
+  - TS: `.only()` ban + `ban-ts-comment` override, coverage narrowed to
+    `src/domain/**`, CI coverage step
+  - Python: ruff `T20` + `--cov-fail-under=80` — **verified live** with real
+    ruff/pytest in this session
+  - Java: Checkstyle `System.out.print*` ban, JaCoCo `coverage` profile
+    (project-wide, not domain-scoped — documented why), arch test brought
+    to 5-check parity (was missing domain purity, cycles, test-exists)
+  - `/commit` pre-scan removed (linter now covers everything)
+  - **Caveat**: TS and Java changes could only be syntax/well-formedness
+    checked in this session (no pnpm/node_modules, no Java/Maven available)
+    — not actually compiled or run. Python WAS verified live. Recommend the
+    user run `pnpm validate`/`pnpm test:coverage` and `mvn verify -P
+    coverage` once in an environment with those tools before trusting this
+    in production.
 
 ## Next Steps
 
-1. User review of P1 diff, then commit (likely as one commit covering
-   `.workspace`/`/plan`/`/done` + P1 rule-consolidation, or split — ask user)
-2. Start P2: HARNESS-VERSION + harness-manifest.json + upgrade.ps1/upgrade.sh
+1. Review + commit P3
+2. Start P4: PR template, move how-to docs into harness-core, multi-member
+   `.workspace` note, named CI steps for TS/Python
+3. Then P5: pack.json-driven language packs
 
 ## Blockers / Open Questions
 
 - pnpm is not on PATH in this shell — `pnpm validate` must be run by the
   user, or `bash scripts/validate.sh` after confirming pnpm is reachable.
-- Should the setup.sh multi-`-e` perl issue be investigated/fixed, or is it
-  specific to this machine's Cygwin perl build? Ask user before touching it
-  (out of scope for the P1~P5 plan).
+- No Java/Maven in this environment — the Java arch-test additions and
+  JaCoCo profile are unverified beyond XML well-formedness. Flag for the
+  user to confirm with real Maven before relying on them.

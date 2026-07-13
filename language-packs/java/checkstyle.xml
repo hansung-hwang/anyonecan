@@ -28,5 +28,12 @@
     <!-- import -->
     <module name="UnusedImports"/>
     <module name="RedundantImport"/>
+
+    <!-- Prohibited items (AGENTS.md) -->
+    <module name="RegexpSinglelineJava">
+      <property name="format" value="System\.out\.print"/>
+      <property name="message" value="Do not use System.out.print* -- use a logger instead."/>
+      <property name="ignoreComments" value="true"/>
+    </module>
   </module>
 </module>
