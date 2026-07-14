@@ -128,8 +128,16 @@ the start of every session automatically.
 
 ## 7. Verify end-to-end
 
-Generate a project with the new language via `setup.ps1`/`setup.sh` and
-confirm:
+**This applies to any edit to an existing pack's shipped code, not just
+adding a new one** — this repo's own root `pnpm validate` cannot catch bugs
+in another language's sample/template code (it's a TypeScript project with
+no Python/Java toolchain), so a broken pack can silently ship if this step
+is skipped (see the 2026-07-14 entry in `HARNESS-CHANGELOG.md`: two real
+lint violations sat in the Python pack's own sample code because nothing
+re-ran its `validate.sh` after later edits).
+
+Generate a project with the new (or edited) language pack via
+`setup.ps1`/`setup.sh` and confirm:
 - No `pack.json` in the output
 - `AGENTS.md`'s Coding Rules / Prohibited sections match `pack.json`'s
   `rules`/`banned`

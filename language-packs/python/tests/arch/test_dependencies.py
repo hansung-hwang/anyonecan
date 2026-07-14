@@ -98,9 +98,8 @@ def test_domain_purity() -> None:
             root = imp.split(".")[0]
             if root in STDLIB_ROOTS or root in LAYER_ORDER:
                 continue
-            violations.append(
-                f"[violation] {file.relative_to(SRC_DIR)}: external library '{imp}' must not be imported"
-            )
+            rel = file.relative_to(SRC_DIR)
+            violations.append(f"[violation] {rel}: external library '{imp}' must not be imported")
 
     assert not violations, (
         f"{len(violations)} domain purity violation(s):\n\n" + "\n".join(violations)

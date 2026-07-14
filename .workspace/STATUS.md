@@ -4,53 +4,51 @@
 > for history, see `worklog.md`. Read this first when starting a new session.
 
 **Last updated**: 2026-07-14
-**Active plan**: `.workspace/plans/2026-07-14-harness-1.3.0-customization-safety.md` (Done — implementation + verification complete, commit pending approval)
+**Active plan**: none — both 1.3.0-related plans closed out
 
 ## Current Goal
 
-Harness 1.3.0 implemented and E2E-verified on Windows: customization-safety
-upgrade protection (baseline hash + `.new` pattern) + 5 methodology
-backports from the eacc-mcp-server project. **Awaiting user approval to
-commit** — nothing committed yet in this session for the 1.3.0 work.
+No active plan. Harness 1.3.0 shipped (`af1698f`) and its two immediate
+follow-ups are both done this session:
+1. Fixed 2 pre-existing lint bugs in `language-packs/python`'s own sample
+   code (found via `/fix`, root-caused as a process gap, doc fix added).
+2. Re-upgraded `agentic-eacc-mcp-server` to 1.3.0, manually re-merging its
+   3 known customizations on top of the new templates (which themselves
+   carried real fixes from this session, so a blind revert wasn't safe).
 
 ## Progress
 
-- Plan `2026-07-14-apply-harness-1.2.0-to-eacc-mcp.md`: Done, committed in
-  eacc repo (`d40aa6c`).
-- Plan `2026-07-14-harness-1.3.0-customization-safety.md`: Done.
-  Implemented: baseline-hash + `.new` protection in
-  setup.ps1/setup.sh/upgrade.ps1/upgrade.py; ADR-001 reclassified to
-  bootstrapIfMissing; new `bootstrapLanguageSpecific` manifest section +
-  3 project-rules arch-test seeds; SessionStart hook
-  (`status-context.sh`) wired into all 3 language packs; AGENTS.md Key
-  Invariants section + doc-sync wording; python validate.sh venv
-  detection + new validate.ps1; start.md plans-status-grep step (4.5).
-  HARNESS-VERSION 1.2.0 → 1.3.0, FRAMEWORK-CHANGELOG entry, README +
-  adding-a-language-pack.md updated.
-- Verified end-to-end on Windows via real setup.ps1/upgrade.ps1 runs in a
-  scratch project (since deleted): baseline recording, no-op on
-  unmodified, customized-file protection (`.new` + baseline held), manual
-  merge catch-up (baseline advances, stale `.new` cleaned up), pre-1.3
-  meta fallback (legacy overwrite + warning + baseline backfill),
-  SessionStart hook + validate.ps1 real execution, check-sync + bash -n.
-  All scenarios behaved as designed.
+- `/fix` applied for finding #1: `language-packs/python/tests/arch/test_dependencies.py`
+  (E501) and `tests/domain/test_user.py` (F401) fixed directly; root
+  cause was that this repo's own `pnpm validate` can never exercise a
+  Python pack's sample code (no Python toolchain at the root), so a
+  process step was added to `docs/how-to/adding-a-language-pack.md` §7:
+  re-run the pack's own `validate.sh`/`.ps1` after *any* edit to shipped
+  pack code, not only when adding a new pack. Recorded in
+  `HARNESS-CHANGELOG.md`. Root `pnpm validate` reconfirmed clean after.
+- `agentic-eacc-mcp-server` upgraded 1.2.0 → 1.3.0 on its still-unmerged
+  `chore/harness-upgrade-1.2.0` branch (commit `e0d9c70`, on top of
+  `d40aa6c`). Pre-1.3 fallback applied (project had no baselines yet) —
+  reviewed the overwrite diff file-by-file rather than blanket-reverting:
+  kept the RAG arch-test customization + calendar/zoneinfo stdlib entries
+  (re-merged onto the *new* template, which also had this session's E501
+  fix), kept the project's own `.pytest-tmp`/no-cache pytest flags in
+  `validate.ps1`, kept `.claude/settings.json` pointing at the project's
+  Korean-commented `worklog-context.sh` (deleted the redundant
+  framework-added `status-context.sh` duplicate), and accepted
+  `validate.sh`'s venv-detection rewrite and the new
+  `test_project_rules.py` seed as pure improvements. Verified: mypy 46
+  files clean, ruff clean, pytest 195 passed / 1 skipped.
+- Branch `chore/harness-upgrade-1.2.0` (now carrying both the 1.2.0 and
+  1.3.0 upgrades) is still **not merged to `master`** in the eacc repo —
+  that decision is the user's, not made this session.
 
 ## Next Steps
 
-1. User reviews `git status`/`git diff` for the 1.3.0 changes, approves a
-   commit message.
-2. Separate, out-of-scope finding to report: `language-packs/python`'s own
-   template files have 2 pre-existing lint issues (unrelated to this
-   session's changes) — E501 in `tests/arch/test_dependencies.py:102`,
-   F401 unused import in `tests/domain/test_user.py:9`. Candidate for a
-   quick `/fix` in a future session.
-3. Follow-up (separate task): re-run `upgrade.ps1` against
-   `agentic-eacc-mcp-server` once 1.3.0 is committed, so it gains a
-   `baselines` map and its 3 known customizations become protected going
-   forward.
+- None queued. If new framework work comes up, start a plan via `/plan`.
+- User's call, whenever: merge/push `chore/harness-upgrade-1.2.0` in the
+  `agentic-eacc-mcp-server` repo.
 
 ## Blockers / Open Questions
 
-- `.sh` scripts (setup.sh, upgrade.sh which calls upgrade.py) were only
-  `bash -n` syntax-checked, not run end-to-end — no Mac/Linux in this
-  environment (same longstanding constraint as prior sessions).
+- (none)

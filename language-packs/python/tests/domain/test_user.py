@@ -6,7 +6,6 @@ from datetime import datetime
 import pytest
 
 from domain.user import (
-    User,
     UserId,
     ValidationError,
     create_user,
