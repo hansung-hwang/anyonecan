@@ -13,10 +13,10 @@
     ".claude/commands/test.md",
     ".editorconfig",
     ".github/PULL_REQUEST_TEMPLATE.md",
-    "docs/adr/001-clean-architecture-layers.md",
     "docs/how-to/git-workflow.md",
     "docs/how-to/testing-guide.md",
-    ".workspace/plans/README.md"
+    ".workspace/plans/README.md",
+    "scripts/status-context.sh"
   ],
   "_languageSpecificComment": "Every language pack overlays .claude/settings.json, .github/workflows/ci.yml, and .husky/pre-commit with its own hook wiring (e.g. TypeScript adds a PostToolUse lint-format hook + 'pnpm validate'), so these are NOT in frameworkOwned -- overwriting them from the language-agnostic harness-core fallback would silently strip a project's language-specific hooks. When the project's language is unknown (no .harness-meta.json), upgrade skips this whole list rather than downgrading to the generic fallback.",
   "languageSpecific": {
@@ -29,6 +29,7 @@
     ],
     "python": [
       "scripts/validate.sh",
+      "scripts/validate.ps1",
       "scripts/lint-format-hook.sh",
       "tests/arch/test_dependencies.py",
       ".claude/settings.json",
@@ -43,13 +44,21 @@
       ".husky/pre-commit"
     ]
   },
-  "_bootstrapComment": "Created only if missing (never overwritten) -- lets an upgrade backfill .workspace/ for a project generated before it existed, without clobbering a project that already has its own STATUS.md/worklog.md history.",
+  "_bootstrapComment": "Created only if missing (never overwritten) -- lets an upgrade backfill scaffolding for a project generated before it existed, without clobbering a project that already has its own history/customizations. docs/adr/001 lives here (not frameworkOwned) because an ADR is a project decision record from the moment it's created -- a project is expected to tailor its wording (e.g. language-specific stdlib examples), and upgrade must never overwrite that.",
   "bootstrapIfMissing": [
     ".workspace/STATUS.md",
-    ".workspace/worklog.md"
+    ".workspace/worklog.md",
+    "docs/adr/001-clean-architecture-layers.md"
   ],
+  "_bootstrapLanguageSpecificComment": "Same never-overwrite semantics as bootstrapIfMissing, but keyed by language like languageSpecific -- these seed a project-owned architecture-test file (see docs/investigations pattern from a real generated project: a custom arch check like 'RAG-heavy modules must not be imported at boot' belongs in a file upgrade never touches, not squeezed into the framework-owned dependencies test that upgrade overwrites).",
+  "bootstrapLanguageSpecific": {
+    "typescript": ["src/tests/arch/project-rules.test.ts"],
+    "python": ["tests/arch/test_project_rules.py"],
+    "java": ["src/test/java/arch/ProjectRulesTest.java"]
+  },
   "needsSubstitution": {
     "src/test/java/arch/DependencyTest.java": ["BASE_PACKAGE"],
     "docs/adr/001-clean-architecture-layers.md": ["DATE"]
-  }
+  },
+  "_baselinesComment": "upgrade records a baseline (LF-normalized SHA-256) in .harness-meta.json's `baselines` map for every frameworkOwned/languageSpecific/bootstrap file it writes. On the next upgrade: unmodified-since-baseline files are overwritten normally; files whose content no longer matches their baseline (project customized them) are left untouched and the new template is written alongside as `<file>.new` for manual merge -- baseline stays at the old hash until the project's file matches the new template again (at which point it's treated as caught up and the baseline advances, cleaning up the .new). Projects upgrading from a pre-1.3.0 .harness-meta.json (no baselines map) fall back to the old overwrite-everything behavior for one run, with a warning, and gain baseline tracking from that point on."
 }

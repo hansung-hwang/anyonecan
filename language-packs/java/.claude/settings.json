@@ -1,5 +1,15 @@
 {
   "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash scripts/status-context.sh"
+          }
+        ]
+      }
+    ],
     "Stop": [
       {
         "hooks": [

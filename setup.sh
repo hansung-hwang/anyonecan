@@ -228,21 +228,48 @@ EOF
     ok "Java package structure created ($BASE_PACKAGE)"
 fi
 
-# ── 5b. Write .harness-meta.json (lets upgrade.sh re-render templated files later) ──
+# ── 5b. Write .harness-meta.json (lets upgrade.sh re-render templated files
+#         later, and records a baseline hash per managed file so upgrade.sh
+#         can detect local customizations and protect them) ──
 HARNESS_VERSION=$(cat "$HARNESS_CORE_DIR/HARNESS-VERSION" | tr -d '[:space:]')
-json_escape() { printf '%s' "$1" | sed 's/\\/\\\\/g; s/"/\\"/g'; }
-cat > "$OUTPUT_DIR/.harness-meta.json" << EOF
-{
-  "projectName": "$(json_escape "$PROJECT_NAME")",
-  "projectDescription": "$(json_escape "$PROJECT_DESCRIPTION")",
-  "author": "$(json_escape "$AUTHOR")",
-  "createdDate": "$(json_escape "$TODAY")",
-  "language": "$(json_escape "$LANGUAGE")",
-  "commentLanguage": "$(json_escape "$COMMENT_LANGUAGE")",
-  "basePackage": "$(json_escape "$BASE_PACKAGE")",
-  "harnessVersion": "$(json_escape "$HARNESS_VERSION")"
+
+export HARNESS_VERSION LANGUAGE OUTPUT_DIR SCRIPT_DIR
+export PROJECT_NAME PROJECT_DESCRIPTION AUTHOR TODAY COMMENT_LANGUAGE BASE_PACKAGE
+
+python3 << 'PYEOF'
+import hashlib, json, os, pathlib
+
+output     = pathlib.Path(os.environ["OUTPUT_DIR"])
+script_dir = pathlib.Path(os.environ["SCRIPT_DIR"])
+language   = os.environ["LANGUAGE"]
+
+manifest = json.loads((script_dir / "harness-core" / "harness-manifest.json").read_text(encoding="utf-8"))
+baseline_files = [rel for rel in manifest.get("frameworkOwned", []) if rel != "HARNESS-VERSION"]
+baseline_files += manifest.get("languageSpecific", {}).get(language, [])
+
+baselines = {}
+for rel in baseline_files:
+    fp = output / rel
+    if not fp.is_file():
+        continue
+    content = fp.read_text(encoding="utf-8").replace("\r\n", "\n")
+    baselines[rel] = hashlib.sha256(content.encode("utf-8")).hexdigest()
+
+meta = {
+    "projectName": os.environ["PROJECT_NAME"],
+    "projectDescription": os.environ["PROJECT_DESCRIPTION"],
+    "author": os.environ["AUTHOR"],
+    "createdDate": os.environ["TODAY"],
+    "language": language,
+    "commentLanguage": os.environ["COMMENT_LANGUAGE"],
+    "basePackage": os.environ["BASE_PACKAGE"],
+    "harnessVersion": os.environ["HARNESS_VERSION"],
+    "baselines": baselines,
 }
-EOF
+(output / ".harness-meta.json").write_text(
+    json.dumps(meta, indent=2, ensure_ascii=False) + "\n", encoding="utf-8"
+)
+PYEOF
 
 # ── 6. Install dependencies (candidates come from pack.json's install.candidates) ──
 step "Installing dependencies..."

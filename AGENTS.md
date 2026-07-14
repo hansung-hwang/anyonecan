@@ -21,7 +21,9 @@
 
 Run `/plan` before non-trivial work, `/done` at the end of a session.
 AGENTS.md/README.md stay lean — only update them when a rule, convention, or
-user-facing behavior actually changes (see `/done` step 4).
+user-facing behavior actually changes (see `/done` step 4). Update
+`STATUS.md` (and any doc it affects) **the moment a meaningful change
+lands** — don't wait for session end or for someone to ask.
 
 **Multiple team members**: `STATUS.md` is a per-branch snapshot — differing
 across branches is normal, not drift. `worklog.md` is append-only — on a
@@ -33,10 +35,10 @@ merge conflict, keep both sides' rows rather than picking one. See
 `harness-core/HARNESS-VERSION` (semver) is what every generated project
 carries and what `upgrade.ps1`/`upgrade.sh` compares against. Any change to
 a **framework-owned** file (anything listed in
-`harness-core/harness-manifest.json`: `.claude/commands/`,
-`.claude/settings.json`, arch tests, `scripts/validate.sh`,
-`.github/workflows/ci.yml`, `.husky/pre-commit`, `.editorconfig`,
-`docs/adr/001-*`, `.workspace/plans/README.md`) requires:
+`harness-core/harness-manifest.json`'s `frameworkOwned`/`languageSpecific`:
+`.claude/commands/`, `scripts/status-context.sh`, `.claude/settings.json`,
+arch tests, `scripts/validate.sh`/`validate.ps1`, `.github/workflows/ci.yml`,
+`.husky/pre-commit`, `.editorconfig`, `.workspace/plans/README.md`) requires:
 
 1. Bump `harness-core/HARNESS-VERSION` (patch for fixes/wording, minor for
    new commands/checks, major for breaking manifest changes)

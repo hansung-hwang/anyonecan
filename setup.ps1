@@ -196,8 +196,32 @@ if ($SelectedPack.postGenerate -eq "java-packages") {
     Write-Ok "Java package structure created ($BasePackage)"
 }
 
-# ── 5b. Write .harness-meta.json (lets upgrade.ps1 re-render templated files later) ──
+# ── 5b. Write .harness-meta.json (lets upgrade.ps1 re-render templated files
+#         and detect local customizations later) ──
 $HarnessVersion = (Get-Content (Join-Path $HarnessCoreDir "HARNESS-VERSION") -Raw).Trim()
+
+# Baseline hash (LF-normalized SHA-256) of every file upgrade.ps1 is allowed to
+# overwrite, recorded at generation time. On a later upgrade, a file whose hash
+# no longer matches its baseline was customized by the project -- upgrade
+# leaves it alone instead of silently discarding the change.
+$ManifestForBaselines = Get-Content (Join-Path $HarnessCoreDir "harness-manifest.json") -Raw | ConvertFrom-Json
+$BaselineFiles = [System.Collections.Generic.List[string]]::new()
+foreach ($rel in $ManifestForBaselines.frameworkOwned) { if ($rel -ne "HARNESS-VERSION") { $BaselineFiles.Add($rel) } }
+$langFilesForBaseline = $ManifestForBaselines.languageSpecific.$Language
+if ($langFilesForBaseline) { foreach ($rel in $langFilesForBaseline) { $BaselineFiles.Add($rel) } }
+
+$Sha256 = [System.Security.Cryptography.SHA256]::Create()
+$Baselines = [ordered]@{}
+foreach ($rel in $BaselineFiles) {
+    $fp = Join-Path $OutputDir $rel
+    if (-not (Test-Path $fp)) { continue }
+    $raw = [System.IO.File]::ReadAllText($fp, [System.Text.Encoding]::UTF8)
+    $normalized = ($raw -replace "`r`n", "`n")
+    $hash = [System.BitConverter]::ToString($Sha256.ComputeHash([System.Text.Encoding]::UTF8.GetBytes($normalized))).Replace("-", "").ToLower()
+    $Baselines[$rel] = $hash
+}
+$Sha256.Dispose()
+
 $MetaJson = @{
     projectName        = $ProjectName
     projectDescription = $ProjectDescription
@@ -207,7 +231,8 @@ $MetaJson = @{
     commentLanguage     = $CommentLanguage
     basePackage         = $BasePackage
     harnessVersion      = $HarnessVersion
-} | ConvertTo-Json
+    baselines           = $Baselines
+} | ConvertTo-Json -Depth 6
 [System.IO.File]::WriteAllText((Join-Path $OutputDir ".harness-meta.json"), $MetaJson, $utf8NoBom)
 
 # ── 6. Install dependencies (candidates come from pack.json's install.candidates) ──

@@ -216,14 +216,26 @@ existing projects don't have to stay frozen at their generation date:
 
 Upgrade only touches files listed as **framework-owned** in
 `harness-core/harness-manifest.json` — workflow commands, hooks, arch
-tests, `scripts/validate.sh`, CI config, ADR 001. It never touches
-`AGENTS.md`, `CLAUDE.md`, `README.md`, `HARNESS-CHANGELOG.md`,
+tests, `scripts/validate.sh`, CI config. It never touches `AGENTS.md`,
+`CLAUDE.md`, `README.md`, `HARNESS-CHANGELOG.md`,
 `.workspace/STATUS.md`/`worklog.md`/`plans/*.md`, or any build config
 (`eslint.config.js`, `tsconfig.json`, `pom.xml`, ...) — those are yours.
-A few files that a project might not have yet (e.g. `.workspace/STATUS.md`
-for a project generated before it existed) are created only if missing,
-never overwritten. Changes are left uncommitted so you can review
-`git diff` before committing.
+A few files that a project might not have yet (e.g. `.workspace/STATUS.md`,
+or ADR 001 — a project's decision record from the moment it's created, so
+its wording is yours to tailor) are created only if missing, never
+overwritten. Changes are left uncommitted so you can review `git diff`
+before committing.
+
+**Customized a framework-owned file?** Upgrade won't silently overwrite it.
+Every managed file has a baseline hash recorded in `.harness-meta.json` at
+generation time; if your copy no longer matches that baseline, upgrade
+leaves it alone and writes the incoming template next to it as `<file>.new`
+instead. Diff the two, merge by hand, delete the `.new`, and the next
+upgrade run recognizes the file as caught up (advances its baseline,
+cleans up automatically) — no separate "mark as resolved" step. Projects
+generated before this existed fall back to the old overwrite-everything
+behavior for one upgrade, with a warning, and gain this protection from
+that point on.
 
 Any change to a framework-owned file requires bumping
 `harness-core/HARNESS-VERSION` and logging it in `FRAMEWORK-CHANGELOG.md`

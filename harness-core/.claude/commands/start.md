@@ -29,6 +29,18 @@ Read `CLAUDE.md` (Claude Code) or `AGENTS.md` (other AI tools) to review current
 Read `.workspace/STATUS.md`. If it has an active plan, also read that file
 in `.workspace/plans/` to see the design and checklist progress.
 
+### 4.5. Check for Other In-Progress Plans
+
+```bash
+grep -l "Status.*In Progress" .workspace/plans/*.md 2>/dev/null
+```
+
+`STATUS.md`'s "Active plan" only points at one plan. Grep the rest of
+`.workspace/plans/` for any other file with `- **Status**: In Progress` —
+these are unfinished work `STATUS.md` doesn't mention (e.g. a second
+workstream, or a stale pointer after a merge). Note them in the summary
+below; don't start overlapping work without reading them first.
+
 ### 5. Summarize Current State
 
 Summarize the following concisely:
@@ -37,6 +49,7 @@ Summarize the following concisely:
 - **Uncommitted changes**: list of files and summary, if any
 - **Recent work context**: inferred from commit messages and `.workspace/STATUS.md`
 - **Current work goal**: from the active plan if one exists; otherwise confirm with user or infer and present
+- **Other in-progress plans**: any found in step 4.5 beyond the active one
 
 ### 6. Ready Message
 

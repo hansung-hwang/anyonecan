@@ -11,10 +11,12 @@ satisfy so setup, CI, and `upgrade` all pick it up automatically.
 language-packs/<language>/
   pack.json                        # required — see schema below
   scripts/validate.sh              # required — typecheck + lint + test entrypoint
+  scripts/validate.ps1             # optional — native Windows PowerShell equivalent
   scripts/lint-format-hook.sh       # optional — PostToolUse auto-format hook
   .claude/settings.json            # required — hook wiring for this language
   .github/workflows/ci.yml         # required — CI pipeline
   <arch tests>                     # required — see the 5-check matrix below
+  <project-rules seed>              # required — bootstrapLanguageSpecific seed, see §6
   <language-specific source/config># build files, sample domain code, etc.
 ```
 
@@ -69,7 +71,12 @@ file in the pack directory is copied into the generated project as-is
 
 Must run typecheck + lint + test and exit non-zero on any failure. This is
 what `/commit`, the Stop hook, and CI all invoke — everything else in the
-pack should be built to make this one entrypoint meaningful.
+pack should be built to make this one entrypoint meaningful. If your
+language's tooling resolves a different interpreter/toolchain depending on
+PATH (e.g. Python venvs), detect and prefer the project-local one explicitly
+— a fallback to a bare system tool produces confusing errors that look like
+real failures. Provide `scripts/validate.ps1` too if native Windows
+PowerShell usage is common for the language (see the Python pack).
 
 ## 4. `.claude/settings.json` + CI
 
@@ -97,13 +104,27 @@ Every language pack must enforce the same 5 checks (see
 
 ## 6. Register with the upgrade manifest
 
-Add the pack's `scripts/validate.sh`, arch-test path(s), `.claude/settings.json`,
-`.github/workflows/ci.yml`, and `.husky/pre-commit` under a new key in
-`harness-manifest.json`'s `languageSpecific` map, so `upgrade.ps1`/`upgrade.sh`
-know which files to refresh for projects generated with this language. If
-any of the pack's files use `{{PLACEHOLDER}}` tokens beyond the standard set
-(`PROJECT_NAME`, `PROJECT_DESCRIPTION`, `AUTHOR`, `DATE`, `BASE_PACKAGE`),
-list them under `needsSubstitution` too.
+Add the pack's `scripts/validate.sh` (+ `validate.ps1` if you provide one),
+arch-test path(s), `.claude/settings.json`, `.github/workflows/ci.yml`, and
+`.husky/pre-commit` under a new key in `harness-manifest.json`'s
+`languageSpecific` map, so `upgrade.ps1`/`upgrade.sh` know which files to
+refresh for projects generated with this language. If any of the pack's
+files use `{{PLACEHOLDER}}` tokens beyond the standard set (`PROJECT_NAME`,
+`PROJECT_DESCRIPTION`, `AUTHOR`, `DATE`, `BASE_PACKAGE`), list them under
+`needsSubstitution` too.
+
+Also add a project-owned architecture-test seed file (e.g.
+`tests/arch/test_project_rules.py`) under `bootstrapLanguageSpecific` for
+this language — created once if missing, never overwritten by `upgrade`, so
+a project-specific arch check has somewhere to live that isn't the
+framework-owned dependency-test file `upgrade` refreshes. See the existing
+three packs' `test_project_rules`/`project-rules.test`/`ProjectRulesTest`
+files for the expected empty-seed shape.
+
+`.claude/settings.json` should wire a `SessionStart` hook running
+`bash scripts/status-context.sh` (frameworkOwned, language-agnostic) in
+addition to your pack's own hooks — this surfaces `.workspace/STATUS.md` at
+the start of every session automatically.
 
 ## 7. Verify end-to-end
 
@@ -119,3 +140,8 @@ confirm:
   `FRAMEWORK-CHANGELOG.md`: anything a language pack overlays must be
   `languageSpecific`, never `frameworkOwned`, or upgrading with an unknown
   language silently downgrades the project)
+- Generate → confirm `.harness-meta.json`'s `baselines` map has an entry for
+  every `languageSpecific` file for this language → hand-edit one of those
+  files → run `upgrade` → confirm it's left alone and a `<file>.new` appears
+  instead of being silently overwritten (see the 1.3.0 lesson in
+  `FRAMEWORK-CHANGELOG.md`)

@@ -21,12 +21,25 @@
 
 Run `/plan` before non-trivial work, `/done` at the end of a session.
 AGENTS.md/README.md stay lean — only update them when a rule, convention, or
-user-facing behavior actually changes (see `/done` step 4).
+user-facing behavior actually changes (see `/done` step 4). Update
+`STATUS.md` (and any doc it affects) **the moment a meaningful change lands**
+— don't wait for session end or for someone to ask; `/done` is a close-out
+ritual, not the only checkpoint.
 
 **Multiple team members**: `STATUS.md` is a per-branch snapshot — differing
 across branches is normal, not drift. `worklog.md` is append-only — on a
 merge conflict, keep both sides' rows rather than picking one. See
 `.workspace/plans/README.md` for details.
+
+## Key Invariants (do not break)
+
+Project-specific rules distilled from incidents and non-obvious design
+decisions — arguably the highest-value section in this file, since it's the
+one a generic template can't write for you. When something breaks in a
+surprising way, or a design choice isn't obvious from the code, add one
+bullet here: what the rule is, why it exists, and where it's enforced.
+
+- (none yet — add the first one when it happens)
 
 ## Architecture
 
@@ -50,6 +63,8 @@ Always run after modifying code:
 ```bash
 ./scripts/validate.sh
 ```
+
+Windows: use `scripts/validate.ps1` instead, if the language pack provides one.
 
 ## Steering Loop
 
