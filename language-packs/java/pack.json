@@ -1,0 +1,26 @@
+{
+  "language": "java",
+  "display": "Java",
+  "order": 3,
+  "aliases": ["3", "java"],
+  "rules": [
+    "- No `null` returns → use `Optional<T>`",
+    "- Avoid checked exceptions → domain exceptions should be unchecked",
+    "- Prefer record classes (immutable data, Java 16+)",
+    "- `var` allowed only when type inference is clear",
+    "- File names: `PascalCase.java` / `*Test.java`"
+  ],
+  "banned": "`null` returns · raw type usage · `System.out.println` · excessive `@SuppressWarnings`",
+  "postGenerate": "java-packages",
+  "install": {
+    "candidates": [
+      {
+        "tool": "mvn",
+        "check": "mvn",
+        "run": "",
+        "successMessage": "Maven found (dependencies will be downloaded on first build)"
+      }
+    ],
+    "notFoundMessage": "Maven (mvn) not found. Install Java 21+ and Maven 3.9+."
+  }
+}

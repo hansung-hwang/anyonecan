@@ -27,20 +27,57 @@ fi
 read -rp "Project description: " PROJECT_DESCRIPTION
 read -rp "Author name: " AUTHOR
 
+# ── Discover language packs (data-driven: language-packs/*/pack.json) ──────────
+SCRIPT_DIR_EARLY="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PACKS_RAW=$(python3 - "$SCRIPT_DIR_EARLY/language-packs" << 'PYEOF'
+import sys, json, glob, os
+
+root = sys.argv[1]
+packs = []
+for p in sorted(glob.glob(os.path.join(root, "*", "pack.json"))):
+    with open(p, encoding="utf-8") as f:
+        packs.append(json.load(f))
+packs.sort(key=lambda p: p["order"])
+
+default_lang = next((p["language"] for p in packs if p.get("default")), packs[0]["language"])
+
+for p in packs:
+    suffix = " (default)" if p["language"] == default_lang else ""
+    print(f"MENU:{p['order']}. {p['display']}{suffix}")
+for p in packs:
+    print(f"DATA:{p['language']}:{p['display']}:{','.join(p['aliases'])}:{p.get('postGenerate', '')}")
+print(f"DEFAULT:{default_lang}")
+PYEOF
+)
+
 echo ""
 echo "Select language:"
-echo "  1. TypeScript (default)"
-echo "  2. Python"
-echo "  3. Java"
+echo "$PACKS_RAW" | grep '^MENU:' | sed 's/^MENU://'
 read -rp "Enter number: " LANG_CHOICE
 
 # Normalize so a number or a language name (e.g. "python") is accepted, matching setup.ps1
-LANG_CHOICE_NORM=$(echo "${LANG_CHOICE:-1}" | tr '[:upper:]' '[:lower:]' | tr -d '[:space:]')
-case "$LANG_CHOICE_NORM" in
-    2|python)         LANGUAGE="python";     LANGUAGE_DISPLAY="Python" ;;
-    3|java)           LANGUAGE="java";       LANGUAGE_DISPLAY="Java" ;;
-    *)                LANGUAGE="typescript"; LANGUAGE_DISPLAY="TypeScript" ;;
-esac
+LANG_CHOICE_NORM=$(echo "${LANG_CHOICE:-}" | tr '[:upper:]' '[:lower:]' | tr -d '[:space:]')
+DEFAULT_LANGUAGE=$(echo "$PACKS_RAW" | grep '^DEFAULT:' | cut -d: -f2)
+
+MATCH_LANG=""
+if [[ -n "$LANG_CHOICE_NORM" ]]; then
+    while IFS=: read -r tag lang display aliases postgen; do
+        [[ "$tag" != "DATA" ]] && continue
+        IFS=',' read -ra ALIAS_ARR <<< "$aliases"
+        for a in "${ALIAS_ARR[@]}"; do
+            if [[ "$a" == "$LANG_CHOICE_NORM" ]]; then MATCH_LANG="$lang"; break 2; fi
+        done
+    done <<< "$PACKS_RAW"
+fi
+[[ -z "$MATCH_LANG" ]] && MATCH_LANG="$DEFAULT_LANGUAGE"
+
+LANGUAGE=""; LANGUAGE_DISPLAY=""; POST_GENERATE=""
+while IFS=: read -r tag lang display aliases postgen; do
+    [[ "$tag" != "DATA" ]] && continue
+    if [[ "$lang" == "$MATCH_LANG" ]]; then
+        LANGUAGE="$lang"; LANGUAGE_DISPLAY="$display"; POST_GENERATE="$postgen"
+    fi
+done <<< "$PACKS_RAW"
 
 echo ""
 echo "Select comment/description language (controls the language the AI writes comments in):"
@@ -54,7 +91,7 @@ case "$COMMENT_CHOICE_NORM" in
 esac
 
 BASE_PACKAGE=""
-if [[ "$LANGUAGE" == "java" ]]; then
+if [[ "$POST_GENERATE" == "java-packages" ]]; then
     SAFE_NAME=$(echo "$PROJECT_NAME" | tr -d '-')
     read -rp "Java base package (default: com.example.$SAFE_NAME): " BASE_PACKAGE_INPUT
     BASE_PACKAGE="${BASE_PACKAGE_INPUT:-com.example.$SAFE_NAME}"
@@ -82,7 +119,7 @@ info "Description   : $PROJECT_DESCRIPTION"
 info "Author        : $AUTHOR"
 info "Language      : $LANGUAGE_DISPLAY"
 info "Comment lang  : $COMMENT_LANGUAGE"
-[[ "$LANGUAGE" == "java" ]] && info "Base package  : $BASE_PACKAGE"
+[[ "$POST_GENERATE" == "java-packages" ]] && info "Base package  : $BASE_PACKAGE"
 info "Output dir    : $OUTPUT_DIR"
 echo "────────────────────────────────────────────────"
 echo ""
@@ -99,49 +136,27 @@ ok "harness-core copied"
 # ── 2. Copy language pack (overlay on top of harness-core) ─────────────────────
 step "Copying $LANGUAGE_DISPLAY language pack..."
 cp -r "$LANG_PACK_DIR/." "$OUTPUT_DIR/"
+rm -f "$OUTPUT_DIR/pack.json"  # setup-time metadata only, not part of the generated project
 ok "Language pack copied"
 
 # ── 3. Substitute language-specific rules into CLAUDE.md (uses python3) ────────
 step "Applying language-specific rules..."
 
-export LANGUAGE OUTPUT_DIR LANGUAGE_DISPLAY COMMENT_LANGUAGE
+export LANGUAGE OUTPUT_DIR LANGUAGE_DISPLAY COMMENT_LANGUAGE SCRIPT_DIR
 
 python3 << 'PYEOF'
-import os, pathlib
+import os, pathlib, json
 
-lang    = os.environ["LANGUAGE"]
-output  = pathlib.Path(os.environ["OUTPUT_DIR"])
-display = os.environ["LANGUAGE_DISPLAY"]
-comment = os.environ["COMMENT_LANGUAGE"]
+lang       = os.environ["LANGUAGE"]
+output     = pathlib.Path(os.environ["OUTPUT_DIR"])
+display    = os.environ["LANGUAGE_DISPLAY"]
+comment    = os.environ["COMMENT_LANGUAGE"]
+script_dir = pathlib.Path(os.environ["SCRIPT_DIR"])
 
-rules = {
-    "typescript": (
-        "- No `any` → use `unknown` + type guards\n"
-        "- Explicit return type on every function (`explicit-function-return-type`)\n"
-        "- `as` assertions only when unavoidable; explain the reason in a comment\n"
-        "- File names: `kebab-case.ts` / `.test.ts` / `.types.ts` / `.interface.ts`"
-    ),
-    "python": (
-        "- Type hints required (Python 3.12+, `X | Y` union style)\n"
-        "- No `Any` type → use concrete types\n"
-        "- Explicit return type on every function\n"
-        "- Prefer dataclass or Pydantic models (avoid overusing dict)\n"
-        "- File names: `snake_case.py` / `test_*.py`"
-    ),
-    "java": (
-        "- No `null` returns → use `Optional<T>`\n"
-        "- Avoid checked exceptions → domain exceptions should be unchecked\n"
-        "- Prefer record classes (immutable data, Java 16+)\n"
-        "- `var` allowed only when type inference is clear\n"
-        "- File names: `PascalCase.java` / `*Test.java`"
-    ),
-}
-
-banned = {
-    "typescript": "`any` · `@ts-ignore` · `@ts-nocheck` · `@ts-expect-error` · `console.log` · excessive `eslint-disable`",
-    "python":     "`Any` · `# type: ignore` · `print()` (use logging instead) · excessive `pass`",
-    "java":       "`null` returns · raw type usage · `System.out.println` · excessive `@SuppressWarnings`",
-}
+# Rules/banned items come from the language pack's pack.json (single source of truth)
+pack = json.loads((script_dir / "language-packs" / lang / "pack.json").read_text(encoding="utf-8"))
+rules_text = "\n".join(pack["rules"])
+banned_text = pack["banned"]
 
 # AGENTS.md is the single source of truth for rules — CLAUDE.md/.cursorrules/
 # .windsurfrules/harness.mdc are thin pointers with no {{LANGUAGE_RULES}}/
@@ -151,8 +166,8 @@ for rel in ["AGENTS.md"]:
     if not p.exists():
         continue
     content = p.read_text(encoding="utf-8")
-    content = content.replace("{{LANGUAGE_RULES}}", rules[lang])
-    content = content.replace("{{BANNED_ITEMS}}", banned[lang])
+    content = content.replace("{{LANGUAGE_RULES}}", rules_text)
+    content = content.replace("{{BANNED_ITEMS}}", banned_text)
     content = content.replace("{{LANGUAGE_DISPLAY}}", display)
     content = content.replace("{{COMMENT_LANGUAGE}}", comment)
     p.write_text(content, encoding="utf-8")
@@ -191,7 +206,7 @@ done
 ok "Placeholders substituted"
 
 # ── 5. Java: create package directories + substitute BASE_PACKAGE ───────────────
-if [[ "$LANGUAGE" == "java" ]]; then
+if [[ "$POST_GENERATE" == "java-packages" ]]; then
     step "Creating Java package structure..."
     BASE_PKG_PATH=$(echo "$BASE_PACKAGE" | tr '.' '/')
     JAVA_SRC_ROOT="$OUTPUT_DIR/src/main/java/$BASE_PKG_PATH"
@@ -229,40 +244,40 @@ cat > "$OUTPUT_DIR/.harness-meta.json" << EOF
 }
 EOF
 
-# ── 6. Install dependencies ──────────────────────────────────────────────────────
+# ── 6. Install dependencies (candidates come from pack.json's install.candidates) ──
 step "Installing dependencies..."
 cd "$OUTPUT_DIR"
 
-case "$LANGUAGE" in
-    typescript)
-        if command -v pnpm &>/dev/null; then
-            if ! pnpm install --silent 2>/dev/null; then
+INSTALL_DATA=$(python3 - "$SCRIPT_DIR/language-packs/$LANGUAGE/pack.json" << 'PYEOF'
+import sys, json
+
+pack = json.load(open(sys.argv[1], encoding="utf-8"))
+install = pack["install"]
+for c in install["candidates"]:
+    print("\t".join([c["tool"], c["check"], c.get("run", ""), c.get("retryFix", ""), c["successMessage"]]))
+print("NOTFOUND\t" + install["notFoundMessage"])
+PYEOF
+)
+
+HANDLED=0
+while IFS=$'\t' read -r tool check run retryfix successmsg; do
+    if [[ "$tool" == "NOTFOUND" ]]; then
+        [[ "$HANDLED" -eq 0 ]] && echo -e "${YELLOW}  ⚠ $check${NC}"
+        continue
+    fi
+    [[ "$HANDLED" -eq 1 ]] && continue
+    if command -v "$check" &>/dev/null; then
+        if [[ -n "$run" ]]; then
+            if ! eval "$run" &>/dev/null && [[ -n "$retryfix" ]]; then
                 echo -e "${GRAY}  Approving build scripts (esbuild)...${NC}"
-                pnpm approve-builds esbuild --silent 2>/dev/null || true
-                pnpm install --silent
+                eval "$retryfix" &>/dev/null || true
+                eval "$run" &>/dev/null || true
             fi
-            ok "pnpm install complete"
-        else
-            echo -e "${YELLOW}  ⚠ pnpm not found. Run manually: pnpm install${NC}"
         fi
-        ;;
-    python)
-        if command -v uv &>/dev/null; then
-            uv sync --quiet 2>/dev/null; ok "uv sync complete"
-        elif command -v pip &>/dev/null; then
-            pip install ruff mypy pytest pytest-cov -q; ok "pip install complete"
-        else
-            echo -e "${YELLOW}  ⚠ Please install uv or pip.${NC}"
-        fi
-        ;;
-    java)
-        if command -v mvn &>/dev/null; then
-            ok "Maven found (dependencies will be downloaded on first build)"
-        else
-            echo -e "${YELLOW}  ⚠ Maven (mvn) not found. Install Java 21+ and Maven 3.9+.${NC}"
-        fi
-        ;;
-esac
+        ok "$successmsg"
+        HANDLED=1
+    fi
+done <<< "$INSTALL_DATA"
 
 # ── 7. git init + initial commit ─────────────────────────────────────────────────
 step "Initializing git..."

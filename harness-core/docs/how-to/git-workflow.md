@@ -45,13 +45,14 @@ Closes #42
 ## Pre-commit Checklist
 
 ```bash
-pnpm validate   # confirm typecheck + lint + test all pass
+./scripts/validate.sh   # confirm typecheck + lint + test all pass
 ```
 
-- [ ] `pnpm validate` fully passes
+- [ ] `./scripts/validate.sh` fully passes
 - [ ] Tests added when business logic changes
 - [ ] Architecture dependency rules respected
-- [ ] `console.log` removed
+- [ ] No banned debug output left in code (see `AGENTS.md` Prohibited list —
+      `console.log` / `print()` / `System.out.print` depending on language)
 - [ ] Checked whether any `.env` file is staged
 
 ## Cautions

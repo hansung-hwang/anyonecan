@@ -23,6 +23,11 @@ Run `/plan` before non-trivial work, `/done` at the end of a session.
 AGENTS.md/README.md stay lean — only update them when a rule, convention, or
 user-facing behavior actually changes (see `/done` step 4).
 
+**Multiple team members**: `STATUS.md` is a per-branch snapshot — differing
+across branches is normal, not drift. `worklog.md` is append-only — on a
+merge conflict, keep both sides' rows rather than picking one. See
+`.workspace/plans/README.md` for details.
+
 ## Framework Versioning
 
 `harness-core/HARNESS-VERSION` (semver) is what every generated project

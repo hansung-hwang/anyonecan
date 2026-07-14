@@ -1,0 +1,26 @@
+{
+  "language": "typescript",
+  "display": "TypeScript",
+  "order": 1,
+  "default": true,
+  "aliases": ["1", "ts", "typescript"],
+  "rules": [
+    "- No `any` → use `unknown` + type guards",
+    "- Explicit return type on every function (`explicit-function-return-type`)",
+    "- `as` assertions only when unavoidable; explain the reason in a comment",
+    "- File names: `kebab-case.ts` / `.test.ts` / `.types.ts` / `.interface.ts`"
+  ],
+  "banned": "`any` · `@ts-ignore` · `@ts-nocheck` · `@ts-expect-error` · `console.log` · excessive `eslint-disable`",
+  "install": {
+    "candidates": [
+      {
+        "tool": "pnpm",
+        "check": "pnpm",
+        "run": "pnpm install",
+        "retryFix": "pnpm approve-builds esbuild",
+        "successMessage": "pnpm install complete"
+      }
+    ],
+    "notFoundMessage": "pnpm not found. Run manually: pnpm install"
+  }
+}

@@ -12,7 +12,10 @@
     ".claude/commands/start.md",
     ".claude/commands/test.md",
     ".editorconfig",
+    ".github/PULL_REQUEST_TEMPLATE.md",
     "docs/adr/001-clean-architecture-layers.md",
+    "docs/how-to/git-workflow.md",
+    "docs/how-to/testing-guide.md",
     ".workspace/plans/README.md"
   ],
   "_languageSpecificComment": "Every language pack overlays .claude/settings.json, .github/workflows/ci.yml, and .husky/pre-commit with its own hook wiring (e.g. TypeScript adds a PostToolUse lint-format hook + 'pnpm validate'), so these are NOT in frameworkOwned -- overwriting them from the language-agnostic harness-core fallback would silently strip a project's language-specific hooks. When the project's language is unknown (no .harness-meta.json), upgrade skips this whole list rather than downgrading to the generic fallback.",

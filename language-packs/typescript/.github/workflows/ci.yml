@@ -20,8 +20,15 @@ jobs:
           cache: 'pnpm'
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
-      - name: Validate
-        run: bash scripts/validate.sh
+
+      - name: Typecheck
+        run: npx tsc --noEmit
+
+      - name: Lint
+        run: npx eslint src --ext .ts,.tsx
+
+      - name: Test
+        run: npx vitest run
 
       - name: Coverage gate (domain >= 80%)
         run: pnpm test:coverage

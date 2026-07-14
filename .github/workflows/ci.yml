@@ -24,8 +24,17 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Validate (typecheck + lint + test)
-        run: pnpm validate
+      - name: Check sync (root <-> harness-core drift)
+        run: pnpm check-sync
+
+      - name: Typecheck
+        run: pnpm typecheck
+
+      - name: Lint
+        run: pnpm lint
+
+      - name: Test
+        run: pnpm test
 
       - name: Coverage gate (domain >= 80%)
         run: pnpm test:coverage

@@ -3,66 +3,52 @@
 > Snapshot of current work. This file is **overwritten** each session close-out —
 > for history, see `worklog.md`. Read this first when starting a new session.
 
-**Last updated**: 2026-07-13
-**Active plan**: `.workspace/plans/2026-07-13-harness-upgrade-p1-p5.md`
+**Last updated**: 2026-07-14
+**Active plan**: `.workspace/plans/2026-07-13-harness-upgrade-p1-p5.md` (Done — all 5 phases complete)
 
 ## Current Goal
 
-Upgrade the framework across 5 priorities so every member — any AI tool, any
-language — gets consistent, enforced quality. P1, P2, P3 are done and
-committed. P4 and P5 remain — resume with P4 next session.
+The 5-phase harness-upgrade plan is complete (P1–P5). No active plan.
+Working tree has uncommitted P4+P5 changes staged for a single commit (see
+below) — this is the next immediate action, not a new task.
 
 ## Progress
 
-- **P1 done** (commit f34eb77): AGENTS.md is the single rule source across
-  every AI tool; CLAUDE.md/.cursorrules/.windsurfrules/harness.mdc reduced
-  to pointers; `scripts/check-sync.mjs` guards against drift.
-- **P2 done** (commit cf39a92): HARNESS-VERSION + harness-manifest.json +
-  upgrade.ps1/upgrade.sh/upgrade.py let existing generated projects pull in
-  framework updates. Verified end-to-end on Windows and Mac/Linux; 3 real
-  bugs found and fixed during verification.
-- **P3 done** (commit 834a40b): documented-only rules (`.only()` ban,
-  ts-comment ban, print() ban, System.out.print ban) promoted to real
-  linter/Checkstyle gates across all 3 languages; domain coverage (≥80%)
-  enforced in CI for TS/Python (Java is project-wide, documented why); Java
-  arch test brought up to the same 5-check parity as TypeScript's (Python
-  was already there). Python changes verified live with real ruff/pytest in
-  this session; TS/Java only checked for syntax/XML well-formedness — no
-  pnpm/node_modules or Java/Maven were available to actually run them.
-- Working tree is clean. No uncommitted changes.
+- **P1–P3** done and committed in prior sessions (f34eb77, cf39a92, 834a40b).
+- **P4 done** (team collaboration layer): PR template (harness-core +
+  root), how-to docs (`git-workflow.md`, `testing-guide.md`) moved into
+  `harness-core/docs/how-to/` and generalized for all languages (closes a
+  real gap — these never reached generated projects before), multi-member
+  `.workspace/` conflict guidance, named CI steps (Typecheck/Lint/Test) for
+  TS and Python.
+- **P5 done** (data-driven language packs): `pack.json` per language;
+  `setup.ps1`/`setup.sh` rewritten to discover packs via glob instead of
+  hardcoded switches; `docs/how-to/adding-a-language-pack.md` contract doc;
+  README updated. Verified end-to-end on Windows via `setup.ps1` for all 3
+  languages + alias matching + default fallback. `setup.sh` only
+  syntax-checked (`bash -n`), not run end-to-end (no Mac/Linux in this
+  session).
+- HARNESS-VERSION bumped 1.0.0 → 1.2.0 (one release covering P4+P5, per
+  user's request to hold the commit until both were done).
 
 ## Next Steps
 
-1. **P4 — Team Collaboration Layer**:
-   - `harness-core/.github/PULL_REQUEST_TEMPLATE.md` (tests included? plan
-     linked? ADR written? AGENTS.md updated?)
-   - Move `docs/how-to/git-workflow.md` + `testing-guide.md` into
-     `harness-core/docs/how-to/` (generalize TS-specific bits;
-     `component-guide.md` stays root-only)
-   - Multi-member `.workspace/` note (STATUS.md is per-branch by nature,
-     worklog.md is append-only — on merge conflict keep both rows) in
-     `.workspace/plans/README.md` + AGENTS.md's Work Journal section
-   - Named CI steps (typecheck/lint/test as separate steps) for TS & Python
-2. **P5 — Data-Driven Language Packs**: `pack.json` per language
-   (display name, aliases, rules, banned items, install command);
-   `setup.ps1`/`setup.sh` discover languages from `pack.json` instead of
-   hardcoding; `docs/how-to/adding-a-language-pack.md`; update README's
-   "Adding a New Language Pack" section
-3. Recommend the user run `pnpm validate && pnpm test:coverage` and `mvn
-   verify -P coverage` on a generated project once in an environment with
-   those tools, to confirm the P3 TS/Java changes actually work (unverified
-   in this session — see Progress above)
+1. **Commit P4+P5** (user approves the message) — this is the immediate
+   next action, not deferred work.
+2. Recommend the user run `setup.sh` for real on a Mac/Linux machine once,
+   to confirm the P5 rewrite actually works end-to-end there (unverified
+   in this session — see Blockers below).
+3. No further phases planned. If new framework work comes up, start a new
+   plan via `/plan`.
 
 ## Blockers / Open Questions
 
+- This is a Windows-only sandbox: `setup.sh`/`upgrade.sh` changes can be
+  syntax-checked but never actually executed end-to-end here. Every
+  Mac/Linux-path change this framework has made (P2's upgrade.sh/upgrade.py,
+  P5's setup.sh rewrite) carries this same unverified-in-practice caveat.
 - pnpm is not on PATH in this shell — `pnpm validate` must be run by the
   user, or `bash scripts/validate.sh` after confirming pnpm is reachable.
-- No Java/Maven in this environment — the Java arch-test additions and
-  JaCoCo profile from P3 are unverified beyond XML well-formedness/manual
-  review. Confirm with real Maven before relying on them in production.
-- Local environment quirks (not framework bugs, just notes for future
-  sessions in this same sandbox): Cygwin perl breaks on multiple `-e`
-  flags (already worked around in setup.sh); PowerShell tool's
-  `-NonInteractive` mode can't run `Read-Host`-based scripts, so
-  interactive scripts need Bash-invoked `powershell.exe -File ...` with
-  piped stdin instead.
+- No Java/Maven in this environment — P3's Java arch-test additions and
+  JaCoCo profile remain unverified beyond XML well-formedness/manual
+  review from prior sessions.

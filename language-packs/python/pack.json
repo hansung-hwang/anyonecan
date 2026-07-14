@@ -1,0 +1,31 @@
+{
+  "language": "python",
+  "display": "Python",
+  "order": 2,
+  "aliases": ["2", "py", "python"],
+  "rules": [
+    "- Type hints required (Python 3.12+, `X | Y` union style)",
+    "- No `Any` type → use concrete types",
+    "- Explicit return type on every function",
+    "- Prefer dataclass or Pydantic models (avoid overusing dict)",
+    "- File names: `snake_case.py` / `test_*.py`"
+  ],
+  "banned": "`Any` · `# type: ignore` · `print()` (use logging instead) · excessive `pass`",
+  "install": {
+    "candidates": [
+      {
+        "tool": "uv",
+        "check": "uv",
+        "run": "uv sync",
+        "successMessage": "uv sync complete"
+      },
+      {
+        "tool": "pip",
+        "check": "pip",
+        "run": "pip install ruff mypy pytest pytest-cov --quiet",
+        "successMessage": "pip install complete"
+      }
+    ],
+    "notFoundMessage": "Please install uv or pip."
+  }
+}

@@ -32,23 +32,34 @@ if ($ProjectName -notmatch '^[a-z0-9][a-z0-9\-]*$') {
 $ProjectDescription = Read-Host "Project description"
 $Author = Read-Host "Author name"
 
+# ── Discover language packs (data-driven: language-packs/*/pack.json) ──────────
+$ScriptDirEarly = Split-Path -Parent $MyInvocation.MyCommand.Path
+$PackFiles = Get-ChildItem -Path (Join-Path $ScriptDirEarly "language-packs") -Filter "pack.json" -Recurse -Depth 1 -ErrorAction Stop
+$Packs = @($PackFiles | ForEach-Object { Get-Content $_.FullName -Raw -Encoding UTF8 | ConvertFrom-Json } | Sort-Object order)
+$DefaultPack = $Packs | Where-Object { $_.default } | Select-Object -First 1
+if (-not $DefaultPack) { $DefaultPack = $Packs[0] }
+
 Write-Host ""
 Write-Host "Select language:" -ForegroundColor White
-Write-Host "  1. TypeScript (default)"
-Write-Host "  2. Python"
-Write-Host "  3. Java"
+foreach ($p in $Packs) {
+    $suffix = if ($p -eq $DefaultPack) { " (default)" } else { "" }
+    Write-Host "  $($p.order). $($p.display)$suffix"
+}
 $LangChoice = Read-Host "Enter number"
+$LangChoiceNorm = $LangChoice.Trim().ToLower()
 
-$Language = switch ($LangChoice.Trim().ToLower()) {
-    { $_ -in "2", "python" }     { "python" }
-    { $_ -in "3", "java" }       { "java" }
-    default                       { "typescript" }
+$SelectedPack = $null
+if ([string]::IsNullOrWhiteSpace($LangChoiceNorm)) {
+    $SelectedPack = $DefaultPack
+} else {
+    foreach ($p in $Packs) {
+        if (@($p.aliases) -contains $LangChoiceNorm) { $SelectedPack = $p; break }
+    }
+    if (-not $SelectedPack) { $SelectedPack = $DefaultPack }
 }
-$LanguageDisplay = switch ($Language) {
-    "python" { "Python" }
-    "java"   { "Java" }
-    default  { "TypeScript" }
-}
+
+$Language = $SelectedPack.language
+$LanguageDisplay = $SelectedPack.display
 
 Write-Host ""
 Write-Host "Select comment/description language (controls the language the AI writes comments in):" -ForegroundColor White
@@ -61,7 +72,7 @@ $CommentLanguage = switch ($CommentChoice.Trim().ToLower()) {
 }
 
 $BasePackage = ""
-if ($Language -eq "java") {
+if ($SelectedPack.postGenerate -eq "java-packages") {
     $BasePackageInput = Read-Host "Java base package (e.g. com.example.myproject)"
     $SafeName = $ProjectName -replace '-', ''
     $BasePackage = if ([string]::IsNullOrWhiteSpace($BasePackageInput)) { "com.example.$SafeName" } else { $BasePackageInput }
@@ -88,7 +99,7 @@ Write-Info "Description   : $ProjectDescription"
 Write-Info "Author        : $Author"
 Write-Info "Language      : $LanguageDisplay"
 Write-Info "Comment lang  : $CommentLanguage"
-if ($Language -eq "java") { Write-Info "Base package  : $BasePackage" }
+if ($SelectedPack.postGenerate -eq "java-packages") { Write-Info "Base package  : $BasePackage" }
 Write-Info "Output dir    : $OutputDir"
 Write-Host "────────────────────────────────────────────────" -ForegroundColor DarkGray
 Write-Host ""
@@ -110,39 +121,15 @@ Write-Step "Copying $LanguageDisplay language pack..."
 foreach ($item in Get-ChildItem -Path $LangPackDir -Force) {
     Copy-Item -Path $item.FullName -Destination $OutputDir -Recurse -Force
 }
+Remove-Item -Path (Join-Path $OutputDir "pack.json") -Force -ErrorAction SilentlyContinue  # setup-time metadata only, not part of the generated project
 Write-Ok "Language pack copied"
 
 # ── 3. Substitute language-specific rules into CLAUDE.md ───────────────────────
 Write-Step "Applying language-specific rules..."
 
-$LanguageRules = switch ($Language) {
-    "typescript" {
-'- No `any` → use `unknown` + type guards
-- Explicit return type on every function (`explicit-function-return-type`)
-- `as` assertions only when unavoidable; explain the reason in a comment
-- File names: `kebab-case.ts` / `.test.ts` / `.types.ts` / `.interface.ts`'
-    }
-    "python" {
-'- Type hints required (Python 3.12+, `X | Y` union style)
-- No `Any` type → use concrete types
-- Explicit return type on every function
-- Prefer dataclass or Pydantic models (avoid overusing dict)
-- File names: `snake_case.py` / `test_*.py`'
-    }
-    "java" {
-'- No `null` returns → use `Optional<T>`
-- Avoid checked exceptions → domain exceptions should be unchecked
-- Prefer record classes (immutable data, Java 16+)
-- `var` allowed only when type inference is clear
-- File names: `PascalCase.java` / `*Test.java`'
-    }
-}
-
-$BannedItems = switch ($Language) {
-    "typescript" { '`any` · `@ts-ignore` · `@ts-nocheck` · `@ts-expect-error` · `console.log` · excessive `eslint-disable`' }
-    "python"     { '`Any` · `# type: ignore` · `print()` (use logging instead) · excessive `pass`' }
-    "java"       { '`null` returns · raw type usage · `System.out.println` · excessive `@SuppressWarnings`' }
-}
+# Rules/banned items come from the language pack's pack.json (see language-packs/<lang>/pack.json)
+$LanguageRules = ($SelectedPack.rules -join "`n")
+$BannedItems = $SelectedPack.banned
 
 # AGENTS.md is the single source of truth for rules — CLAUDE.md/.cursorrules/
 # .windsurfrules/harness.mdc are thin pointers with no {{LANGUAGE_RULES}}/
@@ -191,7 +178,7 @@ Get-ChildItem -Path $OutputDir -Recurse -File -Force |
 Write-Ok "Placeholders substituted"
 
 # ── 5. Java: create package directory structure ──────────────────────────────────
-if ($Language -eq "java") {
+if ($SelectedPack.postGenerate -eq "java-packages") {
     Write-Step "Creating Java package structure..."
     $BasePkgPath = $BasePackage.Replace('.', '\')
     $JavaSrcRoot = Join-Path $OutputDir "src\main\java\$BasePkgPath"
@@ -223,40 +210,27 @@ $MetaJson = @{
 } | ConvertTo-Json
 [System.IO.File]::WriteAllText((Join-Path $OutputDir ".harness-meta.json"), $MetaJson, $utf8NoBom)
 
-# ── 6. Install dependencies ──────────────────────────────────────────────────────
+# ── 6. Install dependencies (candidates come from pack.json's install.candidates) ──
 Write-Step "Installing dependencies..."
 Push-Location $OutputDir
 try {
-    switch ($Language) {
-        "typescript" {
-            if (Get-Command pnpm -ErrorAction SilentlyContinue) {
-                pnpm install 2>&1 | Out-Null
-                if ($LASTEXITCODE -ne 0) {
-                    Write-Host "  Approving build scripts (esbuild)..." -ForegroundColor Gray
-                    pnpm approve-builds esbuild 2>&1 | Out-Null
-                    pnpm install 2>&1 | Out-Null
-                }
-                Write-Ok "pnpm install complete"
-            } else {
-                Write-Host "  ⚠ pnpm not found. Run manually: pnpm install" -ForegroundColor Yellow
+    $handled = $false
+    foreach ($candidate in @($SelectedPack.install.candidates)) {
+        if (-not (Get-Command $candidate.check -ErrorAction SilentlyContinue)) { continue }
+        if (-not [string]::IsNullOrWhiteSpace($candidate.run)) {
+            Invoke-Expression $candidate.run 2>&1 | Out-Null
+            if ($LASTEXITCODE -ne 0 -and $candidate.PSObject.Properties.Name -contains "retryFix") {
+                Write-Host "  Approving build scripts (esbuild)..." -ForegroundColor Gray
+                Invoke-Expression $candidate.retryFix 2>&1 | Out-Null
+                Invoke-Expression $candidate.run 2>&1 | Out-Null
             }
         }
-        "python" {
-            if (Get-Command uv -ErrorAction SilentlyContinue) {
-                uv sync 2>&1 | Out-Null; Write-Ok "uv sync complete"
-            } elseif (Get-Command pip -ErrorAction SilentlyContinue) {
-                pip install ruff mypy pytest pytest-cov --quiet 2>&1 | Out-Null; Write-Ok "pip install complete"
-            } else {
-                Write-Host "  ⚠ Please install uv or pip." -ForegroundColor Yellow
-            }
-        }
-        "java" {
-            if (Get-Command mvn -ErrorAction SilentlyContinue) {
-                Write-Ok "Maven found (dependencies will be downloaded on first build)"
-            } else {
-                Write-Host "  ⚠ Maven (mvn) not found. Install Java 21+ and Maven 3.9+." -ForegroundColor Yellow
-            }
-        }
+        Write-Ok $candidate.successMessage
+        $handled = $true
+        break
+    }
+    if (-not $handled) {
+        Write-Host "  ⚠ $($SelectedPack.install.notFoundMessage)" -ForegroundColor Yellow
     }
 } catch {
     Write-Host "  ⚠ Dependency installation failed. Please check manually." -ForegroundColor Yellow

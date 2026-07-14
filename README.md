@@ -233,15 +233,27 @@ Any change to a framework-owned file requires bumping
 
 ## Adding a New Language Pack
 
+`setup.ps1`/`setup.sh` discover language packs by globbing
+`language-packs/*/pack.json` — no edits to the setup scripts themselves are
+needed to add a language.
+
 1. Create `language-packs/<language>/` directory
-2. Write required files:
+2. Write `pack.json` (display name, menu order, aliases, AGENTS.md rules +
+   banned items, install-tool candidates) plus the required files:
    - `scripts/validate.sh` — validation command for that language
    - `scripts/lint-format-hook.sh` — for PostToolUse hook (optional)
    - `.claude/settings.json` — hook configuration
-   - `.github/workflows/ci.yml` — CI configuration
-   - Architecture tests at `src/tests/arch/` or equivalent path
-3. Add language choice and language-specific rules to `setup.ps1` / `setup.sh`
-4. Register the language's `scripts/validate.sh` and arch-test path under
-   `languageSpecific` in `harness-core/harness-manifest.json`, so `upgrade`
-   knows which files to update for that language
-5. Confirm framework self-validation passes with `pnpm validate`
+   - `.github/workflows/ci.yml` — CI configuration, named typecheck/lint/test steps
+   - Architecture tests implementing the 5-check parity matrix (layer
+     dependencies, domain purity, no cycles, file naming, domain→test
+     existence)
+3. Register the pack's `scripts/validate.sh`, arch-test path(s),
+   `.claude/settings.json`, `.github/workflows/ci.yml`, and
+   `.husky/pre-commit` under `languageSpecific` in
+   `harness-core/harness-manifest.json`, so `upgrade` knows which files to
+   update for that language
+4. Confirm framework self-validation passes with `pnpm validate`, then
+   generate a project with the new language end-to-end and confirm
+   `AGENTS.md` and `.harness-meta.json` render correctly
+
+Full contract: `docs/how-to/adding-a-language-pack.md`.

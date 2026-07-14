@@ -1,7 +1,7 @@
 # Harness Framework Upgrade — P1~P5
 
 - **Date**: 2026-07-13
-- **Status**: In Progress
+- **Status**: Done
 
 ## Goal
 
@@ -246,18 +246,68 @@ Design (applies to both `harness-core/` templates and this repo's root):
   those tools, to confirm before relying on this in production.
 
 ### P4 — Team layer
-- [ ] harness-core/.github/PULL_REQUEST_TEMPLATE.md
-- [ ] Move/generalize git-workflow.md + testing-guide.md into harness-core/docs/how-to/
-- [ ] Multi-member .workspace note (plans/README.md + AGENTS.md, both copies)
-- [ ] CI: named typecheck/lint/test steps for TS & Python packs
+- [x] harness-core/.github/PULL_REQUEST_TEMPLATE.md (also added at root for
+  this repo's own PRs, wording adjusted to `pnpm validate`)
+- [x] Move/generalize git-workflow.md + testing-guide.md into harness-core/docs/how-to/
+  — these previously existed only in this framework repo's own `docs/`
+  (never copied into generated projects since setup copies `harness-core/`
+  wholesale); root originals removed via `git rm` after generalizing.
+  `component-guide.md` intentionally left root-only (TS-specific, documents
+  this repo's own conventions rather than a generated-project template).
+- [x] Multi-member .workspace note (plans/README.md + AGENTS.md Work Journal
+  section, both root and harness-core copies): STATUS.md is a per-branch
+  snapshot, worklog.md is append-only (keep both sides' rows on conflict).
+- [x] CI: named Typecheck/Lint/Test steps for TS & Python packs (+ this
+  repo's own root ci.yml, which also gained a separate `check-sync` step).
+  Java's `mvn verify` left as one step — Maven's lifecycle doesn't split
+  cheaply into separate typecheck/lint/test invocations without re-running
+  compile multiple times.
+- [x] harness-manifest.json: added the 3 new frameworkOwned files
+  (`.github/PULL_REQUEST_TEMPLATE.md`, `docs/how-to/git-workflow.md`,
+  `docs/how-to/testing-guide.md`). HARNESS-VERSION bump folded into the
+  single P4+P5 release (1.0.0 → 1.2.0, since both phases are committed
+  together — see P5's checklist and FRAMEWORK-CHANGELOG.md).
+- [x] Verify: `node scripts/check-sync.mjs` passes; all 3 edited ci.yml
+  files parsed as valid YAML; harness-manifest.json parsed as valid JSON.
+  **Not verified**: actually running the split CI steps on GitHub Actions
+  (no push performed this session) — logic mirrors each pack's existing
+  `scripts/validate.sh` commands line-for-line, so risk is low but unproven
+  in CI itself.
 
 ### P5 — Data-driven packs
-- [ ] pack.json for typescript / python / java
-- [ ] setup.ps1: pack.json-driven language discovery & substitution
-- [ ] setup.sh: same
-- [ ] docs/how-to/adding-a-language-pack.md
-- [ ] README language-pack section updated
-- [ ] Verify: generate one project per language end-to-end
+- [x] pack.json for typescript / python / java (display, order, default,
+  aliases, rules, banned, postGenerate, install.candidates schema)
+- [x] setup.ps1: discovers `language-packs/*/pack.json` via
+  `Get-ChildItem -Recurse -Depth 1`, builds the menu dynamically, matches
+  input against each pack's `aliases` (falls back to the `default: true`
+  pack on blank input), renders `AGENTS.md` rules/banned straight from the
+  selected pack object, and drives the install step from
+  `install.candidates` (generic check→run→retryFix→successMessage loop).
+  Java's base-package prompt + package-dir generation now keyed off
+  `$SelectedPack.postGenerate -eq "java-packages"` instead of a hardcoded
+  language check. `pack.json` is deleted from the output after the overlay
+  copy (setup-time metadata only, not part of the generated project).
+- [x] setup.sh: same design, implemented via a python3 heredoc for JSON
+  parsing (glob + sort by `order`, emit `MENU:`/`DATA:`/`DEFAULT:` lines
+  that bash parses) since bash has no native JSON support; install
+  candidates loaded via a second python3 call emitting tab-separated rows.
+- [x] docs/how-to/adding-a-language-pack.md — full contract: directory
+  layout, pack.json field reference, validate.sh/CI/hook requirements, the
+  5-check arch-test matrix, harness-manifest.json registration, end-to-end
+  verify steps.
+- [x] README "Adding a New Language Pack" section rewritten to match
+  (glob-discovery, pack.json fields, pointer to the new how-to doc).
+- [x] Verify: generated one project per language (TypeScript, Python, Java)
+  via `setup.ps1` with piped stdin — confirmed no `pack.json` leaks into
+  the output, `AGENTS.md` Coding Rules/Prohibited sections match each
+  pack's `rules`/`banned` exactly, `.harness-meta.json` has the right
+  `language`, Java's package dirs + `{{BASE_PACKAGE}}` substitution in
+  `DependencyTest.java` work correctly. Also verified alias-based input
+  (typing `python` instead of `2`) and blank-input default-to-TypeScript
+  both resolve correctly. **Not verified**: `setup.sh` end-to-end (this is
+  a Windows machine) — only `bash -n` syntax-checked; logic mirrors
+  `setup.ps1` and reads the same `pack.json` files, so risk is low but
+  unproven, consistent with prior sessions' Mac/Linux script caveats.
 
 ## Notes
 
