@@ -4,6 +4,7 @@
     "HARNESS-VERSION",
     ".claude/commands/adr.md",
     ".claude/commands/commit.md",
+    ".claude/commands/coordinate.md",
     ".claude/commands/coverage.md",
     ".claude/commands/done.md",
     ".claude/commands/fix.md",
@@ -14,6 +15,7 @@
     ".editorconfig",
     ".github/PULL_REQUEST_TEMPLATE.md",
     "docs/how-to/git-workflow.md",
+    "docs/how-to/multi-agent-collaboration.md",
     "docs/how-to/testing-guide.md",
     ".workspace/plans/README.md",
     "scripts/status-context.sh"

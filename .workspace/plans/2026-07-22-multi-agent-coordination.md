@@ -488,36 +488,62 @@ adapts (swap anyonecan-specific roles/paths for generated-project-neutral langua
 
 ### Phase M2 — Generated-project templates
 
-- [ ] Create the generalized `harness-core/docs/how-to/multi-agent-collaboration.md`.
-- [ ] Add the compact actor-count-independent `Handoff and Reporting` section to `harness-core/AGENTS.md` for
-      new projects.
-- [ ] Put the multi-actor applicability notice at the top of the guide.
-- [ ] Replace duplicated handoff/reporting bullets in the guide's basic principles with a pointer to `AGENTS.md`.
-- [ ] Add `harness-core/.claude/commands/coordinate.md`.
-- [ ] Add the root `.claude/commands/coordinate.md` copy **(mandatory — finding A; check-sync command-set parity
-      fails `pnpm validate` otherwise).** Root wording may use concrete TS/pnpm examples; harness-core stays language-agnostic.
-- [ ] Add the `/coordinate` row to the Workflow Prompts table in **both** `harness-core/AGENTS.md` and root `AGENTS.md`
-      (finding B).
-- [ ] Add `/coordinate` to the command-list pointer bullet in **both** `harness-core/CLAUDE.md` and root `CLAUDE.md`
-      (finding B — pointer/navigation only; the handoff rule stays out of CLAUDE.md).
-- [ ] Add a one-line "for multi-agent work, fill the optional Parallelization block" pointer to
-      `harness-core/.claude/commands/plan.md` (no conditional logic; the block itself lives in `plans/README.md`).
-- [ ] Insert the optional `Parallelization` block (spec in §4 `/plan`) into `harness-core/.workspace/plans/README.md`.
-      *(Confirmed at Gate M0. Framework-owned — batched with the other M2 edits under the single M3 version bump.)*
-- [ ] **Do NOT edit** `start/commit/review/done` prompts or add a scope checker — deferred to 1.5.0 (Scope Decision).
-- [ ] Add the "Working as a team (multiple people)" section (§7) to the guide.
-- [ ] Add the optional `Owner` field to the `plans/README.md` template and the optional author column to the
+- [x] Create the generalized `harness-core/docs/how-to/multi-agent-collaboration.md`. *(Done 2026-07-23 — same
+      14-section skeleton as the root M1 guide, with §2 roles generalized to Coordinator/Implementation/Test/
+      Research-Review/Execution (per the original artifact spec), §3 worktree paths made project-name-agnostic,
+      §6 ownership table generalized (source/test/docs paths instead of anyonecan's own trees), validation
+      command generalized to `./scripts/validate.sh`. §13 titled "Working as a team (multiple people)" to match
+      the plan §7 spec exactly (the root M1 version's title-drift finding is fixed here at the source of truth
+      for generated projects) and includes a forward-pointer to team roles being a separate, richer layer instead
+      of duplicating role-assignment policy.)*
+- [x] Add the compact actor-count-independent `Handoff and Reporting` section to `harness-core/AGENTS.md` for
+      new projects. *(Done — placed after Work Journal, before Key Invariants; same rule-only trimmed form as the
+      root version, pointing to the guide's §14 for rationale.)*
+- [x] Put the multi-actor applicability notice at the top of the guide. *(Done — also fixed the M1-noted
+      "illustrative, not exhaustive" wording issue at the source here.)*
+- [x] Replace duplicated handoff/reporting bullets in the guide's basic principles with a pointer to `AGENTS.md`.
+      *(Done — §1 point 6.)*
+- [x] Add `harness-core/.claude/commands/coordinate.md`. *(Done — language-agnostic, `./scripts/validate.sh`.)*
+- [x] Add the root `.claude/commands/coordinate.md` copy **(mandatory — finding A)**. *(Done — uses concrete
+      `pnpm validate` and this repo's own Coordinator-only file list, matching the differentiation pattern already
+      established by `commit.md`.)*
+- [x] Add the `/coordinate` row to the Workflow Prompts table in **both** `harness-core/AGENTS.md` and root
+      `AGENTS.md` (finding B). *(Done.)*
+- [x] Add `/coordinate` to the command-list pointer bullet in **both** `harness-core/CLAUDE.md` and root
+      `CLAUDE.md` (finding B). *(Done.)*
+- [x] Add a one-line "for multi-agent work, fill the optional Parallelization block" pointer to
+      `harness-core/.claude/commands/plan.md`. *(Done — no conditional logic added.)*
+- [x] Insert the optional `Parallelization` block (spec in §4 `/plan`) into `harness-core/.workspace/plans/README.md`.
+      *(Done — inside the Template code block, after Notes; plus the `Owner` field and worklog-author-column note.)*
+- [x] **Do NOT edit** `start/commit/review/done` prompts or add a scope checker. *(Confirmed untouched.)*
+- [x] Add the "Working as a team (multiple people)" section (§7) to the guide. *(Done — §13 of the guide.)*
+- [x] Add the optional `Owner` field to the `plans/README.md` template and the optional author column to the
       `worklog.md` format note; add the append-only-rule-additions bullet to AGENTS "Multiple team members".
-      *(All optional — solo projects omit them.)*
-- [ ] Register every new framework-owned file (guide + `coordinate.md`) in `harness-manifest.json`'s `frameworkOwned`.
-- [ ] Extend `scripts/check-sync.mjs` to assert every framework-owned command/`docs/how-to` guide in `harness-core`
-      is registered in the manifest (finding E — nothing catches a forgotten entry today).
-- [ ] Run `pnpm validate` (runs check-sync first) and confirm command-set parity + the new manifest-registration guard pass.
+      *(Done — all three, in `harness-core/.workspace/plans/README.md` and `harness-core/AGENTS.md`. The worklog
+      author column is documented as an optional convention in `plans/README.md`'s "Multiple Team Members" section
+      rather than as a change to `/done.md`'s literal row template — keeps `/done` itself untouched per the Scope
+      Decision, since `/done` already just says "add one row" without rigidly enforcing column count.)*
+- [x] Register every new framework-owned file (guide + `coordinate.md`) in `harness-manifest.json`'s
+      `frameworkOwned`. *(Done — `.claude/commands/coordinate.md` and `docs/how-to/multi-agent-collaboration.md`
+      added; verified valid JSON and a clean two-line diff.)*
+- [x] Extend `scripts/check-sync.mjs` to assert every framework-owned command/`docs/how-to` guide in `harness-core`
+      is registered in the manifest (finding E). *(Done — new check 3. Verified both directions: temporarily
+      removed `coordinate.md` from the manifest and confirmed check-sync fails with the expected message; restored
+      and confirmed it passes again.)*
+- [x] Run `pnpm validate` and confirm command-set parity + the new manifest-registration guard pass.
+      *(Partial — `pnpm`/`node_modules` are not installed in this execution environment, so the full
+      typecheck/lint/test suite could not run. Ran `node scripts/check-sync.mjs` directly instead — the exact
+      command `pnpm validate` invokes as its first step — and it passes, including the new guard. This M2 change
+      touches no `src/`/test files, only `.md`/`.json`/`.mjs`, so typecheck/lint/test risk is nil; full `pnpm
+      validate` should still be run in an environment with dependencies installed before this ships, per M3.)*
 
 #### Gate M2
 
-The core rules are tool-neutral and concise, the detailed mechanics live in the guide, and single-agent workflows
-remain unchanged unless coordination is explicitly selected.
+**Gate M2 passed (2026-07-23), with one caveat carried to M3.** The core rules are tool-neutral and concise, the
+detailed mechanics live in the guide, and single-agent workflows remain unchanged unless coordination is explicitly
+selected. Caveat: `pnpm validate`'s typecheck/lint/test steps have not actually been executed in this environment
+(no `node_modules`) — M3's validation step should run the full suite in an environment where dependencies are
+installed before the release is considered final.
 
 ### Phase M3 — Version, docs, and self-validation
 

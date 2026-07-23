@@ -11,6 +11,6 @@
 
 - Slash commands live in `.claude/commands/` — see the Workflow Prompts
   table in `AGENTS.md` for what each one does (`/start`, `/plan`, `/done`,
-  `/fix`, `/commit`, `/review`, `/test`, `/adr`, `/coverage`).
+  `/fix`, `/commit`, `/review`, `/test`, `/adr`, `/coverage`, `/coordinate`).
 - `.claude/settings.json` wires hooks: auto lint/format after Write/Edit,
   and auto `./scripts/validate.sh` on Stop.

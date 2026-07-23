@@ -13,8 +13,10 @@ Implement an opt-in multi-agent coordination layer for generated projects (Harne
 customization-safety contract. **Gate M0 closed + scope cut to a slim core (2026-07-23).** 1.4.0 ships only the
 low-complexity, broadly-useful half (guide + AGENTS Handoff section + `/coordinate` + `/plan` optional block); the
 `/start`·`/commit`·`/review`·`/done` prompt edits and the scope checker are **deferred to 1.5.0** (n=2 trigger).
-**M1 (root prototype) passed Gate M1 (2026-07-23).** Next is M2: generalize the root guide into `harness-core/`,
-add `/coordinate`, register everything in the manifest, bump the version.
+**M1 and M2 both passed their gates (2026-07-23).** `harness-core/` now has the generalized guide, `/coordinate`
+(both copies), AGENTS/CLAUDE pointers, the `/plan` block, and manifest registration + a new check-sync guard.
+Next is M3: version bump, changelog, README, and full `pnpm validate` in an environment with dependencies installed
+(this session's environment has no `node_modules`, so only `node scripts/check-sync.mjs` could be run directly).
 
 ## Progress
 
@@ -61,6 +63,29 @@ add `/coordinate`, register everything in the manifest, bump the version.
   맥락 없이도 전 필드가 채워짐을 확인. 단순화 1건: §6(상시 소유권 표)과 §5(작업별 override)
   중복처럼 보여 §6 서두에 관계 명시. `node scripts/check-sync.mjs` 통과 확인(이 셸 PATH엔
   pnpm 없어 typecheck/lint/test는 미실행 — 마크다운/AGENTS 텍스트만 변경이라 영향 없음).
+- **2026-07-23 root 산출물 리뷰 + 교정**: worktree 경로 `..\..\`→`..\`(깊이 계산 오류,
+  다이어그램과 모순됐던 걸 발견), §0·§3의 `see §14`→`see §12`(stale 참조, fork/Agent
+  메커니즘은 §12) 2건의 사실 오류 수정. AGENTS Handoff 섹션은 불릿별 근거절을 덜어내
+  규칙만 남기고 §14로 포인터(complexity budget 원칙 재적용, clean-handoff 2분기 규칙은
+  보존). `node scripts/check-sync.mjs` 재확인 통과.
+- **2026-07-23 M2 (generated-project templates) 완료, Gate M2 통과**: `harness-core/docs/
+  how-to/multi-agent-collaboration.md` 신규(§2 롤을 Coordinator/Implementation/Test/
+  Research-Review/Execution으로 일반화, §3 경로 프로젝트명 중립화, §6 표 일반화, 검증
+  명령 `./scripts/validate.sh`, §13 제목을 계획 스펙("Working as a team")과 정확히 맞춤 —
+  M1에서 발견한 title-drift를 소스에서 교정). `harness-core/AGENTS.md`에 Handoff 섹션 +
+  `/coordinate` 표 행 + "Multiple team members"에 append-only 규칙 불릿 추가.
+  `harness-core/CLAUDE.md` + 루트 `AGENTS.md`/`CLAUDE.md`에 `/coordinate` 포인터 4곳 추가.
+  `.claude/commands/coordinate.md` 양쪽 사본(harness-core는 언어중립, 루트는 pnpm
+  구체적 — 기존 commit.md 분화 패턴 따름). `harness-core/.claude/commands/plan.md`에
+  1줄 포인터. `harness-core/.workspace/plans/README.md`에 Parallelization 블록 +
+  `Owner` 필드 + worklog author 컬럼 안내(둘 다 `/done.md` 미편집 — 1.4.0 스코프 결정
+  준수). `harness-manifest.json`에 `coordinate.md`·guide 등록. `check-sync.mjs`에
+  manifest 등록 누락 가드 신규 추가 — 항목 임시 제거 후 실패 확인, 복구 후 통과 확인으로
+  가드 자체를 검증(복구 스크립트가 `/tmp` 문제로 실패해 한 번 깨졌던 걸 재확인·수정함).
+  검증: 이 실행 환경에 `node_modules` 미설치라 `pnpm validate` 전체는 못 돌렸지만
+  `node scripts/check-sync.mjs`(그 스크립트가 첫 단계로 호출하는 것과 동일)는 통과 —
+  이번 변경이 `.md`/`.json`/`.mjs`만 건드려 typecheck/lint/test 리스크는 없음. M3에서
+  의존성 설치된 환경에서 전체 `pnpm validate` 재확인 필요(계획서에 caveat로 기록).
 - `/fix` applied for finding #1: `language-packs/python/tests/arch/test_dependencies.py`
   (E501) and `tests/domain/test_user.py` (F401) fixed directly; root
   cause was that this repo's own `pnpm validate` can never exercise a
@@ -91,12 +116,10 @@ add `/coordinate`, register everything in the manifest, bump the version.
 - **M0 완전히 닫힘** — `Parallelization` 블록 추가 확정(2026-07-23). 블록 전체 스펙은
   계획서 §4 `/plan`에 박아둠. 실제 파일 편집은 framework-owned이라 M2에서 guide/command/
   prompt와 한 묶음으로 처리(버전 범프·changelog 1회).
-- **다음: M2 (generated-project templates)** — 루트 guide를 `harness-core/docs/how-to/`로
-  일반화(anyonecan 고유 롤/경로 → 생성 프로젝트 중립 표현), `/coordinate` 추가(양쪽 사본,
-  check-sync parity 필수), AGENTS/CLAUDE 4곳 포인터 추가, `plans/README.md`에
-  Parallelization 블록, manifest 등록 + check-sync 가드 확장.
-- 이후 M3~M6: version/changelog/README → 3-language 생성 매트릭스 → upgrade 호환 매트릭스 →
-  close-out.
+- **다음: M3 (version, docs, self-validation)** — `HARNESS-VERSION` 1.4.0 범프,
+  `FRAMEWORK-CHANGELOG.md` 항목, README Supported AI Tools/Quick Start/Work Journal에
+  `/coordinate`+guide 반영, 의존성 설치된 환경에서 전체 `pnpm validate` 재확인(M2 caveat).
+- 이후 M4~M6: 3-language 생성 매트릭스 → upgrade 호환 매트릭스 → close-out.
 - **팀 롤/모드(1.5.0)**: **Gate T0 완전히 닫힘(2026-07-23)** — 명령 `/team`, 7-롤 카탈로그
   +QA+Reviewer 순환모자, active-role는 명시 선언+브랜치 접두사 보조, mode/roles/roster는
   user data(upgrade 미덮어씀), 1.5.0 prose-only·기계강제는 1.6.0. **1.4.0 착지 후 T1 착수 가능.**

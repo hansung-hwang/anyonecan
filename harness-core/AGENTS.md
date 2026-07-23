@@ -28,8 +28,27 @@ ritual, not the only checkpoint.
 
 **Multiple team members**: `STATUS.md` is a per-branch snapshot — differing
 across branches is normal, not drift. `worklog.md` is append-only — on a
-merge conflict, keep both sides' rows rather than picking one. See
-`.workspace/plans/README.md` for details.
+merge conflict, keep both sides' rows rather than picking one. New rules
+learned from a mistake go **append-only to the bottom of Key Invariants**
+below (don't reformat or reorder existing bullets) so concurrent edits from
+different people merge without conflict. See `.workspace/plans/README.md`
+for details.
+
+## Handoff and Reporting
+
+Applies whether one actor works across turns/sessions or several share the repo — general work hygiene, not a
+multi-agent-only concern. The rationale and the incidents behind each rule live in
+`docs/how-to/multi-agent-collaboration.md` §14, so these bullets stay rule-only:
+
+- Hand off a clean working tree and name the handoff SHA — a WIP commit if you have commit authority, otherwise an
+  explicitly declared owned diff. Never a silent dirty handoff.
+- Review a fixed Base/Head SHA; if Head moves after review starts, re-review.
+- Report completion as `requirement → file/symbol/test location`, not as counts.
+- Include the exact command, working directory, and environment in any validation report.
+- When editing a durable doc (`AGENTS.md`, `STATUS.md`, a plan), update every other section referencing the changed fact.
+
+Multi-actor mechanics — Coordinator role, worktree isolation, per-wave single-writer ownership, task contracts —
+are conditional and activate only when multiple sessions or sub-agents touch this repository at once. See the guide.
 
 ## Key Invariants (do not break)
 
@@ -90,5 +109,6 @@ Markdown files in `.claude/commands/` are **shared AI tool prompts**.
 | `test.md` | Test writing guide | `/test` |
 | `adr.md` | Architecture decision record | `/adr` |
 | `coverage.md` | Test coverage check | `/coverage` |
+| `coordinate.md` | Multi-agent coordination plan (opt-in; see `docs/how-to/multi-agent-collaboration.md`) | `/coordinate` |
 
 **Non-Claude Code tools**: Copy the contents of the relevant file and use it as a prompt.

@@ -23,7 +23,9 @@ instead of creating a new one.
 ### 2. Create the Plan File
 
 Write `.workspace/plans/YYYY-MM-DD-<kebab-case-topic>.md` using the template
-in `.workspace/plans/README.md`: Goal, Approach, Checklist, Notes.
+in `.workspace/plans/README.md`: Goal, Approach, Checklist, Notes. For
+multi-agent work, also fill in the template's optional `Parallelization`
+block; skip it for ordinary single-agent plans.
 
 ### 3. Update STATUS.md
 

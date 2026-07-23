@@ -67,9 +67,37 @@ for (const rel of SCAN_FILES) {
   }
 }
 
+// 3. Manifest-registration guard: every harness-core command and docs/how-to
+// guide must be listed in harness-manifest.json's frameworkOwned, or upgrade
+// silently never delivers it to existing generated projects (finding E from
+// the 2026-07-22 multi-agent-coordination plan -- nothing else catches this).
+const manifestPath = join(ROOT, 'harness-core/harness-manifest.json')
+const manifest = JSON.parse(readFileSync(manifestPath, 'utf-8'))
+const frameworkOwned = new Set(manifest.frameworkOwned)
+
+const commandsDir = join(ROOT, 'harness-core/.claude/commands')
+for (const f of readdirSync(commandsDir)) {
+  const rel = `.claude/commands/${f}`
+  if (!frameworkOwned.has(rel)) {
+    console.error(`✗ harness-core/${rel} is not registered in harness-manifest.json's frameworkOwned`)
+    failed = true
+  }
+}
+
+const howToDir = join(ROOT, 'harness-core/docs/how-to')
+if (existsSync(howToDir)) {
+  for (const f of readdirSync(howToDir)) {
+    const rel = `docs/how-to/${f}`
+    if (!frameworkOwned.has(rel)) {
+      console.error(`✗ harness-core/${rel} is not registered in harness-manifest.json's frameworkOwned`)
+      failed = true
+    }
+  }
+}
+
 if (failed) {
   console.error('\ncheck-sync failed.')
   process.exit(1)
 }
 
-console.log('✓ check-sync passed (command parity + no stale dual-edit instructions)')
+console.log('✓ check-sync passed (command parity + no stale dual-edit instructions + manifest registration)')

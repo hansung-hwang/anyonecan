@@ -113,5 +113,6 @@ Markdown files in `.claude/commands/` are **shared AI tool prompts**.
 | `test.md` | Test writing guide | `/test` |
 | `adr.md` | Architecture decision record | `/adr` |
 | `coverage.md` | Test coverage check | `/coverage` |
+| `coordinate.md` | Multi-agent coordination plan (opt-in; see `docs/how-to/multi-agent-collaboration.md`) | `/coordinate` |
 
 **Non-Claude Code tools**: Copy the contents of the relevant file and use it as a prompt.
