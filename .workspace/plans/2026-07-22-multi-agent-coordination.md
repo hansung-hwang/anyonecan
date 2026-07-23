@@ -485,8 +485,10 @@ adapts (swap anyonecan-specific roles/paths for generated-project-neutral langua
   guide §14) — keeps the always-loaded section lean per the complexity budget, with a pointer to §14 for the why.
   The operative clean-handoff two-branch rule (WIP commit vs. owned diff) was preserved.
 - Known-minor, left for M2 generalization: the applicability notice's dormant-section list is illustrative, not
-  exhaustive; §13's title ("Multiple humans") differs from the plan's "Working as a team" label; §2.1↔§6 ownership
-  of `harness-core/AGENTS.md` is reconciled only via §6's override clause. None affect correctness.
+  exhaustive (fixed in the harness-core copy at M2; the root copy still has the original wording — cosmetic-only,
+  root doesn't ship to users); §13's title ("Multiple humans") differed from the plan's "Working as a team" label
+  (**fixed 2026-07-24** — root's §13 title now matches harness-core's exactly, closing this item); §2.1↔§6
+  ownership of `harness-core/AGENTS.md` is reconciled only via §6's override clause. None affect correctness.
 
 ### Phase M2 — Generated-project templates
 

@@ -331,7 +331,7 @@ branch/worktree flow in §3.
 - **Other tools** (Codex, manual sessions): use `git worktree add`/`git cherry-pick` from §3 directly; the task
   contract in §5 and the report format in §8 are tool-neutral and apply unchanged.
 
-## 13. Multiple humans (not just multiple agents)
+## 13. Working as a team (multiple people)
 
 Same coordination model — **only the integration gate changes: a pull-request review replaces the Coordinator's
 cherry-pick.** Most of the underlying support already exists: `AGENTS.md`'s "Multiple team members" note
