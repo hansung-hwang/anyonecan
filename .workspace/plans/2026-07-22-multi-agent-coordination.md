@@ -624,20 +624,61 @@ fully closed, consistent with the same caveat carried from M2/M3.
 
 ### Phase M5 — Upgrade compatibility matrix
 
-Using disposable copies/projects, verify:
+Used real disposable projects, not simulation: `git worktree add <scratchpad> d54be6a --detach` (the last commit
+before this session, `HARNESS-VERSION` confirmed 1.3.0) checked out the pre-1.4.0 framework state outside every
+tracked repository; its own `setup.ps1` generated real 1.3.0 TypeScript projects; the worktree was removed; then
+this repo's current (1.4.0) `upgrade.ps1` was run against them. All temp directories removed after verification.
 
-- [ ] Unmodified 1.3.0 project upgrades and receives the new guide, `/coordinate` command, `/plan` pointer, and
-      `plans/README.md` block (no `start/commit/review/done` changes — those are 1.5.0).
-- [ ] Customized command file is preserved and incoming content appears as `<file>.new`.
-- [ ] Existing project AGENTS.md is not overwritten.
-- [ ] Missing guide/command files are added and baseline hashes are recorded.
-- [ ] A subsequent upgrade recognizes manually merged `.new` content and advances the baseline.
-- [ ] Non-Claude instructions still explain how to copy workflow prompts.
+- [x] Unmodified 1.3.0 project upgrades and receives the new guide, `/coordinate` command, `/plan` pointer, and
+      `plans/README.md` block (no `start/commit/review/done` changes). *(Verified — `upgrade.ps1` reported exactly
+      2 added (`coordinate.md`, the guide) + 2 updated (`plan.md`, `plans/README.md`); `git status` inside the
+      project confirmed no other framework-owned file changed.)*
+- [x] Customized command file is preserved and incoming content appears as `<file>.new`. *(Verified — hand-edited
+      `.claude/commands/plan.md` before upgrading; `upgrade.ps1` left it untouched and wrote
+      `.claude/commands/plan.md.new` with the pure incoming template; the file's recorded baseline stayed at its
+      old (1.3.0) hash so a later upgrade will offer the merge again.)*
+- [x] Existing project AGENTS.md is not overwritten. *(Verified in both the unmodified and customized test
+      projects — `grep -c "Handoff and Reporting" AGENTS.md` is `0` after upgrade in both; this is the correct,
+      designed behavior per finding C, not a gap — existing projects learn about the section via the guide and
+      changelog, never via a silent AGENTS.md overwrite.)*
+- [x] Missing guide/command files are added and baseline hashes are recorded. *(Verified — `.harness-meta.json`'s
+      `baselines` map gained entries for both `.claude/commands/coordinate.md` and
+      `docs/how-to/multi-agent-collaboration.md` after upgrade.)*
+- [x] A subsequent upgrade recognizes manually merged `.new` content and advances the baseline. *(Verified, with a
+      test-methodology note: a same-target-version re-run short-circuits at the "Already up to date" check before
+      touching any file — see the first finding below — so this was verified by forcing the per-file loop to run
+      again (temporarily setting the *disposable test project's own* `HARNESS-VERSION` file to a placeholder,
+      never touching the real framework version) after replacing the customized `plan.md` with the exact incoming
+      template. Result: `No file content changes (already current)`, `plan.md`'s recorded baseline hash changed to
+      match the new template, `harnessVersion` in `.harness-meta.json` correctly read `1.4.0`, and no `.new` file
+      remained — the merge-recognition code path is confirmed correct.)*
+- [x] Non-Claude instructions still explain how to copy workflow prompts. *(Verified — the newly delivered
+      `coordinate.md`'s closing "Non-Claude Code tools: copy this file's content and use it as a prompt." line is
+      present in the upgraded project.)*
+
+**Two findings from this testing, outside the original checklist:**
+
+1. **Bug found and fixed**: `.harness-meta.json`'s own `harnessVersion` field was never updated by `upgrade.ps1` or
+   `upgrade.py` — only the standalone `HARNESS-VERSION` file was written, so a project's metadata silently kept
+   reporting its pre-upgrade version indefinitely (baselines advanced correctly; only this one field was stale).
+   Pre-existing since the 1.3.0 baseline-tracking system, unrelated to multi-agent coordination, discovered
+   incidentally while verifying this feature's upgrade path. Fixed in both scripts (set `harnessVersion` to the new
+   version alongside the existing baseline-persist step) and empirically re-verified: a fresh 1.3.0→1.4.0 upgrade
+   now correctly shows `harnessVersion: "1.4.0"` in `.harness-meta.json` after the fix.
+2. **Design characteristic noted, not changed**: the "Already up to date" fast path compares only
+   `HARNESS-VERSION` string equality and exits before scanning any file — including a `.new` left over from a
+   *previous* upgrade run that the user hasn't merged yet. The pending `.new` file itself still exists as a visible
+   signal (nothing is silently lost), but a repeated `upgrade` run at the same target version won't re-remind the
+   user or re-check for it; that only happens on the next real version bump. Pre-existing since 1.3.0, orthogonal
+   to this feature, and changing it is a separate design decision (whether to always scan for pending `.new`
+   files regardless of version match) — out of scope for 1.4.0, recorded here for a future session.
 
 #### Gate M5
 
-The 1.3.0 customization-safety contract is preserved. No multi-agent feature justifies weakening user-owned file
-protection.
+**Gate M5 passed (2026-07-23).** The 1.3.0 customization-safety contract is preserved end-to-end against real
+generated projects, not just by inspection. No multi-agent feature weakened user-owned file protection. One
+pre-existing, unrelated bug was found and fixed in the course of this verification (see finding 1 above); one
+pre-existing design characteristic was found and documented, not changed (finding 2).
 
 ### Phase M6 — Close-out
 

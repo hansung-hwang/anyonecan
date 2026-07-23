@@ -247,6 +247,11 @@ def main() -> int:
         final_baselines = dict(baselines)
         final_baselines.update(new_baselines)
         meta["baselines"] = final_baselines
+        # .harness-meta.json's own harnessVersion field must track the
+        # HARNESS-VERSION file written above -- otherwise the project's
+        # metadata silently reports the pre-upgrade version even though the
+        # file on disk (and every framework-owned file) has moved on.
+        meta["harnessVersion"] = new_version
         with open(meta_path, "w", encoding="utf-8", newline="\n") as f:
             json.dump(meta, f, indent=2, ensure_ascii=False)
             f.write("\n")

@@ -56,6 +56,14 @@ See `AGENTS.md` → "Framework Versioning" for the bump rule.
   (provisional 1.5.0, not part of this release): `.workspace/plans/2026-07-22-multi-agent-coordination.md` and
   `.workspace/plans/2026-07-23-team-roles-and-project-mode.md`.
 
+**Incidental fix, found while verifying this release's upgrade path (not itself frameworkOwned, no version bump
+required, noted here since it affects every upgrade run):**
+
+- `upgrade.ps1`/`upgrade.py` never updated `.harness-meta.json`'s own `harnessVersion` field — only the standalone
+  `HARNESS-VERSION` file was written, so a project's metadata silently kept reporting its pre-upgrade version
+  indefinitely (baselines advanced correctly; only this one field was stale). Pre-existing since the 1.3.0
+  baseline-tracking system. Fixed in both scripts and verified end-to-end against a real 1.3.0→1.4.0 upgrade.
+
 ## [1.3.0] - 2026-07-14
 
 **Customization-safety for upgrade (dpkg-conffile-style protection):**

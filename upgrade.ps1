@@ -250,6 +250,15 @@ if ($HasMeta) {
     } else {
         $Meta | Add-Member -MemberType NoteProperty -Name "baselines" -Value $FinalBaselines
     }
+    # .harness-meta.json's own harnessVersion field must track the HARNESS-VERSION
+    # file written above -- otherwise the project's metadata silently reports the
+    # pre-upgrade version even though the file on disk (and every framework-owned
+    # file) has moved on.
+    if ($Meta.PSObject.Properties.Name -contains "harnessVersion") {
+        $Meta.harnessVersion = $NewVersion
+    } else {
+        $Meta | Add-Member -MemberType NoteProperty -Name "harnessVersion" -Value $NewVersion
+    }
     $MetaJson = $Meta | ConvertTo-Json -Depth 6
     [System.IO.File]::WriteAllText($MetaPath, $MetaJson, $utf8NoBom)
 }

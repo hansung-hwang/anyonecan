@@ -13,14 +13,15 @@ Implement an opt-in multi-agent coordination layer for generated projects (Harne
 customization-safety contract. **Gate M0 closed + scope cut to a slim core (2026-07-23).** 1.4.0 ships only the
 low-complexity, broadly-useful half (guide + AGENTS Handoff section + `/coordinate` + `/plan` optional block); the
 `/start`·`/commit`·`/review`·`/done` prompt edits and the scope checker are **deferred to 1.5.0** (n=2 trigger).
-**M1-M4 all passed their gates (2026-07-23). `HARNESS-VERSION` is now 1.4.0.** `harness-core/` has the guide,
-`/coordinate`, AGENTS/CLAUDE pointers, the `/plan` block, manifest registration, and a new check-sync guard;
-`FRAMEWORK-CHANGELOG.md` and `README.md` document all of it. M4 generated real TS/Python/Java projects via
-`setup.ps1` and confirmed identical, uncorrupted delivery of every new artifact. **Open caveat carried into M5**:
-`pnpm`/`uv`/`mvn` are unavailable in this session's environment (Node 18.17 + no admin rights blocks even
-`corepack`), so no generated project's `validate.sh` has actually been run — `setup.ps1`'s install step degrades
-gracefully on a missing tool rather than failing, so generation itself is verified, only end-to-end validation
-isn't. Run full `pnpm validate` (root) and each generated project's `validate.sh` before this ships.
+**M1-M5 all passed their gates (2026-07-23). `HARNESS-VERSION` is 1.4.0, upgrade path verified end-to-end.**
+`harness-core/` has the guide, `/coordinate`, AGENTS/CLAUDE pointers, the `/plan` block, manifest registration, and
+a new check-sync guard; `FRAMEWORK-CHANGELOG.md` and `README.md` document all of it. M4 generated real TS/Python/
+Java projects via `setup.ps1`; M5 upgraded real 1.3.0 projects (via a temp `git worktree` at the pre-session
+commit) to 1.4.0 and confirmed the full customization-safety contract holds. **Found and fixed one pre-existing,
+unrelated bug**: `upgrade.ps1`/`upgrade.py` never updated `.harness-meta.json`'s own `harnessVersion` field — fixed
+and re-verified. **Open caveat carried into M6**: `pnpm`/`uv`/`mvn` are unavailable in this session's environment
+(Node 18.17 + no admin rights blocks even `corepack`), so no generated project's `validate.sh` has actually been
+run. Run full `pnpm validate` (root) and each generated project's `validate.sh` before this ships.
 
 ## Progress
 
@@ -111,6 +112,28 @@ isn't. Run full `pnpm validate` (root) and each generated project's `validate.sh
   pnpm/uv/mvn 전무(corepack도 EPERM+Node 18.17 비호환으로 실패)라 못 함 — `setup.ps1`의
   install 단계는 도구 없으면 경고만 찍고 넘어가게 설계돼 있어 생성 자체는 실패 안 함(TS는
   "pnpm not found" 경고 후 정상 완료 확인). 임시 프로젝트 3개 검증 후 전부 삭제.
+- **2026-07-23 M5 (upgrade compatibility matrix) 완료, Gate M5 통과**: 시뮬레이션이 아니라
+  실제 검증 — `git worktree add <scratchpad> d54be6a --detach`(세션 시작 전 마지막 커밋,
+  HARNESS-VERSION 1.3.0 확인)로 프레임워크 구버전을 tracked repo 밖에 체크아웃, 그 버전의
+  `setup.ps1`로 진짜 1.3.0 TS 프로젝트 2개 생성(unmodified/customized), worktree 제거 후
+  현재(1.4.0) `upgrade.ps1`을 두 프로젝트에 실행. 결과: unmodified는 정확히 2개 추가
+  (`coordinate.md`+guide)·2개 갱신(`plan.md`+`plans/README.md`)만 발생, 다른 framework-owned
+  파일 무변화. customized(사전에 `plan.md` 수동 편집)는 원본 보존 + `plan.md.new`에 순수
+  신규 템플릿 기록, baseline은 구버전 해시 유지. 양쪽 다 AGENTS.md는 `git diff` 무변화(설계
+  의도대로 — finding C). `.harness-meta.json`에 두 신규 파일 baseline 기록 확인. 병합-인식
+  로직("병합 후 재실행 시 baseline 전진")은 disposable 프로젝트 자체의 `HARNESS-VERSION`을
+  임시 placeholder로 바꿔 강제 재검사시켜(실 프레임워크 버전은 안 건드림) 검증 —
+  `plan.md`를 순정 템플릿으로 교체 후 재실행하니 "No file content changes", baseline이
+  새 해시로 전진, `.new` 미생성 확인.
+  **부수 발견 2건**: (1) **버그 발견·수정**: `.harness-meta.json`의 `harnessVersion` 필드가
+  `upgrade.ps1`/`upgrade.py` 양쪽 다 갱신 안 됨(baseline만 갱신, `HARNESS-VERSION` 파일만
+  별도로 씀) — 1.3.0 시스템부터 있던 이 기능과 무관한 기존 버그를 이번 검증 중 우연히 발견,
+  두 스크립트 모두 수정 후 실제 1.3.0→1.4.0 업그레이드로 재검증 완료. `FRAMEWORK-CHANGELOG.md`
+  1.4.0 항목에 별도 단락으로 기록(frameworkOwned 아니라 버전 범프 의무는 없음). (2) **설계
+  특성 기록만(미수정)**: "Already up to date" 조기 종료가 버전 문자열만 비교해 미병합
+  `.new`가 남아있어도 재확인 없이 넘어감 — 데이터 손실은 아니고(`.new` 파일 자체는 그대로
+  남음) 1.3.0부터의 기존 설계 특성, 이번 기능과 무관, 변경은 별도 논의 필요해 범위 밖으로
+  남김. 임시 프로젝트 3개 전부 검증 후 삭제, worktree 제거 확인.
 - `/fix` applied for finding #1: `language-packs/python/tests/arch/test_dependencies.py`
   (E501) and `tests/domain/test_user.py` (F401) fixed directly; root
   cause was that this repo's own `pnpm validate` can never exercise a
@@ -141,11 +164,10 @@ isn't. Run full `pnpm validate` (root) and each generated project's `validate.sh
 - **M0 완전히 닫힘** — `Parallelization` 블록 추가 확정(2026-07-23). 블록 전체 스펙은
   계획서 §4 `/plan`에 박아둠. 실제 파일 편집은 framework-owned이라 M2에서 guide/command/
   prompt와 한 묶음으로 처리(버전 범프·changelog 1회).
-- **다음: M5 (upgrade compatibility matrix)** — 1.3.0 프로젝트 disposable 사본에 upgrade
-  실행 → guide/명령/plan 블록 신규 수령, 커스터마이즈 파일은 `.new`로 보존, AGENTS.md
-  미변경 확인.
-- 이후 M6: close-out.
-- **carry-over (M2/M3/M4 공통)**: pnpm/uv/mvn 설치된 환경에서 루트 `pnpm validate` +
+- **다음: M6 (close-out)** — STATUS/worklog에 검증 명령·환경·결과 기록, M0~M5 전부 통과
+  확인 후 계획 Status를 Done으로, README/changelog/manifest/version/명령/guide 정합 최종
+  확인, Coordinator가 `/done` 1회 실행.
+- **carry-over (M2~M5 공통)**: pnpm/uv/mvn 설치된 환경에서 루트 `pnpm validate` +
   생성 프로젝트별 `validate.sh` 전체 재확인 필요 — 이 세션 환경엔 셋 다 없음.
 - **팀 롤/모드(1.5.0)**: **Gate T0 완전히 닫힘(2026-07-23)** — 명령 `/team`, 7-롤 카탈로그
   +QA+Reviewer 순환모자, active-role는 명시 선언+브랜치 접두사 보조, mode/roles/roster는
