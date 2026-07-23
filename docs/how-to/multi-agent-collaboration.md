@@ -14,7 +14,7 @@ sessions or sub-agents at once, so work stays reviewable, ownership stays unambi
 ## 0. When parallelization is worth it
 
 Adding an agent has a fixed cost: **a new agent re-reads the codebase from zero** (a fork inherits context instead,
-at the cost of a context copy — see §14). Only parallelize when the benefit clears that cost.
+at the cost of a context copy — see §12). Only parallelize when the benefit clears that cost.
 
 Worth it — **all** of the following hold:
 
@@ -110,12 +110,14 @@ Give each agent its own worktree and branch, resolved **outside** any tracked re
 repositories like `Homographormer/`, which is a separate Git repository under this directory tree):
 
 ```powershell
-git worktree add ..\..\anyonecan-docs -b agent/docs-update
-git worktree add ..\..\anyonecan-commands -b agent/command-prompts
+git worktree add ..\anyonecan-docs -b agent/docs-update
+git worktree add ..\anyonecan-commands -b agent/command-prompts
 ```
 
-`..\..\` here means a directory that is a sibling of `anyonecan/` itself, not a subdirectory of it — creating a
-worktree inside the parent repo's own tree makes it show up as an untracked path in `git status`.
+From the repo root `C:\anyonecan_harness\anyonecan\`, `..\` is `C:\anyonecan_harness\` — so `..\anyonecan-docs`
+lands a sibling of `anyonecan/` itself, not a subdirectory of it. Creating a worktree inside `anyonecan/`'s own
+tree would make it show up as an untracked path in `git status`; `C:\anyonecan_harness\` is not itself a Git repo,
+so a sibling worktree there is clear of every tracked tree.
 
 ```text
 C:\anyonecan_harness\anyonecan\           → Coordinator
@@ -131,7 +133,7 @@ git cherry-pick <agent-commit>
 
 Cherry-pick is easier to manage than merge for small, independent units of work.
 
-Claude Code's Agent tool can create and clean these up automatically — see §14.
+Claude Code's Agent tool can create and clean these up automatically — see §12.
 
 ## 4. What makes a good task unit
 

@@ -473,6 +473,19 @@ assumptions, and the dry run confirms its templates are self-contained. Ready to
 adapts (swap anyonecan-specific roles/paths for generated-project-neutral language; the applicability notice,
 §0, §1's pointer-to-AGENTS pattern, §8–11 templates, and §13 team section carry over largely as-is).
 
+**Post-M1 review (2026-07-23) — three fixes applied to the root artifacts before M2 inherits them:**
+- Guide §3 worktree paths: `..\..\` → `..\`. From the repo root (one level below `anyonecan_harness/`), `..\..\`
+  resolved to `C:\` (outside `anyonecan_harness/`) and contradicted the diagram; `..\` correctly lands a sibling of
+  `anyonecan/`. Was a depth-mismatch carried over from the source doc (whose CWD was two levels deep).
+- Guide §0 and §3 cross-references: `see §14` → `see §12`. Fork / Agent-tool mechanics are in §12 (Tool appendix);
+  §14 is "Why these rules exist". Stale numbering inherited from the source doc, where the tool section was §14.
+- AGENTS `Handoff and Reporting` trimmed to rule-only bullets (dropped the per-bullet rationale, which duplicates
+  guide §14) — keeps the always-loaded section lean per the complexity budget, with a pointer to §14 for the why.
+  The operative clean-handoff two-branch rule (WIP commit vs. owned diff) was preserved.
+- Known-minor, left for M2 generalization: the applicability notice's dormant-section list is illustrative, not
+  exhaustive; §13's title ("Multiple humans") differs from the plan's "Working as a team" label; §2.1↔§6 ownership
+  of `harness-core/AGENTS.md` is reconciled only via §6's override clause. None affect correctness.
+
 ### Phase M2 — Generated-project templates
 
 - [ ] Create the generalized `harness-core/docs/how-to/multi-agent-collaboration.md`.

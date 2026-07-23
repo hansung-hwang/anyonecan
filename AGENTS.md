@@ -32,23 +32,19 @@ merge conflict, keep both sides' rows rather than picking one. See
 
 ## Handoff and Reporting
 
-Applies to one actor working across turns/sessions as well as to multiple sessions or sub-agents — these are cheap,
-general-purpose rules, not a multi-agent-only concern:
+Applies whether one actor works across turns/sessions or several share the repo — general work hygiene, not a
+multi-agent-only concern. The rationale and the incidents behind each rule live in
+`docs/how-to/multi-agent-collaboration.md` §14, so these bullets stay rule-only:
 
-- Before handing work to another actor or session, leave a clean working tree and identify the handoff SHA. If
-  commit authority is available, leave a WIP commit; if it is not, hand off an explicitly declared, owned
-  uncommitted diff (list the files and why) — never a silent dirty handoff either way.
-- Review fixed Base/Head SHAs; if Head changes after review starts, repeat the review — the reviewed input must not
-  move under you.
-- Report completion as `requirement → file/symbol/test location`, not as counts alone; a number hides partial work.
-- Validation reports include the exact command, working directory, and execution environment, alongside the
-  result — the same test can pass or fail purely from an environment difference.
-- When changing a durable document (`AGENTS.md`, `STATUS.md`, a plan), inspect and update every other section that
-  references the changed fact, not just the section you were editing.
+- Hand off a clean working tree and name the handoff SHA — a WIP commit if you have commit authority, otherwise an
+  explicitly declared owned diff. Never a silent dirty handoff.
+- Review a fixed Base/Head SHA; if Head moves after review starts, re-review.
+- Report completion as `requirement → file/symbol/test location`, not as counts.
+- Include the exact command, working directory, and environment in any validation report.
+- When editing a durable doc (`AGENTS.md`, `STATUS.md`, a plan), update every other section referencing the changed fact.
 
-Multi-actor mechanics — a Coordinator role, worktree/branch isolation, per-wave single-writer ownership, and
-explicit task contracts — are conditional and activate only when multiple sessions or sub-agents touch this
-repository at once. See `docs/how-to/multi-agent-collaboration.md`.
+Multi-actor mechanics — Coordinator role, worktree isolation, per-wave single-writer ownership, task contracts —
+are conditional and activate only when multiple sessions or sub-agents touch this repository at once. See the guide.
 
 ## Framework Versioning
 
