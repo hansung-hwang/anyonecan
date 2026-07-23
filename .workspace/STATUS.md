@@ -4,7 +4,7 @@
 > for history, see `worklog.md`. Read this first when starting a new session.
 
 **Last updated**: 2026-07-24
-**Active plan**: — (none; the last active plan finished and closed out this session)
+**Active plan**: — (none; 1.4.0 finished, closed out, and pushed this session)
 
 ## Current Goal
 
@@ -14,7 +14,7 @@ see below. Natural next task is the team-roles/project-mode feature (Harness 1.5
 
 ## Progress
 
-- **Multi-agent coordination (Harness 1.4.0) — Done**, all six gates (M0–M6) passed
+- **Multi-agent coordination (Harness 1.4.0) — Done and pushed**, all six gates (M0–M6) passed
   (`.workspace/plans/2026-07-22-multi-agent-coordination.md`). Summary: designed against real evidence from a
   generated-project incident, audited against this repo's actual enforcement (check-sync.mjs, harness-manifest.json,
   the three upgrade scripts), then deliberately scoped down after a complexity-budget review — shipped the guide,
@@ -26,17 +26,19 @@ see below. Natural next task is the team-roles/project-mode feature (Harness 1.5
   `HARNESS-VERSION` to 1.4.0, M4 generated real TypeScript/Python/Java projects via `setup.ps1` and confirmed
   identical delivery, M5 upgraded a real disposable 1.3.0 project (via a temporary `git worktree`) to 1.4.0 and
   confirmed the customization-safety contract holds — finding and fixing an unrelated pre-existing bug in the
-  process (`upgrade.ps1`/`upgrade.py` never updated `.harness-meta.json`'s own `harnessVersion` field). Seven
-  commits: `787e7b3`, `240bc9a`, `5e766f5`, `7b36860`, `527499b`, `707a81a`, `6af3106`. Full detail in the plan file
-  and `worklog.md`'s 2026-07-24 row.
-- **Open caveat (not a defect, an environment limitation)**: `pnpm`/`uv`/`mvn` are unavailable in this session's
-  environment (Node 18.17, no admin rights — `corepack enable` failed with `EPERM`), so the full `pnpm validate`
-  (root) and each generated project's `validate.sh` have never actually been run end-to-end for this feature.
-  Every check that *could* run in this environment did (`node scripts/check-sync.mjs` — the exact first step
-  `pnpm validate` invokes — passed after every edit; real `setup.ps1`/`upgrade.ps1` runs were exercised via M4/M5).
-  **Action for the next session (or the user, whenever convenient)**: run `pnpm validate` at the repo root and
-  `validate.sh` inside a freshly generated project, in an environment with the three toolchains installed, before
-  treating this release as fully verified.
+  process (`upgrade.ps1`/`upgrade.py` never updated `.harness-meta.json`'s own `harnessVersion` field). A
+  post-close-out audit then checked every in-scope item against the actual files (not just re-reading the plan)
+  and found one real discrepancy — root's guide copy still had its M1-prototype §13 title while harness-core's
+  copy already matched the spec — fixed to match. All 9 commits (`787e7b3`..`671c13b`) are pushed to
+  `origin/main`. Full detail in the plan file and `worklog.md`'s two 2026-07-24 rows.
+- **Open caveat (not a defect, an environment limitation) — explicitly deferred to next session by the user**:
+  `pnpm`/`uv`/`mvn` are unavailable in this session's environment (Node 18.17, no admin rights — `corepack enable`
+  failed with `EPERM`), so the full `pnpm validate` (root) and each generated project's `validate.sh` have never
+  actually been run end-to-end for this feature. Every check that *could* run in this environment did
+  (`node scripts/check-sync.mjs` — the exact first step `pnpm validate` invokes — passed after every edit; real
+  `setup.ps1`/`upgrade.ps1` runs were exercised via M4/M5). **Pick this up first next session**: run
+  `pnpm validate` at the repo root and `validate.sh` inside a freshly generated project, in an environment with
+  the three toolchains installed, before treating this release as fully verified.
 - **Team roles & project mode (Harness 1.5.0, provisional) — design done, Gate T0 closed, implementation not
   started** (`.workspace/plans/2026-07-23-team-roles-and-project-mode.md`). Setup-time Solo/Team mode (changeable
   anytime via a new `/team` command), a 7-role catalog (Planner, Architect, Backend, Frontend, Data/DBA, Infra, QA)
