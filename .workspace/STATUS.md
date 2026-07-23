@@ -13,7 +13,8 @@ Implement an opt-in multi-agent coordination layer for generated projects (Harne
 customization-safety contract. **Gate M0 closed + scope cut to a slim core (2026-07-23).** 1.4.0 ships only the
 low-complexity, broadly-useful half (guide + AGENTS Handoff section + `/coordinate` + `/plan` optional block); the
 `/start`·`/commit`·`/review`·`/done` prompt edits and the scope checker are **deferred to 1.5.0** (n=2 trigger).
-Next is M1 (root prototype), then M2 template implementation.
+**M1 (root prototype) passed Gate M1 (2026-07-23).** Next is M2: generalize the root guide into `harness-core/`,
+add `/coordinate`, register everything in the manifest, bump the version.
 
 ## Progress
 
@@ -50,6 +51,16 @@ Next is M1 (root prototype), then M2 template implementation.
   핵심 설계: 롤 소유권 = clean-architecture 레이어에 매핑(새 ACL 아님), 롤은 data-driven
   카탈로그, mode/roles는 AGENTS(동작 소스)+`.harness-meta.json`(도구용) 이중화, Solo는
   zero-overhead, prose-first(기계 강제는 1.6.0 `check-agent-scope`로 이연). 1.4.0 이후 착수.
+- **2026-07-23 M1 (root prototype) 완료, Gate M1 통과**: 루트 `docs/how-to/multi-agent-
+  collaboration.md` 신규 작성(14개 섹션 — applicability notice, §0 병렬화 가치 판단,
+  §1 원칙(AGENTS Handoff 참조), §2 이 repo 실제 트리에 맞춘 롤(Docs/Guide, Command/Prompt,
+  Language-Pack agent — HomoGraphormer 롤 없음), §3 worktree, §4~11 템플릿, §12 Claude Code
+  도구 부록, §13 멀티휴먼/PR게이트, §14 일반화된 사고 근거). 루트 `AGENTS.md`에 `## Handoff
+  and Reporting` 섹션 삽입(Work Journal 직후). 통제된 dry run으로 §5 작업 지시서 템플릿을
+  실제 M2 하위 작업("harness-core/AGENTS.md에 Handoff 섹션 추가")에 채워 HomoGraphormer
+  맥락 없이도 전 필드가 채워짐을 확인. 단순화 1건: §6(상시 소유권 표)과 §5(작업별 override)
+  중복처럼 보여 §6 서두에 관계 명시. `node scripts/check-sync.mjs` 통과 확인(이 셸 PATH엔
+  pnpm 없어 typecheck/lint/test는 미실행 — 마크다운/AGENTS 텍스트만 변경이라 영향 없음).
 - `/fix` applied for finding #1: `language-packs/python/tests/arch/test_dependencies.py`
   (E501) and `tests/domain/test_user.py` (F401) fixed directly; root
   cause was that this repo's own `pnpm validate` can never exercise a
@@ -80,10 +91,12 @@ Next is M1 (root prototype), then M2 template implementation.
 - **M0 완전히 닫힘** — `Parallelization` 블록 추가 확정(2026-07-23). 블록 전체 스펙은
   계획서 §4 `/plan`에 박아둠. 실제 파일 편집은 framework-owned이라 M2에서 guide/command/
   prompt와 한 묶음으로 처리(버전 범프·changelog 1회).
-- **다음: M1 (root prototype)** — framework 기여자용 guide 초안 작성, 루트 AGENTS에
-  핸드오프 규약 프로토타입, 실제/모의 작업으로 프로토콜 검증 후 harness-core로 백포트.
-- 이후 M2~M6: 템플릿 구현 → manifest/version/docs → 3-language 생성 매트릭스 →
-  upgrade 호환 매트릭스 → close-out.
+- **다음: M2 (generated-project templates)** — 루트 guide를 `harness-core/docs/how-to/`로
+  일반화(anyonecan 고유 롤/경로 → 생성 프로젝트 중립 표현), `/coordinate` 추가(양쪽 사본,
+  check-sync parity 필수), AGENTS/CLAUDE 4곳 포인터 추가, `plans/README.md`에
+  Parallelization 블록, manifest 등록 + check-sync 가드 확장.
+- 이후 M3~M6: version/changelog/README → 3-language 생성 매트릭스 → upgrade 호환 매트릭스 →
+  close-out.
 - **팀 롤/모드(1.5.0)**: **Gate T0 완전히 닫힘(2026-07-23)** — 명령 `/team`, 7-롤 카탈로그
   +QA+Reviewer 순환모자, active-role는 명시 선언+브랜치 접두사 보조, mode/roles/roster는
   user data(upgrade 미덮어씀), 1.5.0 prose-only·기계강제는 1.6.0. **1.4.0 착지 후 T1 착수 가능.**

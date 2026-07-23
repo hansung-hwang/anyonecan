@@ -30,6 +30,26 @@ across branches is normal, not drift. `worklog.md` is append-only — on a
 merge conflict, keep both sides' rows rather than picking one. See
 `.workspace/plans/README.md` for details.
 
+## Handoff and Reporting
+
+Applies to one actor working across turns/sessions as well as to multiple sessions or sub-agents — these are cheap,
+general-purpose rules, not a multi-agent-only concern:
+
+- Before handing work to another actor or session, leave a clean working tree and identify the handoff SHA. If
+  commit authority is available, leave a WIP commit; if it is not, hand off an explicitly declared, owned
+  uncommitted diff (list the files and why) — never a silent dirty handoff either way.
+- Review fixed Base/Head SHAs; if Head changes after review starts, repeat the review — the reviewed input must not
+  move under you.
+- Report completion as `requirement → file/symbol/test location`, not as counts alone; a number hides partial work.
+- Validation reports include the exact command, working directory, and execution environment, alongside the
+  result — the same test can pass or fail purely from an environment difference.
+- When changing a durable document (`AGENTS.md`, `STATUS.md`, a plan), inspect and update every other section that
+  references the changed fact, not just the section you were editing.
+
+Multi-actor mechanics — a Coordinator role, worktree/branch isolation, per-wave single-writer ownership, and
+explicit task contracts — are conditional and activate only when multiple sessions or sub-agents touch this
+repository at once. See `docs/how-to/multi-agent-collaboration.md`.
+
 ## Framework Versioning
 
 `harness-core/HARNESS-VERSION` (semver) is what every generated project

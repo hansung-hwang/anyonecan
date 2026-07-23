@@ -439,18 +439,39 @@ change is confirmed and its content is specified in §4, so M2 has no remaining 
 
 ### Phase M1 — Root-only prototype
 
-- [ ] Write `docs/how-to/multi-agent-collaboration.md` for anyonecan framework contributors.
-- [ ] Add/prototype the compact always-on handoff/reporting rule in the framework-development root `AGENTS.md`
-      if Gate M0 approves it.
-- [ ] Use the protocol on one real framework task or a controlled dry run.
-- [ ] Verify that Base SHA, single-writer ownership, Coordinator-only close-out, and validation environment are
-      understandable without HomoGraphormer context.
-- [ ] Record confusing or excessive rules and simplify before backporting to `harness-core`.
+- [x] Write `docs/how-to/multi-agent-collaboration.md` for anyonecan framework contributors. *(Done 2026-07-23 —
+      14 sections: applicability notice, §0 when-to-parallelize, §1 principles pointing to AGENTS Handoff, §2 roles
+      scoped to this repo's actual trees (Docs/Guide, Command/Prompt, Language-Pack agents — not HomoGraphormer's
+      Cache/Baseline roles), §3 worktree setup with anyonecan-specific sibling paths, §4–11 task/report/merge
+      templates, §12 Claude Code tool appendix, §13 multiple-humans/PR-gate section, §14 generalized incident
+      evidence with no HomoGraphormer names/SHAs. README needs no update — `docs/how-to/` files aren't indexed
+      there (verified: neither `git-workflow.md` nor `testing-guide.md` is linked from README either).)*
+- [x] Add/prototype the compact always-on handoff/reporting rule in the framework-development root `AGENTS.md`.
+      *(Done 2026-07-23 — inserted as `## Handoff and Reporting` right after Work Journal, before Framework
+      Versioning, matching the confirmed placement decision in §1 above.)*
+- [x] Use the protocol on one real framework task or a controlled dry run. *(Controlled dry run, 2026-07-23 — filled
+      §5's task-assignment template for a real upcoming M2 sub-task ("Add the compact Handoff and Reporting section
+      to `harness-core/AGENTS.md`"): Base SHA = this commit; allowed files = `harness-core/AGENTS.md` only;
+      prohibited = everything else in M2's file list; completion criteria = section present, matches §1's four/five
+      bullets, no duplication with the guide. The template filled in completely with no missing field and no
+      HomoGraphormer-specific context needed — passes the M1 checklist's next item.)*
+- [x] Verify that Base SHA, single-writer ownership, Coordinator-only close-out, and validation environment are
+      understandable without HomoGraphormer context. *(Confirmed by the dry run above — every field resolved using
+      only this repo's own structure (`harness-core/`, `language-packs/`, `harness-manifest.json`,
+      `scripts/check-sync.mjs`), zero references to the source project needed.)*
+- [x] Record confusing or excessive rules and simplify before backporting to `harness-core`. *(One simplification
+      applied: §6 (standing file-ownership table) and §5's template (per-task ownership field) look redundant at
+      first read; kept both deliberately — §6 is the durable default, §5 is the per-task override — but noted this
+      distinction explicitly in §6's intro line so it isn't confusing on backport. No other bullets were cut; the
+      guide already omits all HomoGraphormer-specific roles/paths per the generalization rule in §2 of this plan.)*
 
 #### Gate M1
 
-The root guide works for framework contributors and contains no generated-project assumptions that contradict the
-upgrade model.
+**Gate M1 passed (2026-07-23).** The root guide works for framework contributors, contains no generated-project
+assumptions, and the dry run confirms its templates are self-contained. Ready to generalize into `harness-core/`
+(M2) — the root version above is now the source that M2's `harness-core/docs/how-to/multi-agent-collaboration.md`
+adapts (swap anyonecan-specific roles/paths for generated-project-neutral language; the applicability notice,
+§0, §1's pointer-to-AGENTS pattern, §8–11 templates, and §13 team section carry over largely as-is).
 
 ### Phase M2 — Generated-project templates
 
