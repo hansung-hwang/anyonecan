@@ -70,7 +70,8 @@ linter — see each language pack's `harness-manifest.json` entry and
 │   │       ├── review.md      # Code review
 │   │       ├── test.md        # Test writing
 │   │       ├── adr.md         # Architecture decision record
-│   │       └── coverage.md    # Coverage check
+│   │       ├── coverage.md    # Coverage check
+│   │       └── coordinate.md  # Multi-agent coordination plan (opt-in)
 │   ├── .workspace/            # Session-to-session work journal (survives session end)
 │   │   ├── STATUS.md          # Current snapshot, overwritten each close-out
 │   │   ├── worklog.md         # Append-only history of completed sessions
@@ -138,6 +139,7 @@ cd my-service
 claude        # when using Claude Code
 # /start      # start session — reads .workspace/STATUS.md for where you left off
 # /plan       # before non-trivial work — write a design doc to .workspace/plans/
+# /coordinate # optional — plan a multi-agent split, only when tasks are genuinely independent
 # /done       # at session end — log progress so the next session can resume instantly
 ```
 
@@ -174,6 +176,13 @@ unplanned session end and a fresh session can resume immediately:
 `AGENTS.md`/`README.md` are **not** used for this — they stay lean and are
 only touched when a rule, convention, or user-facing behavior actually
 changes.
+
+**Multiple sessions or sub-agents on the same project at once** is opt-in and
+adds nothing to a single-agent project: `AGENTS.md`'s "Handoff and
+Reporting" section (clean handoff, fixed-SHA review, requirement→location
+reporting) applies at any actor count, while `/coordinate` and the plan
+template's optional `Parallelization` block only activate when you use them.
+Full model: `docs/how-to/multi-agent-collaboration.md`.
 
 ---
 

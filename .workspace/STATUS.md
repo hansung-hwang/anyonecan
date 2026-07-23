@@ -13,10 +13,11 @@ Implement an opt-in multi-agent coordination layer for generated projects (Harne
 customization-safety contract. **Gate M0 closed + scope cut to a slim core (2026-07-23).** 1.4.0 ships only the
 low-complexity, broadly-useful half (guide + AGENTS Handoff section + `/coordinate` + `/plan` optional block); the
 `/start`·`/commit`·`/review`·`/done` prompt edits and the scope checker are **deferred to 1.5.0** (n=2 trigger).
-**M1 and M2 both passed their gates (2026-07-23).** `harness-core/` now has the generalized guide, `/coordinate`
-(both copies), AGENTS/CLAUDE pointers, the `/plan` block, and manifest registration + a new check-sync guard.
-Next is M3: version bump, changelog, README, and full `pnpm validate` in an environment with dependencies installed
-(this session's environment has no `node_modules`, so only `node scripts/check-sync.mjs` could be run directly).
+**M1, M2, and M3 all passed their gates (2026-07-23). `HARNESS-VERSION` is now 1.4.0.** `harness-core/` has the
+guide, `/coordinate`, AGENTS/CLAUDE pointers, the `/plan` block, manifest registration, and a new check-sync guard;
+`FRAMEWORK-CHANGELOG.md` and `README.md` document all of it. **Open caveat carried into M4/M5**: the full `pnpm
+validate` typecheck/lint/test suite has not run in this session's environment (no `node_modules`) — only
+`node scripts/check-sync.mjs` could be verified directly. Run full `pnpm validate` before this ships.
 
 ## Progress
 
@@ -86,6 +87,16 @@ Next is M3: version bump, changelog, README, and full `pnpm validate` in an envi
   `node scripts/check-sync.mjs`(그 스크립트가 첫 단계로 호출하는 것과 동일)는 통과 —
   이번 변경이 `.md`/`.json`/`.mjs`만 건드려 typecheck/lint/test 리스크는 없음. M3에서
   의존성 설치된 환경에서 전체 `pnpm validate` 재확인 필요(계획서에 caveat로 기록).
+- **2026-07-23 M3 (version, docs, self-validation) 완료, Gate M3 통과**: `HARNESS-VERSION`
+  1.3.0→1.4.0. `FRAMEWORK-CHANGELOG.md`에 1.4.0 항목(근거·Handoff 섹션·guide·`/coordinate`·
+  plan 블록·append-only 불릿·1.5.0 이연 근거·check-sync 가드·양쪽 plan 링크 포함). README
+  3곳 갱신 — Structure(명령 트리에 `coordinate.md`), Quick Start(`/coordinate` 예시 추가),
+  Work Journal(opt-in 조율 레이어 단락 + guide 링크). "Supported AI Tools" 섹션은 개별
+  명령이 아니라 tool→config 매핑이라 변경 불필요 판단(이미 있는 범용 문구가 `/coordinate`도
+  커버). `node scripts/check-sync.mjs` M3 편집 후 재확인 통과. **M2와 동일한 caveat 유지**:
+  이 세션 환경엔 `node_modules` 없어 전체 `pnpm validate`는 미실행 — README/CHANGELOG/
+  VERSION은 산문·버전 문자열뿐이라 src/test 영향 없음. 반복해서 "미실행"을 "통과"로
+  뭉개지 않고 계속 caveat로 명시 이월.
 - `/fix` applied for finding #1: `language-packs/python/tests/arch/test_dependencies.py`
   (E501) and `tests/domain/test_user.py` (F401) fixed directly; root
   cause was that this repo's own `pnpm validate` can never exercise a
@@ -116,10 +127,11 @@ Next is M3: version bump, changelog, README, and full `pnpm validate` in an envi
 - **M0 완전히 닫힘** — `Parallelization` 블록 추가 확정(2026-07-23). 블록 전체 스펙은
   계획서 §4 `/plan`에 박아둠. 실제 파일 편집은 framework-owned이라 M2에서 guide/command/
   prompt와 한 묶음으로 처리(버전 범프·changelog 1회).
-- **다음: M3 (version, docs, self-validation)** — `HARNESS-VERSION` 1.4.0 범프,
-  `FRAMEWORK-CHANGELOG.md` 항목, README Supported AI Tools/Quick Start/Work Journal에
-  `/coordinate`+guide 반영, 의존성 설치된 환경에서 전체 `pnpm validate` 재확인(M2 caveat).
-- 이후 M4~M6: 3-language 생성 매트릭스 → upgrade 호환 매트릭스 → close-out.
+- **다음: M4 (fresh-generation matrix)** — TS/Python/Java 각각 임시 프로젝트 생성 후 guide·
+  명령·Handoff 섹션 존재 확인, `/coordinate`가 단일/다중 케이스 모두 처리하는지 검증.
+- 이후 M5~M6: upgrade 호환 매트릭스 → close-out.
+- **carry-over**: 의존성 설치된 환경에서 전체 `pnpm validate` 1회 재확인 필요(M2/M3 공통
+  caveat) — 이 세션들엔 `node_modules` 없음.
 - **팀 롤/모드(1.5.0)**: **Gate T0 완전히 닫힘(2026-07-23)** — 명령 `/team`, 7-롤 카탈로그
   +QA+Reviewer 순환모자, active-role는 명시 선언+브랜치 접두사 보조, mode/roles/roster는
   user data(upgrade 미덮어씀), 1.5.0 prose-only·기계강제는 1.6.0. **1.4.0 착지 후 T1 착수 가능.**

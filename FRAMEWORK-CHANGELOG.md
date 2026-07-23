@@ -10,6 +10,52 @@ they're pulling in.
 
 See `AGENTS.md` → "Framework Versioning" for the bump rule.
 
+## [1.4.0] - 2026-07-23
+
+**Opt-in multi-agent coordination layer (slim scope):**
+
+- Root cause / evidence: a real generated-project multi-agent session (documented in that project's own
+  `docs/how-to/multi-agent-collaboration.md`) survived code review cleanly, but shared state and reporting broke in
+  five repeatable ways — a reviewed file grew before commit, uncommitted work from two sessions accumulated with no
+  clear boundary, `worklog.md`/`STATUS.md` drifted (duplicate rows, stale sections), a completion report claimed
+  nine items reflected when only review notes had changed, and a test-pass claim didn't reproduce in a different
+  environment (a writable-temp-path difference, not a code defect). None of these were code-quality failures — the
+  harness had nothing standardizing shared-state handoff or reporting.
+- New `AGENTS.md` section **"Handoff and Reporting"** (after Work Journal, before Key Invariants): clean handoff
+  (a WIP commit if commit authority exists, otherwise an explicitly declared owned diff — never a silent dirty
+  handoff), fixed-SHA review (re-review if Head moves), `requirement → file/symbol/test location` reporting instead
+  of counts, and command+working-directory+environment evidence on validation claims. **Applies at any actor
+  count** — three of the five source incidents happened in a single session, so this isn't multi-agent-gated.
+- New `docs/how-to/multi-agent-collaboration.md` guide (framework-owned, added to every project): Coordinator/
+  Implementation/Test/Research-Review/Execution roles, worktree/branch isolation, Base SHA + per-wave single-writer
+  ownership, task-assignment and completion-report templates, a file-ownership table, a Coordinator merge
+  procedure, a Claude Code tool appendix (`isolation: "worktree"`, `subagent_type: "fork"`, `SendMessage`), and a
+  "Working as a team (multiple people)" section (same model, PR review replaces the Coordinator's cherry-pick).
+  Activates only when multiple sessions/sub-agents touch the repo at once; a solo user never needs to open it.
+- New `.claude/commands/coordinate.md` (`/coordinate`): produces a coordination plan (Coordinator, Base SHA,
+  per-agent file allow/deny lists, integration order) or an explicit single-agent recommendation when the task
+  doesn't clear the parallelization-benefit bar. Plans only — never creates branches/worktrees or spawns agents
+  itself.
+- `.workspace/plans/README.md` template gains an optional `Owner` field and an optional `Parallelization` block
+  (Coordinator, Base SHA, Wave assignments, integration order, completion authority) that `/plan` points to and
+  `/coordinate` writes into; both are skipped entirely on an ordinary single-agent plan. `worklog.md`'s row format
+  gained an optional author column, documented as a convention rather than a `/done.md` edit.
+- `AGENTS.md`'s "Multiple team members" note gained one bullet: new Key Invariants entries are added **append-only
+  to the bottom** (no reformatting/reordering) so concurrent edits from different people merge without conflict.
+- **Deliberately deferred to 1.5.0** after a complexity-budget review: conditional coordination logic in `/start`,
+  `/commit`, `/review`, and `/done` (would tax every user's most-used commands for a workflow only a minority uses)
+  and a mechanical `scripts/check-agent-scope.*` scope checker (no second real use case yet to justify it). The one
+  genuinely general rule inside the deferred `/review` edit — fixed-SHA review — is already covered by the
+  always-on `AGENTS.md` Handoff and Reporting section, so single-agent review loses nothing by this deferral.
+  Litmus applied throughout: *can a solo user ignore this feature and never notice it?* Everything shipped in 1.4.0
+  passes that test.
+- `scripts/check-sync.mjs` gained a third guard: every `harness-core` command and `docs/how-to` guide must be
+  registered in `harness-manifest.json`'s `frameworkOwned`, or `upgrade` silently never delivers it to an existing
+  project. Nothing previously caught a forgotten manifest entry.
+- Full design record, including the complexity-budget scope cut and a companion team-roles/project-mode design
+  (provisional 1.5.0, not part of this release): `.workspace/plans/2026-07-22-multi-agent-coordination.md` and
+  `.workspace/plans/2026-07-23-team-roles-and-project-mode.md`.
+
 ## [1.3.0] - 2026-07-14
 
 **Customization-safety for upgrade (dpkg-conffile-style protection):**

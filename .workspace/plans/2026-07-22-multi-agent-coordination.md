@@ -547,15 +547,32 @@ installed before the release is considered final.
 
 ### Phase M3 — Version, docs, and self-validation
 
-- [ ] Bump `harness-core/HARNESS-VERSION` to the approved minor version.
-- [ ] Add `FRAMEWORK-CHANGELOG.md` release notes.
-- [ ] Update README Supported AI Tools/Quick Start/Work Journal sections with `/coordinate` and the guide link.
-- [ ] Run `pnpm validate` (check-sync command parity + the new manifest-registration guard + typecheck/lint/test).
-- [ ] Confirm the extended check-sync from M2 passes and would fail on an unregistered framework-owned file.
+- [x] Bump `harness-core/HARNESS-VERSION` to the approved minor version. *(Done — 1.3.0 → 1.4.0.)*
+- [x] Add `FRAMEWORK-CHANGELOG.md` release notes. *(Done — full entry: root-cause evidence, the Handoff and
+      Reporting section, the guide, `/coordinate`, the plan-template block, the append-only Key Invariants bullet,
+      the 1.5.0 deferral with its litmus rationale, the check-sync guard, and pointers to both design plans.)*
+- [x] Update README Supported AI Tools/Quick Start/Work Journal sections with `/coordinate` and the guide link.
+      *(Done for Structure (`coordinate.md` added to the command tree), Quick Start (`/coordinate` added to the
+      in-project command list), and Work Journal (new paragraph on the opt-in coordination layer + guide link).
+      "Supported AI Tools" left unchanged — it maps tool→config-file, not individual commands, and its existing
+      generic "copy any `.claude/commands/*.md` as a prompt" statement already covers `/coordinate` without
+      needing enumeration.)*
+- [x] Run `pnpm validate` (check-sync command parity + the new manifest-registration guard + typecheck/lint/test).
+      *(Partial, same caveat as M2 — no `node_modules` in this execution environment. Re-ran
+      `node scripts/check-sync.mjs` after all M3 edits and it still passes. README/CHANGELOG/VERSION changes are
+      prose/version-string only, no `src/`/test impact. Full `pnpm validate` still needs to run once in an
+      environment with dependencies installed before this is considered fully verified — carrying this forward,
+      not resolving it silently.)*
+- [x] Confirm the extended check-sync from M2 passes and would fail on an unregistered framework-owned file.
+      *(Already verified during M2 with a live remove/restore test; re-confirmed passing here after the M3 edits.)*
 
 #### Gate M3
 
-Framework self-validation passes and all managed-file/version/changelog rules in root `AGENTS.md` are satisfied.
+**Gate M3 passed (2026-07-23), with the same M2 caveat carried forward.** Version, changelog, and README are
+consistent with what M1/M2 actually shipped. `node scripts/check-sync.mjs` passes. The full `pnpm validate`
+typecheck/lint/test suite has still not been executed in any session this feature was built in — flagging this
+explicitly rather than treating repeated "not run" as equivalent to "passing." Run it before this release is
+pushed/tagged.
 
 ### Phase M4 — Fresh-generation matrix
 
