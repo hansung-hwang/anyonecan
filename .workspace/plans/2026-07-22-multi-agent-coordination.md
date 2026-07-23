@@ -1,7 +1,9 @@
 # Multi-Agent Coordination — Harness Framework 1.4.0
 
 - **Date**: 2026-07-22
-- **Status**: In Progress
+- **Status**: Done (all six gates, M0-M6, passed 2026-07-23; one caveat carried forward — see M6 above and Notes
+  below — `pnpm validate` / generated-project `validate.sh` need to run once in an environment with
+  pnpm/uv/mvn installed before this ships)
 - **Source case study**: `Homographormer/docs/how-to/multi-agent-collaboration.md`
 - **Target release**: Harness 1.4.0 (provisional; confirm at Gate M0)
 - **Rev**: 2026-07-23 — split actor-count-independent handoff/reporting rules into always-loaded AGENTS;
@@ -682,10 +684,21 @@ pre-existing design characteristic was found and documented, not changed (findin
 
 ### Phase M6 — Close-out
 
-- [ ] Record validation commands, environment, and exact results in STATUS/worklog.
-- [ ] Mark this plan Done only after M0–M5 pass.
-- [ ] Ensure README, changelog, manifest, version, root/core commands, and guide agree.
-- [ ] Run `/done` exactly once from the Coordinator session.
+- [x] Record validation commands, environment, and exact results in STATUS/worklog. *(Done throughout M1-M5 in
+      STATUS.md's Progress log, and summarized in the `/done` worklog row.)*
+- [x] Mark this plan Done only after M0–M5 pass. *(All six gates passed; see each phase above. One caveat carried
+      forward, not a failed gate: `pnpm validate` and each generated project's `validate.sh` have not actually run
+      end-to-end in this session's environment — no `pnpm`/`uv`/`mvn`, and `corepack enable` failed with `EPERM`
+      while direct `corepack pnpm` hit a Node 18.17 incompatibility. `node scripts/check-sync.mjs` — the exact
+      first step `pnpm validate` runs — passes. Run the full suite in an environment with the three toolchains
+      installed before this ships.)*
+- [x] Ensure README, changelog, manifest, version, root/core commands, and guide agree. *(Cross-checked: README
+      Structure/Quick Start/Work Journal, `FRAMEWORK-CHANGELOG.md`, `harness-manifest.json`, `HARNESS-VERSION`
+      (1.4.0), both `.claude/commands/coordinate.md` copies, both `AGENTS.md`/`CLAUDE.md` pairs, and the guide all
+      agree — verified structurally via the M4 fresh-generation matrix and M5 upgrade matrix, not just by
+      inspection.)*
+- [x] Run `/done` exactly once from the Coordinator session. *(This session — single-actor throughout, acting as
+      its own Coordinator; no multi-agent coordination was used to build this feature.)*
 
 ## Acceptance Criteria
 
@@ -735,3 +748,16 @@ The feature is accepted only when:
 - Because the parent and nested project are separate Git repositories, resolve worktree paths before creation.
 - Keep the implementation incremental and commit by concern: guide/command, workflow prompt updates, manifest and
   version/docs, then validation evidence.
+
+## Closing Notes (2026-07-23)
+
+All six phases (M0-M6) complete; this plan is Done. Six commits, in order: design/audit/scope-cut (docs only,
+`787e7b3`), M1 root prototype (`240bc9a`), M1 post-review fixes (`5e766f5`), M2 harness-core templates (`7b36860`),
+M3 version/changelog/README (`527499b`), M4 fresh-generation verification (`707a81a`), M5 upgrade verification +
+incidental `upgrade.ps1`/`upgrade.py` bugfix (`6af3106`).
+
+**One open item before shipping**: run `pnpm validate` at the repo root and `validate.sh` inside a freshly
+generated project, in an environment with `pnpm`/`uv`/`mvn` actually installed — this session's environment had
+none of the three (Node 18.17, no admin rights, `corepack enable` failed with `EPERM`). Every check that *could*
+run in this environment did: `node scripts/check-sync.mjs` (the exact first step of `pnpm validate`) passed after
+every edit, and the M4/M5 matrices exercised real `setup.ps1`/`upgrade.ps1` runs against real generated projects.
