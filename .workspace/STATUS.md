@@ -13,11 +13,14 @@ Implement an opt-in multi-agent coordination layer for generated projects (Harne
 customization-safety contract. **Gate M0 closed + scope cut to a slim core (2026-07-23).** 1.4.0 ships only the
 low-complexity, broadly-useful half (guide + AGENTS Handoff section + `/coordinate` + `/plan` optional block); the
 `/start`·`/commit`·`/review`·`/done` prompt edits and the scope checker are **deferred to 1.5.0** (n=2 trigger).
-**M1, M2, and M3 all passed their gates (2026-07-23). `HARNESS-VERSION` is now 1.4.0.** `harness-core/` has the
-guide, `/coordinate`, AGENTS/CLAUDE pointers, the `/plan` block, manifest registration, and a new check-sync guard;
-`FRAMEWORK-CHANGELOG.md` and `README.md` document all of it. **Open caveat carried into M4/M5**: the full `pnpm
-validate` typecheck/lint/test suite has not run in this session's environment (no `node_modules`) — only
-`node scripts/check-sync.mjs` could be verified directly. Run full `pnpm validate` before this ships.
+**M1-M4 all passed their gates (2026-07-23). `HARNESS-VERSION` is now 1.4.0.** `harness-core/` has the guide,
+`/coordinate`, AGENTS/CLAUDE pointers, the `/plan` block, manifest registration, and a new check-sync guard;
+`FRAMEWORK-CHANGELOG.md` and `README.md` document all of it. M4 generated real TS/Python/Java projects via
+`setup.ps1` and confirmed identical, uncorrupted delivery of every new artifact. **Open caveat carried into M5**:
+`pnpm`/`uv`/`mvn` are unavailable in this session's environment (Node 18.17 + no admin rights blocks even
+`corepack`), so no generated project's `validate.sh` has actually been run — `setup.ps1`'s install step degrades
+gracefully on a missing tool rather than failing, so generation itself is verified, only end-to-end validation
+isn't. Run full `pnpm validate` (root) and each generated project's `validate.sh` before this ships.
 
 ## Progress
 
@@ -97,6 +100,17 @@ validate` typecheck/lint/test suite has not run in this session's environment (n
   이 세션 환경엔 `node_modules` 없어 전체 `pnpm validate`는 미실행 — README/CHANGELOG/
   VERSION은 산문·버전 문자열뿐이라 src/test 영향 없음. 반복해서 "미실행"을 "통과"로
   뭉개지 않고 계속 caveat로 명시 이월.
+- **2026-07-23 M4 (fresh-generation matrix) 완료, Gate M4 구조/내용 검증 통과(1건 open)**:
+  `setup.ps1`을 비대화형(stdin 파이프)으로 3회 실행해 TS/Python/Java 임시 프로젝트를
+  scratchpad(모든 tracked repo 밖)에 실제 생성. 셋 다 guide+`coordinate.md` 존재,
+  AGENTS.md에 Handoff 섹션+`/coordinate` 표 행, CLAUDE.md 포인터, `.harness-meta.json`
+  harnessVersion 1.4.0 + 두 신규 파일 baseline 기록, placeholder 잔존 없음, guide/command
+  내용이 harness-core 원본과 byte-identical(diff exit 0) 확인. `/coordinate`의 단일-에이전트
+  선택·Base SHA/wave/소유권 생성 능력은 실제 agent 구동이 아니라 프롬프트 내용 검토로
+  검증(M1 dry-run과 동일한 기준). **open 1건**: `validate.sh` 실제 실행은 이 환경에
+  pnpm/uv/mvn 전무(corepack도 EPERM+Node 18.17 비호환으로 실패)라 못 함 — `setup.ps1`의
+  install 단계는 도구 없으면 경고만 찍고 넘어가게 설계돼 있어 생성 자체는 실패 안 함(TS는
+  "pnpm not found" 경고 후 정상 완료 확인). 임시 프로젝트 3개 검증 후 전부 삭제.
 - `/fix` applied for finding #1: `language-packs/python/tests/arch/test_dependencies.py`
   (E501) and `tests/domain/test_user.py` (F401) fixed directly; root
   cause was that this repo's own `pnpm validate` can never exercise a
@@ -127,11 +141,12 @@ validate` typecheck/lint/test suite has not run in this session's environment (n
 - **M0 완전히 닫힘** — `Parallelization` 블록 추가 확정(2026-07-23). 블록 전체 스펙은
   계획서 §4 `/plan`에 박아둠. 실제 파일 편집은 framework-owned이라 M2에서 guide/command/
   prompt와 한 묶음으로 처리(버전 범프·changelog 1회).
-- **다음: M4 (fresh-generation matrix)** — TS/Python/Java 각각 임시 프로젝트 생성 후 guide·
-  명령·Handoff 섹션 존재 확인, `/coordinate`가 단일/다중 케이스 모두 처리하는지 검증.
-- 이후 M5~M6: upgrade 호환 매트릭스 → close-out.
-- **carry-over**: 의존성 설치된 환경에서 전체 `pnpm validate` 1회 재확인 필요(M2/M3 공통
-  caveat) — 이 세션들엔 `node_modules` 없음.
+- **다음: M5 (upgrade compatibility matrix)** — 1.3.0 프로젝트 disposable 사본에 upgrade
+  실행 → guide/명령/plan 블록 신규 수령, 커스터마이즈 파일은 `.new`로 보존, AGENTS.md
+  미변경 확인.
+- 이후 M6: close-out.
+- **carry-over (M2/M3/M4 공통)**: pnpm/uv/mvn 설치된 환경에서 루트 `pnpm validate` +
+  생성 프로젝트별 `validate.sh` 전체 재확인 필요 — 이 세션 환경엔 셋 다 없음.
 - **팀 롤/모드(1.5.0)**: **Gate T0 완전히 닫힘(2026-07-23)** — 명령 `/team`, 7-롤 카탈로그
   +QA+Reviewer 순환모자, active-role는 명시 선언+브랜치 접두사 보조, mode/roles/roster는
   user data(upgrade 미덮어씀), 1.5.0 prose-only·기계강제는 1.6.0. **1.4.0 착지 후 T1 착수 가능.**

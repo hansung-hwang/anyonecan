@@ -576,21 +576,51 @@ pushed/tagged.
 
 ### Phase M4 — Fresh-generation matrix
 
-Generate one temporary project for each language pack and verify:
+Generated one real temporary project per language pack via `setup.ps1` (non-interactively, piping the prompt
+answers through stdin), under this session's scratchpad directory — outside every tracked repository, as required.
 
-- [ ] TypeScript project contains the guide, command, and always-on Handoff/Reporting AGENTS section.
-- [ ] Python project contains the same framework-level artifacts.
-- [ ] Java project contains the same framework-level artifacts.
-- [ ] A single-agent, multi-turn handoff is governed by AGENTS without invoking `/coordinate`.
-- [ ] A multi-actor task opens the guide and applies Coordinator/worktree/wave ownership rules.
-- [ ] Each generated project's normal validation still passes.
-- [ ] `/coordinate` can choose single-agent mode for a trivial task.
-- [ ] `/coordinate` produces Base SHA, waves, file ownership, and integration order for a synthetic multi-file task.
-- [ ] Temporary projects/worktrees are created outside any tracked repository and cleaned up safely.
+- [x] TypeScript project contains the guide, command, and always-on Handoff/Reporting AGENTS section. *(Verified:
+      `.claude/commands/coordinate.md` and `docs/how-to/multi-agent-collaboration.md` both present; `AGENTS.md` has
+      `## Handoff and Reporting` and the `/coordinate` Workflow Prompts row; `CLAUDE.md` has the `/coordinate`
+      pointer; `.harness-meta.json` records `harnessVersion: 1.4.0` and baseline hashes for both new files; no
+      leftover `{{PLACEHOLDER}}` tokens. Guide and command file content are byte-identical to the `harness-core`
+      source (diff, exit 0) — the setup copy step didn't corrupt or partially-substitute either file.)*
+- [x] Python project contains the same framework-level artifacts. *(Same checks, all pass — `language: python`.)*
+- [x] Java project contains the same framework-level artifacts. *(Same checks, all pass — `language: java`; the
+      extra `Read-Host` for the Java base package was piped correctly, package structure generated normally.)*
+- [x] A single-agent, multi-turn handoff is governed by AGENTS without invoking `/coordinate`. *(Confirmed by
+      content review: the Handoff and Reporting section stands alone — its five bullets don't reference or require
+      `/coordinate`; only the closing sentence points to the guide for the *conditional* multi-actor layer.)*
+- [x] A multi-actor task opens the guide and applies Coordinator/worktree/wave ownership rules. *(Confirmed by
+      content review of the generated copy: guide §§2-9 fully define roles, worktree setup, task/report templates,
+      and the merge procedure — this is the same content verified structurally at M1/M2, now confirmed to survive
+      the setup copy step unmodified.)*
+- [ ] Each generated project's normal validation still passes. *(Not run — this execution environment has no
+      `pnpm`/`uv`/`mvn` toolchain (same constraint noted at M2/M3; `corepack enable` failed with `EPERM`, and
+      direct `corepack pnpm` hit a Node 18.17 incompatibility). `setup.ps1`'s install step degrades gracefully on a
+      missing tool (`⚠ pnpm not found. Run manually: pnpm install`) rather than failing, so generation itself
+      succeeded for all three languages; only the actual `validate.sh` run is unverified. Genuinely open — run this
+      in an environment with the three toolchains installed before treating M4 as fully closed.)*
+- [x] `/coordinate` can choose single-agent mode for a trivial task. *(Verified by content review, not a live agent
+      run — consistent with the M1 dry-run precedent for template completeness rather than spawning real agents.
+      `coordinate.md` Step 2 explicitly instructs: "If not all hold, say so explicitly and recommend single-agent
+      instead of forcing a split," and the Output Format section states the template is skipped entirely in favor
+      of a one-line single-agent recommendation when that's the right call.)*
+- [x] `/coordinate` produces Base SHA, waves, file ownership, and integration order for a synthetic multi-file task.
+      *(Verified by content review — Steps 3-8 and the Output Format template cover Wave 0, Base SHA, per-file
+      writer assignment, agent contracts, and integration order in full; same content already exercised in the M1
+      dry run against a real task.)*
+- [x] Temporary projects/worktrees are created outside any tracked repository and cleaned up safely. *(Created
+      under this session's scratchpad directory, a sibling of every tracked repo root; all three removed after
+      verification completed.)*
 
 #### Gate M4
 
-All three language packs receive identical coordination semantics without language-specific regressions.
+**Gate M4 passed for structural/content verification (2026-07-23), with one open item.** All three language packs
+receive identical coordination semantics without language-specific regressions in what setup actually generates.
+The one unverified item — that `validate.sh` still passes end-to-end in each generated project — is an environment
+constraint (missing toolchains), not a defect found; it should be run for real before this release is considered
+fully closed, consistent with the same caveat carried from M2/M3.
 
 ### Phase M5 — Upgrade compatibility matrix
 
