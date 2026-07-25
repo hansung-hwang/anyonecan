@@ -50,6 +50,7 @@ multi-agent-only concern. The rationale and the incidents behind each rule live 
 Multi-actor mechanics — Coordinator role, worktree isolation, per-wave single-writer ownership, task contracts —
 are conditional and activate only when multiple sessions or sub-agents touch this repository at once. See the guide.
 
+{{TEAM_ROLES_SECTION}}
 ## Key Invariants (do not break)
 
 Project-specific rules distilled from incidents and non-obvious design

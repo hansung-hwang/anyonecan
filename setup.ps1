@@ -71,6 +71,16 @@ $CommentLanguage = switch ($CommentChoice.Trim().ToLower()) {
     default                                        { "English" }
 }
 
+Write-Host ""
+Write-Host "Project mode:" -ForegroundColor White
+Write-Host "  1. Solo (default)"
+Write-Host "  2. Team"
+$ModeChoice = Read-Host "Enter number"
+$ProjectMode = switch ($ModeChoice.Trim().ToLower()) {
+    { $_ -in "2", "team" } { "team" }
+    default                { "solo" }
+}
+
 $BasePackage = ""
 if ($SelectedPack.postGenerate -eq "java-packages") {
     $BasePackageInput = Read-Host "Java base package (e.g. com.example.myproject)"
@@ -99,6 +109,7 @@ Write-Info "Description   : $ProjectDescription"
 Write-Info "Author        : $Author"
 Write-Info "Language      : $LanguageDisplay"
 Write-Info "Comment lang  : $CommentLanguage"
+Write-Info "Project mode  : $ProjectMode"
 if ($SelectedPack.postGenerate -eq "java-packages") { Write-Info "Base package  : $BasePackage" }
 Write-Info "Output dir    : $OutputDir"
 Write-Host "────────────────────────────────────────────────" -ForegroundColor DarkGray
@@ -146,6 +157,23 @@ foreach ($relPath in $langFiles) {
     [System.IO.File]::WriteAllText($fp, $fc, $utf8NoBom)
 }
 Write-Ok "Language-specific rules applied"
+
+# ── 3b. Scaffold or strip the Team & Roles AGENTS section (Team mode only —
+#         Solo stays at zero overhead, no section at all) ─────────────────────
+Write-Step "Applying project mode..."
+$AgentsPath = Join-Path $OutputDir "AGENTS.md"
+if (Test-Path $AgentsPath) {
+    $ac = [System.IO.File]::ReadAllText($AgentsPath, [System.Text.Encoding]::UTF8)
+    if ($ProjectMode -eq "team") {
+        $TeamSection = "## Team & Roles`n`n_Not configured yet -- run ``/team`` to add roles and assign teammates. Until roles are set, no role-scoping applies._`n`n"
+    } else {
+        $TeamSection = ""
+    }
+    $ac = $ac.Replace("{{TEAM_ROLES_SECTION}}`r`n", $TeamSection)
+    $ac = $ac.Replace("{{TEAM_ROLES_SECTION}}`n", $TeamSection)
+    [System.IO.File]::WriteAllText($AgentsPath, $ac, $utf8NoBom)
+}
+Write-Ok "Project mode applied ($ProjectMode)"
 
 # ── 4. Substitute standard placeholders ────────────────────────────────────────
 Write-Step "Substituting placeholders..."
@@ -222,7 +250,9 @@ foreach ($rel in $BaselineFiles) {
 }
 $Sha256.Dispose()
 
-$MetaJson = @{
+# roles/roster are omitted entirely for Solo projects -- they're user data
+# `/team` populates later, not a Solo-relevant field (see 1.5.0 team-roles plan).
+$MetaOrdered = [ordered]@{
     projectName        = $ProjectName
     projectDescription = $ProjectDescription
     author              = $Author
@@ -230,9 +260,15 @@ $MetaJson = @{
     language            = $Language
     commentLanguage     = $CommentLanguage
     basePackage         = $BasePackage
-    harnessVersion      = $HarnessVersion
-    baselines           = $Baselines
-} | ConvertTo-Json -Depth 6
+    projectMode         = $ProjectMode
+}
+if ($ProjectMode -eq "team") {
+    $MetaOrdered["roles"] = @()
+    $MetaOrdered["roster"] = @{}
+}
+$MetaOrdered["harnessVersion"] = $HarnessVersion
+$MetaOrdered["baselines"] = $Baselines
+$MetaJson = $MetaOrdered | ConvertTo-Json -Depth 6
 [System.IO.File]::WriteAllText((Join-Path $OutputDir ".harness-meta.json"), $MetaJson, $utf8NoBom)
 
 # ── 6. Install dependencies (candidates come from pack.json's install.candidates) ──

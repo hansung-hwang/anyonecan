@@ -90,6 +90,17 @@ case "$COMMENT_CHOICE_NORM" in
     *)                     COMMENT_LANGUAGE="English" ;;
 esac
 
+echo ""
+echo "Project mode:"
+echo "  1. Solo (default)"
+echo "  2. Team"
+read -rp "Enter number: " MODE_CHOICE
+MODE_CHOICE_NORM=$(echo "${MODE_CHOICE:-}" | tr '[:upper:]' '[:lower:]' | tr -d '[:space:]')
+case "$MODE_CHOICE_NORM" in
+    2|team) PROJECT_MODE="team" ;;
+    *)      PROJECT_MODE="solo" ;;
+esac
+
 BASE_PACKAGE=""
 if [[ "$POST_GENERATE" == "java-packages" ]]; then
     SAFE_NAME=$(echo "$PROJECT_NAME" | tr -d '-')
@@ -119,6 +130,7 @@ info "Description   : $PROJECT_DESCRIPTION"
 info "Author        : $AUTHOR"
 info "Language      : $LANGUAGE_DISPLAY"
 info "Comment lang  : $COMMENT_LANGUAGE"
+info "Project mode  : $PROJECT_MODE"
 [[ "$POST_GENERATE" == "java-packages" ]] && info "Base package  : $BASE_PACKAGE"
 info "Output dir    : $OUTPUT_DIR"
 echo "────────────────────────────────────────────────"
@@ -174,6 +186,35 @@ for rel in ["AGENTS.md"]:
 PYEOF
 
 ok "Language-specific rules applied"
+
+# ── 3b. Scaffold or strip the Team & Roles AGENTS section (Team mode only —
+#         Solo stays at zero overhead, no section at all) ─────────────────────
+step "Applying project mode..."
+
+export PROJECT_MODE OUTPUT_DIR
+
+python3 << 'PYEOF'
+import os, pathlib
+
+output = pathlib.Path(os.environ["OUTPUT_DIR"])
+mode   = os.environ["PROJECT_MODE"]
+
+p = output / "AGENTS.md"
+if p.exists():
+    content = p.read_text(encoding="utf-8")
+    if mode == "team":
+        team_section = (
+            "## Team & Roles\n\n"
+            "_Not configured yet -- run `/team` to add roles and assign teammates. "
+            "Until roles are set, no role-scoping applies._\n\n"
+        )
+    else:
+        team_section = ""
+    content = content.replace("{{TEAM_ROLES_SECTION}}\n", team_section)
+    p.write_text(content, encoding="utf-8")
+PYEOF
+
+ok "Project mode applied ($PROJECT_MODE)"
 
 # ── 4. Substitute standard placeholders ────────────────────────────────────────
 step "Substituting placeholders..."
@@ -234,7 +275,7 @@ fi
 HARNESS_VERSION=$(cat "$HARNESS_CORE_DIR/HARNESS-VERSION" | tr -d '[:space:]')
 
 export HARNESS_VERSION LANGUAGE OUTPUT_DIR SCRIPT_DIR
-export PROJECT_NAME PROJECT_DESCRIPTION AUTHOR TODAY COMMENT_LANGUAGE BASE_PACKAGE
+export PROJECT_NAME PROJECT_DESCRIPTION AUTHOR TODAY COMMENT_LANGUAGE BASE_PACKAGE PROJECT_MODE
 
 python3 << 'PYEOF'
 import hashlib, json, os, pathlib
@@ -255,6 +296,8 @@ for rel in baseline_files:
     content = fp.read_text(encoding="utf-8").replace("\r\n", "\n")
     baselines[rel] = hashlib.sha256(content.encode("utf-8")).hexdigest()
 
+mode = os.environ["PROJECT_MODE"]
+
 meta = {
     "projectName": os.environ["PROJECT_NAME"],
     "projectDescription": os.environ["PROJECT_DESCRIPTION"],
@@ -263,9 +306,15 @@ meta = {
     "language": language,
     "commentLanguage": os.environ["COMMENT_LANGUAGE"],
     "basePackage": os.environ["BASE_PACKAGE"],
-    "harnessVersion": os.environ["HARNESS_VERSION"],
-    "baselines": baselines,
+    "projectMode": mode,
 }
+# roles/roster are omitted entirely for Solo projects -- they're user data
+# `/team` populates later, not a Solo-relevant field (see 1.5.0 team-roles plan).
+if mode == "team":
+    meta["roles"] = []
+    meta["roster"] = {}
+meta["harnessVersion"] = os.environ["HARNESS_VERSION"]
+meta["baselines"] = baselines
 (output / ".harness-meta.json").write_text(
     json.dumps(meta, indent=2, ensure_ascii=False) + "\n", encoding="utf-8"
 )
