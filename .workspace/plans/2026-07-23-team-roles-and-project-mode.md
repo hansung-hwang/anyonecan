@@ -1,7 +1,7 @@
 # Team Roles & Project Mode — Harness Framework
 
 - **Date**: 2026-07-23
-- **Status**: In Progress (design; no implementation started)
+- **Status**: Done (all phases T0-T4 complete; T4 not yet committed at time of writing, see `STATUS.md`)
 - **Target release**: Harness 1.5.0 (provisional; confirm at Gate T0)
 - **Depends on**: `.workspace/plans/2026-07-22-multi-agent-coordination.md` (1.4.0). This feature builds on that
   base: the always-on Handoff & Reporting rules, the file-ownership-matrix concept, and PR-as-integration-gate.
@@ -9,6 +9,18 @@
 - **Rev**: 2026-07-23 — **Gate T0 closed**: `/team`; 7-role catalog + QA + Reviewer-as-rotating-hat; active role by
   explicit declaration + optional branch prefix; mode/roles/roster are user data (upgrade never overwrites);
   prose-only in 1.5.0, mechanical enforcement → 1.6.0. Ready to implement once 1.4.0 lands.
+- **Rev**: 2026-07-25 — **Gate T1 closed**: `setup.ps1`/`setup.sh` Solo/Team prompt, `.harness-meta.json`
+  `projectMode`/`roles`/`roster`, conditional `Team & Roles` AGENTS scaffold. Verified end-to-end against real
+  generations. See Gate T1 below for detail.
+- **Rev**: 2026-07-25 — **Gate T2 closed**: `/team` command (root + harness-core), Workflow Prompts/CLAUDE.md
+  registration, `harness-manifest.json` registration. Verified via check-sync + a fresh Team-mode generation +
+  a manual dry run of the command's own edit steps. See Gate T2 below for detail.
+- **Rev**: 2026-07-25 — **Gate T3 closed**: guide documents the in-role convention (both copies); two real
+  agent dry runs against a live Team-mode generation, the first of which found and led to fixing a real gap
+  (escalation note location was unspecified). See Gate T3 below for detail.
+- **Rev**: 2026-07-25 — **Gate T4 closed — plan Done**: `HARNESS-VERSION` → 1.5.0, changelog, README; Java added to
+  the fresh-generation matrix (structural); real upgrade matrix via disposable worktrees (Team data survives,
+  Solo genuinely unaffected). See Gate T4 below for detail.
 
 ## Goal
 
@@ -129,26 +141,134 @@ project's existing structure rather than hand-invented.
 no `setup.*`/manifest/command editing starts before then. T1 may begin once 1.4.0 is merged.
 
 ### Phase T1 — Config model & setup
-- [ ] Add `projectMode`/`roles`/`roster` to `.harness-meta.json` (documented, defaulting to solo).
-- [ ] Add the Solo/Team prompt to `setup.ps1` and `setup.sh` (keep the scripts simple; defer role detail to `/team`).
-- [ ] Scaffold the empty `Team & Roles` AGENTS section only when Team is chosen.
+- [x] Add `projectMode`/`roles`/`roster` to `.harness-meta.json` (documented, defaulting to solo). *(Both scripts:
+      Solo omits `roles`/`roster` entirely, matching the plan's example; Team writes empty `[]`/`{}` for `/team` to
+      populate later.)*
+- [x] Add the Solo/Team prompt to `setup.ps1` and `setup.sh` (keep the scripts simple; defer role detail to `/team`).
+      *(Numbered menu matching the existing language/comment-language prompt style, defaults to Solo.)*
+- [x] Scaffold the empty `Team & Roles` AGENTS section only when Team is chosen. *(New `{{TEAM_ROLES_SECTION}}`
+      token in `harness-core/AGENTS.md`, placed after "Handoff and Reporting" / before "Key Invariants"; Solo strips
+      the token to nothing (verified byte-identical to the pre-change template), Team replaces it with a heading +
+      one placeholder line pointing at `/team`.)*
+
+#### Gate T1
+**Gate T1 closed (2026-07-25).** Verified end-to-end with real generation, not just code review: ran both
+`setup.ps1` and `setup.sh` (the latter under Git Bash, which this Windows dev box happens to have) for Solo and
+Team, across TypeScript and Python. Confirmed: (1) `.harness-meta.json` has `projectMode` in both, `roles`/`roster`
+present only for Team; (2) `AGENTS.md` diff between a Solo and Team generation is exactly the `## Team & Roles`
+block, nothing else moves; (3) each generated project's `validate.sh` still passes end-to-end in both modes; (4)
+`node scripts/check-sync.mjs` still passes (no command added yet, so no parity/manifest changes needed this phase).
+No `HARNESS-VERSION` bump yet — per the plan's own staging, that's T4, once T2/T3 land too. Committed as `2044a28`
+after a user checkpoint.
 
 ### Phase T2 — `/team` command
-- [ ] Add `harness-core/.claude/commands/team.md` + the root copy (check-sync command-set parity — see 1.4.0 finding A).
-- [ ] Add `/team` to both AGENTS Workflow Prompts tables and both CLAUDE.md command lists (1.4.0 finding B).
-- [ ] `/team` writes the role→ownership map into AGENTS + mirrors to `.harness-meta.json`; handles init, switch, edit.
-- [ ] Register `team.md` in `harness-manifest.json` `frameworkOwned`; the M-guard from 1.4.0 finding E covers it.
+- [x] Add `harness-core/.claude/commands/team.md` + the root copy (check-sync command-set parity — see 1.4.0 finding A).
+      *(Root copy adapted for this repo's own situation: no `Key Invariants` section to anchor placement against
+      — uses `Framework Versioning` instead — and no `.harness-meta.json` yet, so its Notes explain the bootstrap
+      case and the distinction from `/coordinate`, mirroring how `coordinate.md`'s root/harness-core copies diverge.)*
+- [x] Add `/team` to both AGENTS Workflow Prompts tables and both CLAUDE.md command lists (1.4.0 finding B).
+- [x] `/team` writes the role→ownership map into AGENTS + mirrors to `.harness-meta.json`; handles init, switch, edit.
+      *(Encoded as the command's own step-by-step instructions — Steps 2-4 cover init/switch/edit, Step 5 writes
+      AGENTS.md, Step 6 mirrors `.harness-meta.json`. `/team` is a prompt file, not a script, so "implementation"
+      and "the command's content" are the same artifact — matching how `/coordinate` works.)*
+- [x] Register `team.md` in `harness-manifest.json` `frameworkOwned`; the M-guard from 1.4.0 finding E covers it.
+      *(Confirmed live: `node scripts/check-sync.mjs` passes, and a fresh Team-mode generation's `.harness-meta.json`
+      baselines map includes `.claude/commands/team.md` automatically.)*
+
+#### Gate T2
+**Gate T2 closed (2026-07-25).** Since `/team` is itself a prompt (no script to unit-test), verification was: (1)
+`check-sync.mjs` passes with the new command registered in both copies + the manifest; (2) a fresh Team-mode
+TypeScript generation actually delivers `team.md` and picks it up in its baseline hash map, confirming the
+manifest-registration guard's live effect, not just the static check; (3) a manual dry run — hand-applying exactly
+the edits Steps 5-6 specify (a 2-role roster into the scaffolded `AGENTS.md` section, `roles`/`roster` into
+`.harness-meta.json`) — produces valid JSON and a `validate.sh` pass, confirming the target shape is sound. No live
+agent actually ran `/team` end-to-end (consistent with the `/coordinate` M4 precedent: content review + dry run,
+not a spawned session) — that's the deferred check in T3's own acceptance item, not this phase's.
 
 ### Phase T3 — Role-scoped agent behavior
-- [ ] Document the "how the agent stays in-role" convention in the guide (extend the team section from the 1.4.0 §7).
-- [ ] Verify an agent under a declared role self-constrains and escalates cross-role edits (dry run).
+- [x] Document the "how the agent stays in-role" convention in the guide (extend the team section — §13 "Working as
+      a team", the section that already explicitly deferred role assignment to this exact feature). *(Both
+      `docs/how-to/multi-agent-collaboration.md` copies: harness-core's replaces the 1.4.0 deferral note with the
+      concrete convention + a pointer to `/team`'s role catalog; root's is adapted the same way `coordinate.md`'s
+      copies diverge — notes this repo has no `.harness-meta.json` yet and a by-area split as the natural default
+      if ever adopted here.)*
+- [x] Verify an agent under a declared role self-constrains and escalates cross-role edits (dry run). *(Real
+      dry runs, not simulation — see Gate T3.)*
+
+#### Gate T3
+**Gate T3 closed (2026-07-25).** Ran two real dry runs with a fresh `general-purpose` agent (zero prior context,
+so it could only act on what `AGENTS.md` actually says) against a real Team-mode TypeScript generation with its
+`Team & Roles` section hand-populated (2-role roster: Architect/Backend). Declared the agent's active role as
+Backend and gave it a task requiring edits to `domain` interfaces + `docs/adr/` — both explicitly Architect-owned
+per the role table, with `domain` contracts additionally marked "must delegate" in Backend's row.
+
+- **Run 1** (original wording — "produces a request/PR note instead of editing directly", no location specified):
+  the agent correctly declined to edit either file and instead wrote an escalation note, correctly citing the
+  ownership table and the escalation sentence — but had to *infer* where to put the note (it chose
+  `.workspace/plans/`, reasoning from the guide's Coordinator-report pattern and AGENTS.md's own description of
+  that directory). Its own honest self-report flagged this as a real gap: "nothing in AGENTS.md loudly says STOP at
+  the point of editing — the constraint only surfaces if the agent actively cross-checks the file path against the
+  ownership table."
+- **Fix applied immediately** (same session, before closing this gate): made the escalation note's location
+  concrete — `.workspace/plans/<date>-<short-topic>-request.md`, addressed to the owning role — in `/team`'s own
+  Step 5 (both copies) and the guide's new paragraph (both copies), not just in the hand-simulated test file.
+- **Run 2** (fresh agent, same scenario, updated wording, different field/task to rule out memorized output):
+  confirmed the fix — the agent reported the note's location was "given verbatim," not inferred, and correctly
+  escalated both cross-role edits to that exact path. It flagged two smaller residual ambiguities (whether "propose
+  to Architect" permits a draft edit alongside the note vs. note-only; whether a `STATUS.md` update is mandated by
+  the escalation rule itself or a separate general rule) — noted here rather than chased further, consistent with
+  the plan's own risk table ("prose-first ... harden with `check-agent-scope` in 1.6.0 if it proves insufficient")
+  and 1.5.0's explicit prose-only enforcement scope.
+
+This is exactly the kind of finding real end-to-end testing is supposed to surface that content review alone can't
+— worth recording as a concrete instance of the plan's own risk #5 ("Agent ignores role scope") almost happening,
+caught and closed within the same phase rather than shipped.
 
 ### Phase T4 — Version, docs, matrices
-- [ ] Bump `HARNESS-VERSION` to 1.5.0; `FRAMEWORK-CHANGELOG.md` entry.
-- [ ] README: document Solo/Team, `/team`, and role scoping.
-- [ ] Fresh-generation matrix: Solo project has **no** `Team & Roles` section and no behavior change (litmus);
-      Team project gets roles and an agent respects scope. Repeat for TS/Python/Java.
-- [ ] Upgrade matrix: a Team project keeps its `projectMode`/`roles`/`roster` across upgrade; Solo unaffected.
+- [x] Bump `HARNESS-VERSION` to 1.5.0; `FRAMEWORK-CHANGELOG.md` entry.
+- [x] README: document Solo/Team, `/team`, and role scoping. *(Structure tree gains `team.md`; Quick Start's
+      example prompts and command list gain the mode prompt and `/team`; new "Team Roles" section after "Work
+      Journal", mirroring how the guide's §13 was extended.)*
+- [x] Fresh-generation matrix: Solo project has **no** `Team & Roles` section and no behavior change (litmus);
+      Team project gets roles and an agent respects scope. Repeat for TS/Python/Java. *(TS/Python done at Gate T1;
+      Java done here — see Gate T4. Java's `validate.sh`/`mvn` still can't run in this environment, so Java
+      verification is structural only: AGENTS.md diff, `.harness-meta.json`, package-dir generation — same
+      pre-existing limitation as 1.4.0's M4.)*
+- [x] Upgrade matrix: a Team project keeps its `projectMode`/`roles`/`roster` across upgrade; Solo unaffected.
+      *(Real upgrades via disposable `git worktree` checkouts, not simulation — see Gate T4.)*
+
+#### Gate T4
+**Gate T4 closed (2026-07-25) — plan complete, all phases done.**
+
+- **Version/docs**: `HARNESS-VERSION` → 1.5.0; `FRAMEWORK-CHANGELOG.md` entry added; README updated (structure
+  tree, Quick Start prompts/commands, new "Team Roles" section). `node scripts/check-sync.mjs` and full
+  `pnpm validate` both pass with all T1-T4 changes present.
+- **Fresh-generation matrix — Java** (TS/Python already verified at Gate T1): generated Solo and Team Java projects
+  via `setup.ps1` (correcting the prompt order for Java's extra base-package question — mode prompt precedes it).
+  Confirmed: AGENTS.md diff between Solo/Team is exactly the `Team & Roles` section (same litmus as TS/Python);
+  `.harness-meta.json` has `projectMode`/`roles`/`roster` correctly, `basePackage` unaffected; Java package
+  directory structure (`domain`/`application`/`infrastructure`/`presentation`) generated normally under both modes.
+  `mvn`/`javac` remain unavailable in this environment (`winget` blocked on an interactive ToS prompt, same as the
+  1.4.0/M4 and the 1.4.0-caveat-closure sessions) — Java's `validate.sh` itself is still unverified end-to-end here.
+- **Upgrade matrix**: used real disposable projects via `git worktree`, not simulation, mirroring the 1.4.0/M5
+  technique. **Test A (Team-mode upgrade)**: generated a Team TypeScript project from the pre-T4 commit (`8b98bbb`,
+  HARNESS-VERSION 1.4.0, already has T1-T3's Solo/Team code), hand-populated real `roles`/`roster` data (not just
+  the empty scaffold), then ran the current tree's `upgrade.ps1` against it. Confirmed: `projectMode: "team"`,
+  `roles: ["architect","backend"]`, `roster: {"hansung":"architect","alice":"backend"}` all survived byte-for-byte;
+  `harnessVersion` correctly advanced to 1.5.0; `git diff --stat` inside the project showed only
+  `.harness-meta.json` and `HARNESS-VERSION` changed — `AGENTS.md` and `team.md` untouched (nothing to update,
+  since neither changed content between T3's commit and now); `validate.sh` still passes post-upgrade. **Test B
+  (genuinely pre-1.5.0 Solo project)**: generated from `52820ab` (right after the 1.4.0 caveat closure, before any
+  Solo/Team code existed at all — no mode prompt, no `team.md`), then upgraded to current. Confirmed: `team.md`
+  delivered as a new file, the guide updated (both newly-registered/changed frameworkOwned files); `.harness-meta.json`
+  gained **zero** `projectMode`/`roles`/`roster` keys (upgrade only ever mutates `baselines`/`harnessVersion`, never
+  invents new top-level fields) — "Solo unaffected" confirmed structurally, not just asserted; `AGENTS.md` untouched
+  (it isn't frameworkOwned, so upgrade never touches it regardless); `validate.sh` still passes post-upgrade.
+- All temporary worktrees and generated directories removed after verification, outside every tracked repository.
+
+**Plan status: Done.** All four implementation phases (T1-T4) and both design/implementation gates are closed. Nine
+commits so far this session's 1.5.0 work: `2044a28` (T1), `9c1126c` (T2), `8b98bbb` (T3); T4 not yet committed at
+the time this gate was written — see `STATUS.md` for the exact uncommitted diff.
 
 ## Acceptance Criteria
 1. Setup can choose Solo or Team; Solo adds zero visible overhead beyond one menu item.
