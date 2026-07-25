@@ -10,6 +10,35 @@ they're pulling in.
 
 See `AGENTS.md` → "Framework Versioning" for the bump rule.
 
+## [1.5.0] - 2026-07-25
+
+**Team roles & project mode (Solo/Team):**
+
+- New "Project mode" prompt in `setup.ps1`/`setup.sh` (Solo default, Team opt-in), matching the existing
+  language/comment-language prompt style. `.harness-meta.json` gains `projectMode`; Solo omits `roles`/`roster`
+  entirely, Team writes empty `[]`/`{}` for `/team` to populate.
+- New `## Team & Roles` `AGENTS.md` section, scaffolded only in Team mode (a `{{TEAM_ROLES_SECTION}}` template
+  token, placed between "Handoff and Reporting" and "Key Invariants", that Solo strips to nothing — zero-overhead
+  litmus verified: the Solo/Team `AGENTS.md` diff is exactly this one section, nothing else moves).
+- New `.claude/commands/team.md` (`/team`): one command for both "set up at the start" and "change anytime" — picks
+  roles from a default 7-role catalog (Planner, Architect, Backend, Frontend, Data/DBA, Infra/DevOps, QA/Test; user
+  editable) or custom ones, assigns a roster, and writes the role→ownership map into `AGENTS.md` (mirrored to
+  `.harness-meta.json`). Role ownership maps onto the existing clean-architecture layers rather than a new ACL
+  system. Reviewer/Integrator is a rotating hat (whoever reviews a PR holds that PR's merge gate), not a fixed role.
+- `docs/how-to/multi-agent-collaboration.md` §13 ("Working as a team") gains the actual in-role convention — active
+  role by explicit declaration or branch-prefix hint, edits restricted to the active role's owned scope, cross-role
+  changes escalated as a request note to `.workspace/plans/<date>-<short-topic>-request.md` (addressed to the
+  owning role) instead of edited directly, reusing the same escalation pattern a sub-agent already uses toward a
+  Coordinator. This replaces the deferral note the section carried since 1.4.0.
+- Enforcement is **prose-only** in 1.5.0 (the agent reads the role map from always-loaded `AGENTS.md` and
+  self-constrains); a mechanical `check-agent-scope` checker is deferred to 1.6.0, reusing the same ownership data.
+- Verified with real dry runs, not simulation: a fresh, zero-context agent declared under a role and given a
+  cross-role task self-constrained and escalated correctly in two separate runs. The first run surfaced a real gap
+  — the escalation note's location was unspecified, so the agent had to infer one — fixed in the same session by
+  making the location concrete in both `/team`'s generation instructions and the guide; a second run with a fresh
+  agent confirmed the fix (location "given verbatim," not inferred).
+- Full design record and phase-by-phase verification: `.workspace/plans/2026-07-23-team-roles-and-project-mode.md`.
+
 ## [1.4.0] - 2026-07-23
 
 **Opt-in multi-agent coordination layer (slim scope):**

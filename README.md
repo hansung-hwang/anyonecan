@@ -71,7 +71,8 @@ linter — see each language pack's `harness-manifest.json` entry and
 │   │       ├── test.md        # Test writing
 │   │       ├── adr.md         # Architecture decision record
 │   │       ├── coverage.md    # Coverage check
-│   │       └── coordinate.md  # Multi-agent coordination plan (opt-in)
+│   │       ├── coordinate.md  # Multi-agent coordination plan (opt-in)
+│   │       └── team.md        # Solo/Team mode + role scoping (opt-in)
 │   ├── .workspace/            # Session-to-session work journal (survives session end)
 │   │   ├── STATUS.md          # Current snapshot, overwritten each close-out
 │   │   ├── worklog.md         # Append-only history of completed sessions
@@ -122,6 +123,7 @@ Project description: Order management service
 Author: hansung-hwang
 Language: 1=TypeScript / 2=Python / 3=Java
 Comment/description language: 1=English / 2=Korean (한국어)
+Project mode: 1=Solo / 2=Team
 Output directory (default: ./my-service):
 ```
 
@@ -140,6 +142,7 @@ claude        # when using Claude Code
 # /start      # start session — reads .workspace/STATUS.md for where you left off
 # /plan       # before non-trivial work — write a design doc to .workspace/plans/
 # /coordinate # optional — plan a multi-agent split, only when tasks are genuinely independent
+# /team       # optional — set up Solo/Team mode and role scoping, or change it any time
 # /done       # at session end — log progress so the next session can resume instantly
 ```
 
@@ -183,6 +186,21 @@ Reporting" section (clean handoff, fixed-SHA review, requirement→location
 reporting) applies at any actor count, while `/coordinate` and the plan
 template's optional `Parallelization` block only activate when you use them.
 Full model: `docs/how-to/multi-agent-collaboration.md`.
+
+---
+
+## Team Roles
+
+Also opt-in, and orthogonal to the coordination above — `/coordinate` splits *one task* across agents; `/team` sets
+*standing* ownership of the codebase. Solo (the default) adds nothing beyond one setup prompt and one command.
+Choosing Team at setup, or running `/team` at any point afterward, lets you assign a role — Planner, Architect,
+Backend, Frontend, Data/DBA, Infra/DevOps, QA/Test by default, or your own — to each person, mapped onto the same
+clean-architecture layers this framework already enforces rather than a separate ACL system. An agent working under
+a declared role restricts its edits to that role's owned files and escalates anything cross-role as a request note
+instead of editing directly, reusing the same escalation pattern a sub-agent already uses toward a Coordinator.
+Enforcement is by convention (`AGENTS.md` + the multi-agent guide) as of 1.5.0 — see
+`docs/how-to/multi-agent-collaboration.md` §13 for the full model and `/team`'s own command file for the default
+role catalog.
 
 ---
 
