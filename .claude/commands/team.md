@@ -76,8 +76,20 @@ template) with:
 
 ### 6. Mirror to `.harness-meta.json`
 
-Set `projectMode: "team"`, `roles` to the role ids actually in use, `roster` to the person→role map. Create the
-file if it doesn't exist yet, with just these fields.
+Set `projectMode: "team"`, `roles` to the role ids actually in use, `roster` to the person→role map. **Use this
+exact shape** — role ids are lowercase-kebab-case (a multi-word role like "Planner / PM" becomes
+`"planner-pm"`); a `roster` value is a role-id string for a single role, or — for a person with more than one
+role — a bare JSON array of role-id strings directly as that person's value (not nested under any key):
+
+```json
+{
+  "projectMode": "team",
+  "roles": ["architect", "backend", "qa-test"],
+  "roster": { "hansung": "architect", "alice": ["backend", "qa-test"] }
+}
+```
+
+Create the file if it doesn't exist yet, with just these fields.
 
 ### 7. Report
 

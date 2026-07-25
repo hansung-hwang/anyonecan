@@ -37,6 +37,18 @@ See `AGENTS.md` → "Framework Versioning" for the bump rule.
   — the escalation note's location was unspecified, so the agent had to infer one — fixed in the same session by
   making the location concrete in both `/team`'s generation instructions and the guide; a second run with a fresh
   agent confirmed the fix (location "given verbatim," not inferred).
+- Post-close-out audit (real, not a re-read): a live agent actually running `/team`'s instructions — not a manual
+  dry run — found `/team`'s `.harness-meta.json` step had no worked example, so multi-word role ids and multi-role
+  people were being inferred rather than specified (a real schema-drift risk). Fixed with an explicit shape +
+  worked JSON example in `/team`'s Step 6 (both copies); confirmed with two further live runs. Full record:
+  `.workspace/plans/2026-07-23-team-roles-and-project-mode.md`'s "Post-close-out audit" section.
+- **Deliberately still deferred to 1.6.0** (not un-deferred by this release): the conditional coordination
+  branches in `/start`, `/commit`, `/review`, and `/done` that 1.4.0 pushed out, and the mechanical
+  `scripts/check-agent-scope.*` checker. 1.4.0's stated un-defer trigger was **n=2** — a *second* real project's
+  multi-agent session where the prose-only contract demonstrably fails. That hasn't happened; this release's own
+  T3 dry run (see above) is evidence *for* the prose approach, not against it — the gap it found was an
+  under-specified location, not a role-scope violation, and it was closed by tightening the prose, not by adding
+  a mechanical check. Decision, not omission — recorded here per 1.4.0's own instruction to do so.
 - Full design record and phase-by-phase verification: `.workspace/plans/2026-07-23-team-roles-and-project-mode.md`.
 
 ## [1.4.0] - 2026-07-23

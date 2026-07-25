@@ -112,9 +112,13 @@ project's existing structure rather than hand-invented.
 
 - **1.5.0** — this feature: `setup.*` Solo/Team prompt, `.harness-meta.json` `projectMode`/`roles`/`roster`,
   `AGENTS.md` `Team & Roles` section, `/team` command, default role catalog, prose-enforced role scoping. The 1.4.0
-  **deferred** `/start`·`/commit`·`/review`·`/done` coordination edits can ride here too, since role scoping reuses them.
+  **deferred** `/start`·`/commit`·`/review`·`/done` coordination edits *could* ride here (this line originally said
+  so) — **decided not to at T4**: 1.4.0's own un-defer trigger is n=2 (a second real project where the prose
+  contract demonstrably fails), which hasn't happened. T3's dry run is evidence for prose, not against it — see
+  `FRAMEWORK-CHANGELOG.md`'s 1.5.0 entry for the recorded decision. Still deferred to 1.6.0.
 - **1.6.0** (optional) — `scripts/check-agent-scope.*` mechanical enforcement keyed to the role→ownership map
-  (also enforces per-wave agent ownership from the 1.4.0 plan). Build teeth only after the convention proves out.
+  (also enforces per-wave agent ownership from the 1.4.0 plan), plus the still-deferred `/start`·`/commit`·
+  `/review`·`/done` coordination edits. Build teeth only after the convention proves out (n=2, per 1.4.0).
 
 ## Implementation Phases and Gates
 
@@ -269,6 +273,48 @@ caught and closed within the same phase rather than shipped.
 **Plan status: Done.** All four implementation phases (T1-T4) and both design/implementation gates are closed. Nine
 commits so far this session's 1.5.0 work: `2044a28` (T1), `9c1126c` (T2), `8b98bbb` (T3); T4 not yet committed at
 the time this gate was written — see `STATUS.md` for the exact uncommitted diff.
+
+### Post-close-out audit (2026-07-25)
+
+Checked every in-scope item against the actual files after T4 closed, not just re-reading the plan — same practice
+as 1.4.0's post-close-out audit. Two findings:
+
+1. **Recorded-decision gap (docs only, no code).** 1.4.0 named an explicit condition for un-deferring `/start`·
+   `/commit`·`/review`·`/done` coordination edits ("n=2 — a second real project where the prose contract
+   demonstrably fails") and this plan's own Release Staging said they "can ride here too." 1.5.0 shipped without
+   them, correctly (n=2 hasn't happened — T3's dry run found an under-specification, not a scope-violation
+   failure), but nothing recorded *that this was a decision*. Fixed: `FRAMEWORK-CHANGELOG.md`'s 1.5.0 entry and
+   this plan's Release Staging section both now state the deferral explicitly, per 1.4.0's own instruction to
+   record it as "a decision, not an omission."
+2. **Real gap found via a live `/team` run — acceptance criterion #2 had never actually been exercised.** Every
+   prior verification of `/team` was content review or a *manual* dry run (hand-editing files to simulate what
+   the command would produce). Ran an actual fresh agent against a real Solo-mode generated project, handed it
+   `.claude/commands/team.md` and a switch-to-Team scenario, and let it follow the command for real:
+   - **Run 1** (Solo→Team from scratch, exercising the "insert into AGENTS.md" path Gate T2/T3's dry runs never
+     hit — they only ever filled an *existing* scaffold): structurally clean — correct insertion point, correct
+     spacing, correct `.harness-meta.json` mutation. But the agent's own report flagged that `/team`'s
+     `.harness-meta.json` instructions had no example JSON shape, so it inferred kebab-case role ids and a
+     person→role roster direction — a different agent could plausibly have chosen differently (e.g. Title-Case
+     ids, or role→people instead of person→role).
+   - **Fix applied**: added an explicit "**Use this exact shape**" clause + worked JSON example to `/team`'s
+     Step 6 (both copies).
+   - **Run 2** (edit path: add a multi-word role + give a person two roles) initially *appeared* to still show
+     the gap — but the test's target project had been generated before the fix, so its bundled `team.md` copy was
+     stale; not a real failure, a test-setup mistake. Corrected by copying the fixed `team.md` in and re-running
+     the identical scenario fresh (**Run 3**).
+   - **Run 3** confirmed the fix for multi-word role ids (kebab-case derivation, zero inference — matched the
+     worked example exactly) but surfaced one smaller residual ambiguity: the phrase "gets a `roles` array"
+     could mean either a bare array as the roster value, or an array nested under a literal `roles` key. Tightened
+     the wording once more (both copies) to state explicitly: "a bare JSON array of role-id strings directly as
+     that person's value (not nested under any key)." Not re-verified with a fourth live run — the wording is now
+     unambiguous on its face, and three real runs is enough evidence for a prose-only, opt-in 1.5.0 feature; this
+     is the kind of judgment call the plan's own risk table anticipates ("harden ... if it proves insufficient"),
+     not a promise to test every phrasing to exhaustion.
+   - This is a second concrete instance (after T3's) of live testing finding what review alone didn't: acceptance
+     criterion #2 ("switched anytime by re-running `/team`") is now actually exercised, not just designed for.
+
+No further findings. Plan remains Done; the two fixes above are content changes to already-shipped 1.5.0 files
+(`FRAMEWORK-CHANGELOG.md`, both `team.md` copies, this plan file) rather than new phases.
 
 ## Acceptance Criteria
 1. Setup can choose Solo or Team; Solo adds zero visible overhead beyond one menu item.
