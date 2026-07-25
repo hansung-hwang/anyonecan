@@ -59,8 +59,11 @@ doesn't exist yet — the same spot `setup.*` scaffolds it) with:
 2. The role → ownership table, trimmed to the roles this project actually uses (plus any custom additions).
 3. The in-role convention: the **active role** is set by explicit declaration ("act as the backend dev") or an
    optional branch-prefix hint (`be/`, `fe/`, `infra/`); an agent restricts edits to its active role's owned scope
-   and, for anything cross-role, produces a request/PR note instead of editing directly — the same escalation
-   pattern a sub-agent uses toward a Coordinator in the multi-agent guide.
+   and, for anything cross-role, writes a request note to `.workspace/plans/<date>-<short-topic>-request.md`
+   (create `.workspace/plans/` first if the project doesn't have it) addressed to the owning role, instead of
+   editing directly — the same escalation pattern a sub-agent uses toward a Coordinator in the multi-agent guide.
+   Naming the concrete file/location matters: a dry run during this feature's own development found that without
+   it, an agent still escalates correctly but has to guess where the note goes.
 
 ### 6. Mirror to `.harness-meta.json`
 

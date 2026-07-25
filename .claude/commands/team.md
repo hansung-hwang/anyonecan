@@ -69,8 +69,10 @@ template) with:
 2. The role → ownership table, trimmed to the roles/areas this repo actually uses (plus any custom additions).
 3. The in-role convention: the **active role** is set by explicit declaration ("act as the docs owner") or an
    optional branch-prefix hint; an agent restricts edits to its active role's owned scope and, for anything
-   cross-role, produces a request/PR note instead of editing directly — the same escalation pattern a sub-agent
-   uses toward a Coordinator in the multi-agent guide.
+   cross-role, writes a request note to `.workspace/plans/<date>-<short-topic>-request.md` addressed to the owning
+   role, instead of editing directly — the same escalation pattern a sub-agent uses toward a Coordinator in the
+   multi-agent guide. Naming the concrete file/location matters: a dry run during this feature's own development
+   found that without it, an agent still escalates correctly but has to guess where the note goes.
 
 ### 6. Mirror to `.harness-meta.json`
 

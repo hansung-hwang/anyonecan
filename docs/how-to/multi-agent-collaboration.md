@@ -351,6 +351,16 @@ as they apply to an agent handoff — a clean branch, a `requirement → file/sy
 validation command+environment evidence as PR evidence. `.workspace/` state stays advisory, not a lock, across
 branches with different file snapshots.
 
+**Team roles** (who works on which part of the codebase) are a separate, richer layer than this section covers,
+configured via `/team` rather than here. This repo doesn't have a `.harness-meta.json` yet — `/team` bootstraps one
+on first use (see its Notes) — so no role split is active by default; a natural one, if ever adopted, would be by
+area (`harness-core/`, `language-packs/`, `docs/how-to/`, `scripts/`) rather than the generated-project layer
+catalog `/team` ships as its default. Once configured, the same convention applies as in the generated-project
+guide this section mirrors: active role by explicit declaration or branch-prefix hint, edits restricted to the
+active role's owned scope from `AGENTS.md`, cross-role changes escalated as a request note to
+`.workspace/plans/<date>-<short-topic>-request.md` (addressed to the owning role) rather than edited directly — the
+same pattern an Implementation Agent already uses toward the Coordinator in §2.1/§9.
+
 ## 14. Why these rules exist
 
 The problems this guide standardizes are shared-state and reporting failures, not code-quality failures — a

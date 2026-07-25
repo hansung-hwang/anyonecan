@@ -351,8 +351,19 @@ branches with different file snapshots. `.workspace/plans/README.md`'s optional 
 task's plan; `worklog.md` rows may optionally include an author column when useful.
 
 **Team roles** (who works on which part of the codebase — e.g. a backend/frontend/data split) are a separate,
-richer layer than this section covers; see your project's own planning docs if that's what you need — this guide's
-scope is coordination mechanics, not role assignment policy.
+richer layer than this section covers, configured via `/team` rather than here — this guide's scope is coordination
+mechanics, not role assignment policy. Once `/team` has written a role→ownership map into your project's own
+`AGENTS.md` `Team & Roles` section:
+
+- **Active role** is set by explicit declaration ("act as the backend dev") or an optional branch-prefix hint
+  (`be/`, `fe/`, `infra/`) — independent of this guide's Coordinator/agent split; a solo Coordinator session and a
+  role-scoped session are two different axes that can both apply at once.
+- An agent (or person) restricts its edits to the active role's owned scope, read from the always-loaded
+  `AGENTS.md`, and for anything cross-role writes a request note to `.workspace/plans/<date>-<short-topic>-request.md`
+  addressed to the owning role instead of editing directly — the same escalation an Implementation Agent uses
+  toward the Coordinator in §2.1/§9.
+- Enforcement is by convention (this guide + `AGENTS.md`) as of 1.5.0, not mechanical — see `/team`'s own command
+  file for the full default role catalog and how to customize it.
 
 ## 14. Why these rules exist
 
