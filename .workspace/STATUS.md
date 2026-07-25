@@ -4,19 +4,13 @@
 > for history, see `worklog.md`. Read this first when starting a new session.
 
 **Last updated**: 2026-07-25
-**Active plan**: — (none; 1.5.0 finished, all phases T0-T4 done and committed, then post-close-out audit found and
-fixed two real gaps — see below)
+**Active plan**: — (none; both existing plans, 1.4.0 and 1.5.0, are Done and fully committed)
 
 ## Current Goal
 
-No active implementation task. The team-roles/project-mode feature (Harness 1.5.0) is fully done — plan marked
-Done, all four phases committed (`2044a28`, `9c1126c`, `8b98bbb`, `c63bfae`), workspace docs committed (`0bb1e5d`).
-A **post-close-out audit** (checking actual files against the plan, not re-reading the plan — same practice as
-1.4.0's) then found two real gaps and fixed both; that fix is **not yet committed**.
-
-**Uncommitted right now**: `.claude/commands/team.md` + `harness-core/.claude/commands/team.md` (JSON-shape
-clarification for `roles`/`roster`), `FRAMEWORK-CHANGELOG.md`, `.workspace/plans/2026-07-23-team-roles-and-project-mode.md`.
-Left for the user to review/commit.
+No active implementation task. Harness 1.5.0 (team roles & project mode) is complete: all four phases plus a
+post-close-out audit fix are committed. Working tree is clean (only the pre-existing untracked `Homographormer/`
+remains, unrelated to this session). Nothing queued — next work starts fresh whenever picked up.
 
 ## Progress
 
@@ -25,27 +19,21 @@ Left for the user to review/commit.
 - **1.4.0 validation caveat — closed (2026-07-25), commits `f3b9e34` + `52820ab`.** Found and fixed two real bugs
   in `setup.ps1`/`setup.sh`'s install step. **Java/Maven remain unavailable** in this environment (no toolchain;
   `winget` blocks on an interactive ToS prompt).
-- **Team roles & project mode (Harness 1.5.0) — Done, committed, then audited (2026-07-25).**
-  `.workspace/plans/2026-07-23-team-roles-and-project-mode.md` has the full record, including a "Post-close-out
-  audit" section. Summary:
-  - **T1** (`2044a28`), **T2** (`9c1126c`): Solo/Team config model + setup, the `/team` command.
-  - **T3** (`8b98bbb`): documented the in-role convention; two dry runs found and fixed a real gap (escalation
-    note location was unspecified — made concrete, confirmed).
-  - **T4** (`c63bfae`): version bump to 1.5.0, changelog, README, Java added to the fresh-gen matrix (structural),
-    and a **real upgrade matrix** via disposable `git worktree`s (Team data survives, Solo genuinely unaffected —
-    confirmed structurally, not asserted).
-  - **Post-close-out audit** (after T4, requested explicitly by the user — "계획이 잘 반영됐는지 점검해줘"): found
-    two real gaps by checking files, not re-reading the plan:
-    1. **Docs-only**: 1.4.0's deferred `/start`/`/commit`/`/review`/`/done` edits weren't formally recorded as
-       "still deferred" in 1.5.0's own changelog/plan, even though not un-deferring them was the right call
-       (1.4.0's own trigger is n=2, not met). Fixed by recording the decision explicitly in both
-       `FRAMEWORK-CHANGELOG.md` and the plan.
-    2. **Real gap, found via a live `/team` run** (a fresh agent actually following `.claude/commands/team.md`
-       against a real generated project — not a manual dry run, which is all prior verification had used):
-       `/team`'s `.harness-meta.json` instructions had no worked example, so multi-word role ids and multi-role
-       people were being inferred rather than specified. Fixed with an explicit shape + JSON example (both `team.md`
-       copies); verified across three live runs (one test-setup mistake along the way — reused a pre-fix generated
-       project — caught and corrected, not counted as a real failure).
+- **Team roles & project mode (Harness 1.5.0) — Done and fully committed (2026-07-25).**
+  `.workspace/plans/2026-07-23-team-roles-and-project-mode.md` has the full phase-by-phase record plus a
+  "Post-close-out audit" section. Commits: `2044a28` (T1), `9c1126c` (T2), `8b98bbb` (T3), `c63bfae` (T4),
+  `3a3ae41` (post-close-out audit fix). Summary:
+  - **T1/T2**: Solo/Team config model + setup, the `/team` command.
+  - **T3**: documented the in-role convention; two dry runs found and fixed a real gap (escalation note location
+    was unspecified — made concrete, confirmed).
+  - **T4**: version bump to 1.5.0, changelog, README, Java added to the fresh-gen matrix (structural), and a real
+    upgrade matrix via disposable `git worktree`s (Team data survives, Solo genuinely unaffected).
+  - **Post-close-out audit** (user explicitly asked to check the plan was actually followed): found and fixed two
+    more real gaps — (1) the 1.4.0-deferred `/start`/`/commit`/`/review`/`/done` edits weren't formally recorded
+    as "still deferred" (n=2 not met), now documented as a decision; (2) a **live** `/team` run (the first time
+    the command was actually executed by an agent, not just reviewed or manually simulated) found `/team`'s
+    `.harness-meta.json` step had no worked JSON example — fixed with an explicit shape + example, verified
+    across three live runs.
   - **Java/Maven caveat carries forward**: Java's `validate.sh` (`mvn verify`) has never run end-to-end in this
     environment; generation (Solo/Team, `.harness-meta.json`, package structure) is fully verified, the build isn't.
 - `agentic-eacc-mcp-server` (external project) was upgraded 1.2.0 → 1.3.0 in an earlier session, on its still-unmerged
@@ -54,14 +42,12 @@ Left for the user to review/commit.
 
 ## Next Steps
 
-1. **User's call, first**: review and commit the post-close-out audit fix (`.claude/commands/team.md` + harness-core
-   copy, `FRAMEWORK-CHANGELOG.md`, the plan file) — currently uncommitted.
-2. **User's call, whenever**: push this session's commits to `origin/main` (7 ahead as of the last commit, one more
-   pending once the audit fix above is committed) — explicitly held back per the user's request this session.
-3. **User's call, whenever**: merge/push `chore/harness-upgrade-1.2.0` in the `agentic-eacc-mcp-server` repo.
-4. **User's call, whenever a toolchain/admin environment is available**: validate the Java language pack's
+1. **User's call, whenever**: push this session's 8 commits to `origin/main` — explicitly held back per the
+   user's request this session, not yet done.
+2. **User's call, whenever**: merge/push `chore/harness-upgrade-1.2.0` in the `agentic-eacc-mcp-server` repo.
+3. **User's call, whenever a toolchain/admin environment is available**: validate the Java language pack's
    `validate.sh` (`mvn verify`) — still the one thing about Java never confirmed end-to-end in this environment.
-5. **No plan currently active.** Next implementation work (if any) starts fresh — nothing sequenced or blocked.
+4. **No plan currently active.** Next implementation work (if any) starts fresh — nothing sequenced or blocked.
 
 ## Blockers / Open Questions
 

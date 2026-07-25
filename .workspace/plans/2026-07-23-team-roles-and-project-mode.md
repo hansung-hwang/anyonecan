@@ -1,7 +1,8 @@
 # Team Roles & Project Mode — Harness Framework
 
 - **Date**: 2026-07-23
-- **Status**: Done (all phases T0-T4 complete; T4 not yet committed at time of writing, see `STATUS.md`)
+- **Status**: Done (all phases T0-T4 complete and committed — `2044a28`, `9c1126c`, `8b98bbb`, `c63bfae` — plus a
+  post-close-out audit fix, `3a3ae41`; not yet pushed, see `STATUS.md`)
 - **Target release**: Harness 1.5.0 (provisional; confirm at Gate T0)
 - **Depends on**: `.workspace/plans/2026-07-22-multi-agent-coordination.md` (1.4.0). This feature builds on that
   base: the always-on Handoff & Reporting rules, the file-ownership-matrix concept, and PR-as-integration-gate.
