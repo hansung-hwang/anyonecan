@@ -3,14 +3,18 @@
 > Snapshot of current work. This file is **overwritten** each session close-out —
 > for history, see `worklog.md`. Read this first when starting a new session.
 
-**Last updated**: 2026-07-24
-**Active plan**: — (none; 1.4.0 finished, closed out, and pushed this session)
+**Last updated**: 2026-07-25
+**Active plan**: — (none; 1.4.0 finished, closed out, and pushed; this session closed its one open caveat)
 
 ## Current Goal
 
-No active implementation task. The multi-agent coordination feature (Harness 1.4.0) is complete and closed out —
-see below. Natural next task is the team-roles/project-mode feature (Harness 1.5.0), whose design is fully done
-(Gate T0 closed) but implementation hasn't started; see `.workspace/plans/2026-07-23-team-roles-and-project-mode.md`.
+No active implementation task. The multi-agent coordination feature (Harness 1.4.0) is complete, closed out, and
+now fully validated (see below — its one open caveat is resolved). Natural next task is the team-roles/project-mode
+feature (Harness 1.5.0), whose design is fully done (Gate T0 closed) but implementation hasn't started; see
+`.workspace/plans/2026-07-23-team-roles-and-project-mode.md`.
+
+**Uncommitted right now**: `setup.ps1` and `setup.sh` (bug fix, see below) plus `HARNESS-CHANGELOG.md` — left for
+the user to review/commit, not committed automatically.
 
 ## Progress
 
@@ -31,14 +35,22 @@ see below. Natural next task is the team-roles/project-mode feature (Harness 1.5
   and found one real discrepancy — root's guide copy still had its M1-prototype §13 title while harness-core's
   copy already matched the spec — fixed to match. All 9 commits (`787e7b3`..`671c13b`) are pushed to
   `origin/main`. Full detail in the plan file and `worklog.md`'s two 2026-07-24 rows.
-- **Open caveat (not a defect, an environment limitation) — explicitly deferred to next session by the user**:
-  `pnpm`/`uv`/`mvn` are unavailable in this session's environment (Node 18.17, no admin rights — `corepack enable`
-  failed with `EPERM`), so the full `pnpm validate` (root) and each generated project's `validate.sh` have never
-  actually been run end-to-end for this feature. Every check that *could* run in this environment did
-  (`node scripts/check-sync.mjs` — the exact first step `pnpm validate` invokes — passed after every edit; real
-  `setup.ps1`/`upgrade.ps1` runs were exercised via M4/M5). **Pick this up first next session**: run
-  `pnpm validate` at the repo root and `validate.sh` inside a freshly generated project, in an environment with
-  the three toolchains installed, before treating this release as fully verified.
+- **Former open caveat — now closed (2026-07-25)**: got working toolchains in this same Node-18.17/no-admin
+  environment (pnpm 10 via a user-writable npm `--prefix` install — pnpm 11+ needs Node ≥22.13, and pnpm 8/9
+  choke on this repo's `pnpm-workspace.yaml` `allowBuilds` key; `uv` via `pip install --user`). Ran root
+  `pnpm validate` (typecheck/lint/test all pass) and, for TypeScript and Python, generated a fresh project via
+  `setup.ps1` and ran its `validate.sh` end-to-end (both pass). While doing this, found and fixed two real bugs in
+  `setup.ps1`/`setup.sh`'s dependency-install step — see `HARNESS-CHANGELOG.md`'s 2026-07-25 entry: (1) the
+  success message printed unconditionally regardless of the install command's exit code, and (2) `setup.ps1`
+  additionally promoted routine installer stderr into a terminating exception (via `2>&1` under a global
+  `$ErrorActionPreference = "Stop"`), aborting the install step mid-run even though the child process kept
+  installing in the background. Both fixed and re-verified against fresh TS/Python generations post-fix.
+  **Java/Maven remain unavailable**: no `java`/`javac`/`mvn` on PATH, and `winget` requires interactively accepting
+  Microsoft Store terms before resolving *any* package (blocks non-interactively); did not touch system-level
+  winget source config to force past it. This is the one language pack still never validated end-to-end in this
+  environment — pick up if/when a toolchain-complete (or admin) environment is available.
+- **Uncommitted changes from this session**: `setup.ps1`, `setup.sh` (the bug fix above), `HARNESS-CHANGELOG.md`.
+  Not committed — user's call.
 - **Team roles & project mode (Harness 1.5.0, provisional) — design done, Gate T0 closed, implementation not
   started** (`.workspace/plans/2026-07-23-team-roles-and-project-mode.md`). Setup-time Solo/Team mode (changeable
   anytime via a new `/team` command), a 7-role catalog (Planner, Architect, Backend, Frontend, Data/DBA, Infra, QA)
@@ -53,14 +65,16 @@ see below. Natural next task is the team-roles/project-mode feature (Harness 1.5
 
 ## Next Steps
 
-1. **User's call, whenever convenient**: run full `pnpm validate` + a generated project's `validate.sh` in an
-   environment with `pnpm`/`uv`/`mvn` installed, to close the one open caveat on the 1.4.0 release above.
+1. **User's call, first**: review and commit `setup.ps1`/`setup.sh`/`HARNESS-CHANGELOG.md` (the install-step bug
+   fix from this session) — currently uncommitted.
 2. **Optional next implementation task**: start Phase T1 of the team-roles/project-mode plan (1.5.0) — Gate T0 is
    already closed, so this can begin whenever picked up; not started because it's explicitly sequenced after 1.4.0
    landing, and no further design decisions are needed first.
 3. **User's call, whenever**: merge/push `chore/harness-upgrade-1.2.0` in the `agentic-eacc-mcp-server` repo.
+4. **User's call, whenever a toolchain/admin environment is available**: validate the Java language pack's
+   `validate.sh` (still the one language never run end-to-end — see caveat above).
 
 ## Blockers / Open Questions
 
-- None. Both plans have their design gates fully closed; the only outstanding item is the environment-dependent
-  validation run in Next Steps item 1, which isn't a design or implementation blocker.
+- None. Both plans have their design gates fully closed. Java/Maven validation is deferred to a future
+  toolchain-complete environment, not a design or implementation blocker.
