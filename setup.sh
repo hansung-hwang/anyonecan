@@ -294,14 +294,22 @@ while IFS=$'\t' read -r tool check run retryfix successmsg; do
     fi
     [[ "$HANDLED" -eq 1 ]] && continue
     if command -v "$check" &>/dev/null; then
+        install_ok=1
         if [[ -n "$run" ]]; then
-            if ! eval "$run" &>/dev/null && [[ -n "$retryfix" ]]; then
-                echo -e "${GRAY}  Approving build scripts (esbuild)...${NC}"
-                eval "$retryfix" &>/dev/null || true
-                eval "$run" &>/dev/null || true
+            if ! eval "$run" &>/dev/null; then
+                install_ok=0
+                if [[ -n "$retryfix" ]]; then
+                    echo -e "${GRAY}  Approving build scripts (esbuild)...${NC}"
+                    eval "$retryfix" &>/dev/null || true
+                    eval "$run" &>/dev/null && install_ok=1
+                fi
             fi
         fi
-        ok "$successmsg"
+        if [[ "$install_ok" -eq 1 ]]; then
+            ok "$successmsg"
+        else
+            echo -e "${YELLOW}  ⚠ '$run' failed. Run it manually.${NC}"
+        fi
         HANDLED=1
     fi
 done <<< "$INSTALL_DATA"

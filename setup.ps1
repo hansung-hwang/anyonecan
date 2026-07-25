@@ -238,10 +238,17 @@ $MetaJson = @{
 # ── 6. Install dependencies (candidates come from pack.json's install.candidates) ──
 Write-Step "Installing dependencies..."
 Push-Location $OutputDir
+$PrevErrorActionPreference = $ErrorActionPreference
 try {
+    # Native installers (uv/pnpm/pip) write routine progress to stderr. With the
+    # script-wide EAP of "Stop", merging that into the error stream via 2>&1 turns
+    # a harmless stderr line into a terminating exception that aborts this block
+    # mid-install -- even though the install itself keeps running and succeeds.
+    $ErrorActionPreference = "Continue"
     $handled = $false
     foreach ($candidate in @($SelectedPack.install.candidates)) {
         if (-not (Get-Command $candidate.check -ErrorAction SilentlyContinue)) { continue }
+        $installOk = $true
         if (-not [string]::IsNullOrWhiteSpace($candidate.run)) {
             Invoke-Expression $candidate.run 2>&1 | Out-Null
             if ($LASTEXITCODE -ne 0 -and $candidate.PSObject.Properties.Name -contains "retryFix") {
@@ -249,8 +256,13 @@ try {
                 Invoke-Expression $candidate.retryFix 2>&1 | Out-Null
                 Invoke-Expression $candidate.run 2>&1 | Out-Null
             }
+            $installOk = ($LASTEXITCODE -eq 0)
         }
-        Write-Ok $candidate.successMessage
+        if ($installOk) {
+            Write-Ok $candidate.successMessage
+        } else {
+            Write-Host "  ⚠ '$($candidate.run)' failed (exit $LASTEXITCODE). Run it manually." -ForegroundColor Yellow
+        }
         $handled = $true
         break
     }
@@ -260,6 +272,7 @@ try {
 } catch {
     Write-Host "  ⚠ Dependency installation failed. Please check manually." -ForegroundColor Yellow
 } finally {
+    $ErrorActionPreference = $PrevErrorActionPreference
     Pop-Location
 }
 
