@@ -82,17 +82,16 @@ Three linked plans from 2026-07-25 are being executed in order; each unblocked t
   provably-safe `--dry-run` were run against it this session); nested-repo hygiene (a full git repo sitting inside
   this framework repo's own working tree, untracked) is a structural oddity worth fixing eventually, but is the
   user's call, not made unilaterally.
-- **Harness 1.4.0 and 1.5.0 — both Done, fully validated, and pushed.** `origin/main` was at `28691c5` before this
-  session; plan 1 is committed locally (`a5b022f`) but **not yet pushed**; plan 2's work is implemented but **not
-  yet committed**.
+- **Harness 1.4.0, 1.5.0, and now 1.6.0 — all Done, fully validated, committed, and pushed.** `origin/main` =
+  `a802359` (confirmed synced with local `main`).
 - `agentic-eacc-mcp-server` (external project) was upgraded 1.2.0 → 1.3.0 in an earlier session, on its still-unmerged
   `chore/harness-upgrade-1.2.0` branch (commit `e0d9c70`, on top of `d40aa6c`). Merging/pushing that branch is the
   user's call, not made in any session so far — unrelated to this repo's own work, carried forward as a reminder.
 
 ## Next Steps
 
-1. **Push the three commits** (`a5b022f`, `bf3e429`, `ccaf5fa`) to `origin/main` — user's call, not done
-   automatically. `origin/main` is still at `28691c5`.
+1. ~~Push the commits to `origin/main`~~ — **done, 2026-07-26.** `origin/main` = `a802359` (4 commits:
+   `a5b022f`, `bf3e429`, `ccaf5fa`, `a802359`), local branch confirmed synced.
 2. **Start plan 3** (`apply-harness-1.5.0-to-homographormer.md`, retargeted to 1.6.0) — the real upgrade against
    the real Homographormer project. This is a change to a separate, real, actively-developed project's repo, not
    this framework's own — **requires explicit user confirmation before running for real** (not just `--dry-run`),
