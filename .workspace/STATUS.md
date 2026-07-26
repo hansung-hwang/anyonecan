@@ -14,10 +14,10 @@ Three linked plans from 2026-07-25 are being executed in order; each unblocked t
 1. **`2026-07-25-upgrade-tooling-safety-and-dry-run.md`** — ✅ **Done, committed `a5b022f`.** `--dry-run` on all
    three entry points; the baseline-safety fix (a manifest path added after a project's last upgrade, where the
    project already wrote a file there, now gets `.new` instead of silent overwrite).
-2. **`2026-07-25-file-ownership-rules.md`** — ✅ **Done 2026-07-26, all 6 acceptance criteria verified, not yet
-   committed.** Ships `docs/how-to/file-ownership.md`, an `AGENTS.md` File Ownership section, makes
-   `harness-manifest.json` itself framework-owned (D5), and a 4th `check-sync.mjs` guard keeping the doc and
-   manifest from drifting apart. `HARNESS-VERSION` bumped to **1.6.0**.
+2. **`2026-07-25-file-ownership-rules.md`** — ✅ **Done, committed `bf3e429` + review fixes `ccaf5fa`.** Ships
+   `docs/how-to/file-ownership.md`, an `AGENTS.md` File Ownership section, makes `harness-manifest.json` itself
+   framework-owned (D5), and a 4th `check-sync.mjs` guard keeping the doc and manifest from drifting apart.
+   `HARNESS-VERSION` bumped to **1.6.0**.
 3. **`2026-07-25-apply-harness-1.5.0-to-homographormer.md`** (retargeted to 1.6.0) ← **next session starts here.**
    Upgrade the real Homographormer sub-project. Its riskiest step (manual guide rescue) no longer exists — the
    guide is protected structurally. Plan updated to add a new step: relocate the merged guide to `docs/guides/`,
@@ -27,8 +27,22 @@ Three linked plans from 2026-07-25 are being executed in order; each unblocked t
 ## Progress
 
 - **Plan 1 — committed as `a5b022f`.** `pnpm validate` passed pre-commit. Full record in that plan file.
-- **Plan 2 (file ownership rules) — implementation done, verification done, commit pending this session's next
-  step.**
+- **Plan 2 (file ownership rules) — done, committed `bf3e429`, plus a post-implementation review pass committed
+  as `ccaf5fa`.**
+  - **Post-implementation review (`ccaf5fa`) found 3 real documentation-accuracy defects** — the code and its O4
+    verification held up, but shipped prose did not: (1) `AGENTS.md`'s Framework Versioning kept a hand-written
+    list of framework-owned paths that was stale (missing all `docs/how-to/**` guides — a gap dating to
+    1.2.0/1.4.0 — plus `harness-manifest.json`, which 1.6.0 itself added); fixed by **deleting the enumeration**
+    rather than correcting it, since that was the *third* hand-copy of the list to drift during 1.6.0's own
+    development; (2) the shipped guide claimed its Framework tier is "generated from" the manifest and "not
+    hand-maintained" — both false, it's hand-written and *guarded*, and check-sync catches drift rather than
+    preventing it; (3) the guide claimed the project's manifest copy "never goes stale", overstated for both a
+    pre-1.6.0 project's first upgrade and any project that edits its copy. All three fixed.
+  - **Also verified during that review, all previously unchecked**: newly generated 1.6.0 projects **do** record a
+    baseline for `harness-manifest.json` (so no spurious `.new` on their first upgrade — this was the D5 change's
+    highest-risk unverified assumption, confirmed by forcing the per-file loop on a fresh project); `setup.sh` has
+    **full parity** with `setup.ps1` on all of it and produces a byte-identical baseline hash; `check-sync.mjs` is
+    correctly absent from the manifest, so the guide's "the framework repo's check-sync.mjs" wording is accurate.
   - **O0** (design gate): all decisions confirmed as recommended (`docs/guides/` location, check-sync guard over
     generation, proceed with D5 now, minor version bump to 1.6.0). **Found and fixed a real bug during the gate
     itself**: D1's illustrative tier table was already out of sync with the actual manifest (missing
@@ -77,17 +91,14 @@ Three linked plans from 2026-07-25 are being executed in order; each unblocked t
 
 ## Next Steps
 
-1. **Review and commit plan 2's changes** (`harness-core/docs/how-to/file-ownership.md`, `docs/how-to/file-ownership.md`,
-   both `AGENTS.md` copies, `harness-core/harness-manifest.json`, `scripts/check-sync.mjs`, both `.workspace/plans/README.md`
-   copies, `harness-core/HARNESS-VERSION`, `FRAMEWORK-CHANGELOG.md`, `README.md`, both Homographormer/file-ownership
-   plan files) — nothing from plan 2 has been committed yet.
-2. **Push both commits** (`a5b022f` and plan 2's, once committed) to `origin/main` — user's call, not done
-   automatically.
-3. **Start plan 3** (`apply-harness-1.5.0-to-homographormer.md`, retargeted to 1.6.0) — the real upgrade against
+1. **Push the three commits** (`a5b022f`, `bf3e429`, `ccaf5fa`) to `origin/main` — user's call, not done
+   automatically. `origin/main` is still at `28691c5`.
+2. **Start plan 3** (`apply-harness-1.5.0-to-homographormer.md`, retargeted to 1.6.0) — the real upgrade against
    the real Homographormer project. This is a change to a separate, real, actively-developed project's repo, not
    this framework's own — **requires explicit user confirmation before running for real** (not just `--dry-run`),
    per this session's own risk-matching practice (a `--dry-run` is safe to run freely; a real `upgrade` that writes
-   files to another project's working tree is not).
+   files to another project's working tree is not). Also note that project has **two In-Progress plans of its own**
+   (`repro-hab-baselines`, `final-benchmarking-v2`), so run it at a natural boundary, not mid-benchmark.
 4. Small, out-of-scope follow-up noted during plan 2: fix the `.workspace/plans/README.md` root/harness-core drift
    (root is missing 1.4.0's Owner field + Parallelization block).
 5. **User's call, whenever**: merge/push `chore/harness-upgrade-1.2.0` in the `agentic-eacc-mcp-server` repo.
