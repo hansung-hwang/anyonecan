@@ -20,7 +20,10 @@
 # before this existed) fall back to the old always-overwrite behavior once,
 # with a warning, and gain baseline tracking from that point on.
 
-param([Parameter(Mandatory = $true)][string]$ProjectDir)
+param(
+    [Parameter(Mandatory = $true)][string]$ProjectDir,
+    [switch]$DryRun
+)
 
 $ErrorActionPreference = "Stop"
 
@@ -51,6 +54,17 @@ function Get-NormalizedHash([string]$text) {
     return [System.BitConverter]::ToString($Sha256.ComputeHash($bytes)).Replace("-", "").ToLower()
 }
 
+function Write-ManagedText([string]$Path, [string]$Content) {
+    if ($DryRun) { return }
+    New-Item -ItemType Directory -Force -Path (Split-Path $Path -Parent) | Out-Null
+    [System.IO.File]::WriteAllText($Path, $Content, $utf8NoBom)
+}
+
+function Remove-IfExists([string]$Path) {
+    if ($DryRun) { return }
+    if (Test-Path $Path) { Remove-Item $Path -Force }
+}
+
 if (-not (Test-Path $ManifestPath)) { Write-Error "harness-manifest.json not found: $ManifestPath"; exit 1 }
 
 $MetaPath = Join-Path $ProjectDir ".harness-meta.json"
@@ -68,6 +82,7 @@ Write-Info "Project     : $ProjectDir"
 Write-Info "Old version : $OldVersion"
 Write-Info "New version : $NewVersion"
 Write-Info "Language    : $(if ($Language) { $Language } else { 'unknown (no .harness-meta.json)' })"
+if ($DryRun) { Write-Info "Mode        : DRY RUN -- nothing will be written" }
 Write-Host ""
 
 if (-not $HasMeta) {
@@ -99,11 +114,12 @@ if ($Language) {
 
 $LangPackDir = if ($Language) { Join-Path $ScriptDir "language-packs\$Language" } else { $null }
 
-$Added       = [System.Collections.Generic.List[string]]::new()
-$Updated     = [System.Collections.Generic.List[string]]::new()
-$Overwritten = [System.Collections.Generic.List[string]]::new()
-$MergeNeeded = [System.Collections.Generic.List[string]]::new()
-$Skipped     = [System.Collections.Generic.List[string]]::new()
+$Added        = [System.Collections.Generic.List[string]]::new()
+$Updated      = [System.Collections.Generic.List[string]]::new()
+$Overwritten  = [System.Collections.Generic.List[string]]::new()
+$MergeNeeded  = [System.Collections.Generic.List[string]]::new()
+$NewlyManaged = [System.Collections.Generic.List[string]]::new()
+$Skipped      = [System.Collections.Generic.List[string]]::new()
 $NewBaselines = [ordered]@{}
 
 function Resolve-Source([string]$rel) {
@@ -143,7 +159,6 @@ foreach ($rel in $FilesToUpdate) {
 
     $dst = Join-Path $ProjectDir $rel
     $newDst = "$dst.new"
-    New-Item -ItemType Directory -Force -Path (Split-Path $dst -Parent) | Out-Null
 
     $contentNormalized = $content -replace "`r`n", "`n"
     $newHash = Get-NormalizedHash $content
@@ -158,15 +173,15 @@ foreach ($rel in $FilesToUpdate) {
         # Already matches the incoming template -- nothing to write. Covers
         # "never changed" and "user already hand-merged .new" alike.
         if ($HasMeta) { $NewBaselines[$rel] = $newHash }
-        if (Test-Path $newDst) { Remove-Item $newDst -Force }
+        Remove-IfExists $newDst
         continue
     }
 
     if ($null -eq $existing) {
         # File doesn't exist in the project yet -- just add it.
-        [System.IO.File]::WriteAllText($dst, $content, $utf8NoBom)
+        Write-ManagedText $dst $content
         if ($HasMeta) { $NewBaselines[$rel] = $newHash }
-        if (Test-Path $newDst) { Remove-Item $newDst -Force }
+        Remove-IfExists $newDst
         $Added.Add($rel)
         continue
     }
@@ -177,30 +192,38 @@ foreach ($rel in $FilesToUpdate) {
         $existingHash = Get-NormalizedHash $existing
         if ($existingHash -eq $baselineHash) {
             # Unmodified since it was installed -- safe to take the new template.
-            [System.IO.File]::WriteAllText($dst, $content, $utf8NoBom)
+            Write-ManagedText $dst $content
             $NewBaselines[$rel] = $newHash
-            if (Test-Path $newDst) { Remove-Item $newDst -Force }
+            Remove-IfExists $newDst
             $Updated.Add($rel)
         } else {
             # Project customized this file -- don't clobber it. Baseline stays
             # at the old hash so the next upgrade offers the merge again.
-            [System.IO.File]::WriteAllText($newDst, $content, $utf8NoBom)
+            Write-ManagedText $newDst $content
             $MergeNeeded.Add($rel)
         }
+    } elseif ($HasBaselines) {
+        # A baselines map exists (this project is on 1.3.0+ tracking) but this
+        # path has no entry in it, and the file exists on disk anyway -- the
+        # project authored it itself after its last upgrade. Treat it like a
+        # customized file rather than assume it's safe to overwrite: never
+        # clobber it, offer the template as ".new".
+        Write-ManagedText $newDst $content
+        $NewlyManaged.Add($rel)
     } else {
-        # No baseline recorded for this file (pre-1.3.0 project, or the file
-        # was added to the manifest after this project's baseline snapshot) --
-        # fall back to the old unconditional-overwrite behavior, once.
-        [System.IO.File]::WriteAllText($dst, $content, $utf8NoBom)
+        # No baselines map at all -- a genuine pre-1.3.0 project. Fall back to
+        # the old unconditional-overwrite behavior, once, same as always;
+        # baseline tracking starts from here.
+        Write-ManagedText $dst $content
         if ($HasMeta) { $NewBaselines[$rel] = $newHash }
-        if (Test-Path $newDst) { Remove-Item $newDst -Force }
+        Remove-IfExists $newDst
         $Overwritten.Add($rel)
     }
 }
 
 # HARNESS-VERSION is in frameworkOwned already, but write it explicitly so the
 # marker always advances even if the loop above skipped it for some reason.
-[System.IO.File]::WriteAllText((Join-Path $ProjectDir "HARNESS-VERSION"), "$NewVersion`n", $utf8NoBom)
+Write-ManagedText (Join-Path $ProjectDir "HARNESS-VERSION") "$NewVersion`n"
 
 # Bootstrap files that should exist but never overwrite an existing one.
 $BootstrapList = [System.Collections.Generic.List[string]]::new()
@@ -230,8 +253,7 @@ foreach ($rel in $BootstrapList) {
     } else {
         $content = $content.Replace('{{DATE}}', (Get-Date -Format "yyyy-MM-dd"))
     }
-    New-Item -ItemType Directory -Force -Path (Split-Path $dst -Parent) | Out-Null
-    [System.IO.File]::WriteAllText($dst, $content, $utf8NoBom)
+    Write-ManagedText $dst $content
     if ($HasMeta) { $NewBaselines[$rel] = (Get-NormalizedHash $content) }
     $Bootstrapped.Add($rel)
 }
@@ -260,7 +282,7 @@ if ($HasMeta) {
         $Meta | Add-Member -MemberType NoteProperty -Name "harnessVersion" -Value $NewVersion
     }
     $MetaJson = $Meta | ConvertTo-Json -Depth 6
-    [System.IO.File]::WriteAllText($MetaPath, $MetaJson, $utf8NoBom)
+    Write-ManagedText $MetaPath $MetaJson
 }
 
 $Sha256.Dispose()
@@ -293,11 +315,34 @@ if ($MergeNeeded.Count -gt 0) {
     Write-Warn "Diff each file against its '.new', merge by hand, delete the '.new', then re-run"
     Write-Warn "upgrade — a file matching its template exactly is treated as caught up."
 }
+if ($NewlyManaged.Count -gt 0) {
+    Write-Host ""
+    Write-Warn "$($NewlyManaged.Count) file(s) newly managed by the framework — your existing file was kept, new template written as '<file>.new':"
+    foreach ($f in $NewlyManaged) { Write-Host "  $f  ->  $f.new" -ForegroundColor Yellow }
+    Write-Host ""
+    Write-Warn "This path was added to harness-manifest.json after your project's last upgrade, and you already"
+    Write-Warn "have a file there — the framework can't tell if it's yours or a stale copy, so it was not"
+    Write-Warn "touched. Diff each file against its '.new', merge by hand, delete the '.new', then re-run upgrade."
+}
 if ($Skipped.Count -gt 0) {
     Write-Host ""
     Write-Warn "Skipped ($($Skipped.Count)):"
     foreach ($f in $Skipped) { Write-Host "  $f" -ForegroundColor Yellow }
 }
 
+$NewCommands = @($Added | Where-Object { $_ -like ".claude/commands/*.md" })
+if ($NewCommands.Count -gt 0) {
+    Write-Host ""
+    Write-Warn "$($NewCommands.Count) new slash command(s) added — these are user-owned to register, upgrade"
+    Write-Warn "cannot edit them for you:"
+    foreach ($f in $NewCommands) { Write-Host "  $f" -ForegroundColor Yellow }
+    Write-Warn "  - AGENTS.md -> Workflow Prompts table"
+    Write-Warn "  - CLAUDE.md -> Claude Code Extras command list"
+}
+
 Write-Host ""
-Write-Warn "Changes are NOT committed. Review with 'git diff' inside the project, then commit."
+if ($DryRun) {
+    Write-Warn "DRY RUN -- nothing was written. Re-run without -DryRun to apply."
+} else {
+    Write-Warn "Changes are NOT committed. Review with 'git diff' inside the project, then commit."
+}

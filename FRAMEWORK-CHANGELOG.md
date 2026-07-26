@@ -10,6 +10,42 @@ they're pulling in.
 
 See `AGENTS.md` → "Framework Versioning" for the bump rule.
 
+## Tooling - 2026-07-26 (no `HARNESS-VERSION` bump)
+
+**`upgrade` safety fix + `--dry-run`:**
+
+`upgrade.py`/`upgrade.ps1`/`upgrade.sh` are framework-repo tooling, never copied into a generated project (not in
+`harness-manifest.json`), so per `AGENTS.md` → Framework Versioning this doesn't require a version bump — same
+precedent as 1.4.0's `.harness-meta.json`/`harnessVersion` fix below.
+
+- **`--dry-run` (all three entry points)**: previews exactly what an upgrade would do — same classification logic
+  as a real run, sharing one code path via `write_text()`/`remove_if_exists()` helpers that no-op when dry-run is
+  set — and writes zero bytes. `upgrade.py`/`upgrade.sh` take `--dry-run` (anywhere in argv); `upgrade.ps1` takes
+  `-DryRun`, matching each shell's idiom. Always exits 0 (a preview, not a CI gate).
+- **Closed a real baseline-tracking gap**: a manifest path that's *new* since a project's last upgrade, where the
+  project has already written its own file at that path, was being **silently overwritten** — the code couldn't
+  distinguish "the project customized a known file" from "this path didn't exist in the manifest yet, so there's
+  no baseline to compare against." Found while planning the Homographormer 1.3.0→1.5.0 upgrade: its hand-written
+  22 KB Korean multi-agent guide sat exactly at a path (`docs/how-to/multi-agent-collaboration.md`) the framework
+  claimed after that project's last upgrade. Fixed by treating "baselines map exists, but this path has no entry,
+  and the file exists on disk anyway" as project authorship — same `<file>.new` treatment as an ordinary
+  customized file, reported in its own "newly managed by the framework" bucket so the reason is clear. Genuine
+  pre-1.3.0 projects (no `baselines` map at all) are unaffected — they still take the old unconditional-overwrite
+  path for one run, with the existing warning.
+- New post-upgrade guidance: when new `.claude/commands/*.md` files are added, upgrade now prints a reminder that
+  `AGENTS.md`'s Workflow Prompts table and `CLAUDE.md`'s command list are user-owned and must be hand-registered,
+  naming the commands added.
+- `harness-manifest.json`'s `_baselinesComment` rewritten to document all three per-file cases (unmodified /
+  customized / newly-managed-with-no-entry) instead of the old two-case description.
+- Verified with real disposable projects (`git worktree` checkouts at the 1.3.0 and pre-versioning commits,
+  generated via their own `setup.ps1`, deleted after), not simulation: reproduced the Homographormer hazard
+  synthetically (original file confirmed byte-identical after upgrade, `.new` written); regression-checked both a
+  genuine pre-versioning project and an ordinary customized-file case still behave exactly as before;
+  full-tree-hash-verified `--dry-run` writes zero bytes and its output matches the following real run; cross-checked
+  `upgrade.py`/`upgrade.ps1`/`upgrade.sh` agree; re-ran `--dry-run` against the real on-disk Homographormer copy
+  and confirmed the guide now reports as `.new`, not overwritten.
+- Full design record: `.workspace/plans/2026-07-25-upgrade-tooling-safety-and-dry-run.md`.
+
 ## [1.5.0] - 2026-07-25
 
 **Team roles & project mode (Solo/Team):**

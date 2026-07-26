@@ -2,18 +2,32 @@
 # upgrade.sh — Apply the latest harness-core / language-pack framework files
 # to an already-generated project (Mac/Linux).
 #
-# Usage: ./upgrade.sh /path/to/my-app
+# Usage: ./upgrade.sh /path/to/my-app [--dry-run]
 set -euo pipefail
 
 RED='\033[0;31m'; CYAN='\033[0;36m'; NC='\033[0m'
 
 if [[ $# -lt 1 ]]; then
-    echo -e "${RED}Usage: ./upgrade.sh /path/to/project${NC}" >&2
+    echo -e "${RED}Usage: ./upgrade.sh /path/to/project [--dry-run]${NC}" >&2
     exit 1
 fi
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROJECT_DIR="$1"
+
+PROJECT_DIR=""
+DRY_RUN_FLAG=""
+for arg in "$@"; do
+    if [[ "$arg" == "--dry-run" ]]; then
+        DRY_RUN_FLAG="--dry-run"
+    else
+        PROJECT_DIR="$arg"
+    fi
+done
+
+if [[ -z "$PROJECT_DIR" ]]; then
+    echo -e "${RED}Usage: ./upgrade.sh /path/to/project [--dry-run]${NC}" >&2
+    exit 1
+fi
 
 if [[ ! -d "$PROJECT_DIR" ]]; then
     echo -e "${RED}Project directory not found: $PROJECT_DIR${NC}" >&2
@@ -30,4 +44,4 @@ echo -e "${CYAN}  Harness Upgrade${NC}"
 echo -e "${CYAN}================================================${NC}"
 echo ""
 
-python3 "$SCRIPT_DIR/upgrade.py" "$PROJECT_DIR" "$SCRIPT_DIR"
+python3 "$SCRIPT_DIR/upgrade.py" "$PROJECT_DIR" "$SCRIPT_DIR" $DRY_RUN_FLAG

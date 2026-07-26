@@ -31,9 +31,28 @@ def normalized_hash(text: str) -> str:
 
 
 def main() -> int:
-    project_dir = os.path.abspath(sys.argv[1])
-    script_dir = os.path.abspath(sys.argv[2])
+    argv = sys.argv[1:]
+    dry_run = "--dry-run" in argv
+    positional = [a for a in argv if a != "--dry-run"]
+    if len(positional) < 2:
+        print("Usage: upgrade.py <project_dir> <script_dir> [--dry-run]", file=sys.stderr)
+        return 1
+    project_dir = os.path.abspath(positional[0])
+    script_dir = os.path.abspath(positional[1])
     harness_core = os.path.join(script_dir, "harness-core")
+
+    def write_text(path: str, content: str) -> None:
+        if dry_run:
+            return
+        os.makedirs(os.path.dirname(path), exist_ok=True)
+        with open(path, "w", encoding="utf-8", newline="\n") as f:
+            f.write(content)
+
+    def remove_if_exists(path: str) -> None:
+        if dry_run:
+            return
+        if os.path.isfile(path):
+            os.remove(path)
     manifest_path = os.path.join(harness_core, "harness-manifest.json")
 
     with open(manifest_path, "r", encoding="utf-8") as f:
@@ -61,6 +80,8 @@ def main() -> int:
     print(f"Old version : {old_version}")
     print(f"New version : {new_version}")
     print(f"Language    : {language or 'unknown (no .harness-meta.json)'}")
+    if dry_run:
+        print("Mode        : DRY RUN -- nothing will be written")
     print()
 
     if not has_meta:
@@ -120,6 +141,7 @@ def main() -> int:
     updated: list[str] = []
     overwritten: list[str] = []
     merge_needed: list[str] = []
+    newly_managed: list[str] = []
     skipped: list[str] = []
 
     for rel in files_to_update:
@@ -136,7 +158,6 @@ def main() -> int:
 
         dst = os.path.join(project_dir, rel)
         new_dst = dst + ".new"
-        os.makedirs(os.path.dirname(dst), exist_ok=True)
 
         content_normalized = content.replace("\r\n", "\n")
         new_hash = normalized_hash(content)
@@ -155,17 +176,14 @@ def main() -> int:
             # Covers "never changed" and "user already hand-merged .new" alike.
             if has_meta:
                 new_baselines[rel] = new_hash
-            if os.path.isfile(new_dst):
-                os.remove(new_dst)
+            remove_if_exists(new_dst)
             continue
 
         if existing is None:
-            with open(dst, "w", encoding="utf-8", newline="\n") as f:
-                f.write(content)
+            write_text(dst, content)
             if has_meta:
                 new_baselines[rel] = new_hash
-            if os.path.isfile(new_dst):
-                os.remove(new_dst)
+            remove_if_exists(new_dst)
             added.append(rel)
             continue
 
@@ -175,34 +193,36 @@ def main() -> int:
             existing_hash = normalized_hash(existing)
             if existing_hash == baseline_hash:
                 # Unmodified since it was installed -- safe to take the new template.
-                with open(dst, "w", encoding="utf-8", newline="\n") as f:
-                    f.write(content)
+                write_text(dst, content)
                 new_baselines[rel] = new_hash
-                if os.path.isfile(new_dst):
-                    os.remove(new_dst)
+                remove_if_exists(new_dst)
                 updated.append(rel)
             else:
                 # Project customized this file -- don't clobber it. Baseline
                 # stays at the old hash so the next upgrade offers the merge again.
-                with open(new_dst, "w", encoding="utf-8", newline="\n") as f:
-                    f.write(content)
+                write_text(new_dst, content)
                 merge_needed.append(rel)
+        elif has_baselines:
+            # A baselines map exists (this project is on 1.3.0+ tracking) but
+            # this path has no entry in it, and the file exists on disk
+            # anyway -- the project authored it itself after its last
+            # upgrade. The framework has no baseline to compare against, so
+            # treat it like a customized file rather than assume it's safe to
+            # overwrite: never clobber it, offer the template as ".new".
+            write_text(new_dst, content)
+            newly_managed.append(rel)
         else:
-            # No baseline recorded for this file (pre-1.3.0 project, or the
-            # file was added to the manifest after this project's baseline
-            # snapshot) -- fall back to the old unconditional-overwrite
-            # behavior, once.
-            with open(dst, "w", encoding="utf-8", newline="\n") as f:
-                f.write(content)
+            # No baselines map at all -- a genuine pre-1.3.0 project. Fall
+            # back to the old unconditional-overwrite behavior, once, same as
+            # always; baseline tracking starts from here.
+            write_text(dst, content)
             if has_meta:
                 new_baselines[rel] = new_hash
-            if os.path.isfile(new_dst):
-                os.remove(new_dst)
+            remove_if_exists(new_dst)
             overwritten.append(rel)
 
     # Always advance the version marker, even if the loop above skipped it.
-    with open(old_version_path, "w", encoding="utf-8", newline="\n") as f:
-        f.write(new_version + "\n")
+    write_text(old_version_path, new_version + "\n")
 
     # Bootstrap files that should exist but never overwrite an existing one.
     bootstrap_list = list(manifest.get("bootstrapIfMissing", []))
@@ -234,9 +254,7 @@ def main() -> int:
                     content = content.replace("{{" + key + "}}", value)
         else:
             content = content.replace("{{DATE}}", today)
-        os.makedirs(os.path.dirname(dst), exist_ok=True)
-        with open(dst, "w", encoding="utf-8", newline="\n") as f:
-            f.write(content)
+        write_text(dst, content)
         if has_meta:
             new_baselines[rel] = normalized_hash(content)
         bootstrapped.append(rel)
@@ -252,9 +270,7 @@ def main() -> int:
         # metadata silently reports the pre-upgrade version even though the
         # file on disk (and every framework-owned file) has moved on.
         meta["harnessVersion"] = new_version
-        with open(meta_path, "w", encoding="utf-8", newline="\n") as f:
-            json.dump(meta, f, indent=2, ensure_ascii=False)
-            f.write("\n")
+        write_text(meta_path, json.dumps(meta, indent=2, ensure_ascii=False) + "\n")
 
     print()
     if added:
@@ -283,14 +299,36 @@ def main() -> int:
         print()
         print("! Diff each file against its '.new', merge by hand, delete the '.new', then re-run")
         print("! upgrade -- a file matching its template exactly is treated as caught up.")
+    if newly_managed:
+        print()
+        print(f"! {len(newly_managed)} file(s) newly managed by the framework -- your existing file was kept, new template written as '<file>.new':")
+        for f_ in newly_managed:
+            print(f"  {f_}  ->  {f_}.new")
+        print()
+        print("! This path was added to harness-manifest.json after your project's last upgrade, and you already")
+        print("! have a file there -- the framework can't tell if it's yours or a stale copy, so it was not")
+        print("! touched. Diff each file against its '.new', merge by hand, delete the '.new', then re-run upgrade.")
     if skipped:
         print()
         print(f"! Skipped ({len(skipped)}):")
         for f_ in skipped:
             print(f"  {f_}")
 
+    new_commands = [f_ for f_ in added if f_.startswith(".claude/commands/") and f_.endswith(".md")]
+    if new_commands:
+        print()
+        print(f"! {len(new_commands)} new slash command(s) added -- these are user-owned to register, upgrade")
+        print("! cannot edit them for you:")
+        for f_ in new_commands:
+            print(f"  {f_}")
+        print("!   - AGENTS.md -> Workflow Prompts table")
+        print("!   - CLAUDE.md -> Claude Code Extras command list")
+
     print()
-    print("! Changes are NOT committed. Review with 'git diff' inside the project, then commit.")
+    if dry_run:
+        print("! DRY RUN -- nothing was written. Re-run without --dry-run to apply.")
+    else:
+        print("! Changes are NOT committed. Review with 'git diff' inside the project, then commit.")
     return 0
 
 

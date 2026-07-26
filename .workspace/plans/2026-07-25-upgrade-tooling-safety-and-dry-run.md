@@ -1,8 +1,8 @@
 # Upgrade Tooling — Safety Fix + Dry Run
 
 - **Date**: 2026-07-25
-- **Status**: In Progress (design; no implementation started)
-- **Target release**: Harness 1.6.0 candidate — **but see Gate U0: a version bump may not be appropriate**
+- **Status**: Done (all phases U0-U5 complete and verified 2026-07-26; not yet committed/pushed)
+- **Target release**: Tooling fix — no `HARNESS-VERSION` bump (confirmed at Gate U0; changelog-only)
 - **Motivation**: found while planning the Homographormer 1.3.0 → 1.5.0 upgrade
   (`.workspace/plans/2026-07-25-apply-harness-1.5.0-to-homographormer.md`). That plan needs a manual
   "rescue the file upgrade is about to destroy" step. This plan removes the need for that step.
@@ -70,76 +70,134 @@ current" and advance a version marker with **zero** shipped file changes — pur
 
 ## Phases and Gates
 
-### Phase U0 — Design gate (decide before writing code)
+### Phase U0 — Design gate (decide before writing code) — ✅ Closed 2026-07-26
 
-- [ ] Confirm D3: bump `HARNESS-VERSION` or changelog-only? (recommendation: changelog-only)
-- [ ] Confirm the D1 two-case split is right, especially that pre-1.3.0 projects keep the overwrite path.
-- [ ] Confirm flag naming: `--dry-run` (py/sh) and `-DryRun` (PowerShell switch), matching each shell's idiom.
-- [ ] Decide whether `--dry-run` should exit non-zero when merges are pending (useful for CI) or always 0
-      (recommendation: always 0 — this is a preview, not a gate).
+- [x] Confirm D3: bump `HARNESS-VERSION` or changelog-only? **Decided: changelog-only.** Plan retitled from
+      "1.6.0 candidate" to "tooling fix" above.
+- [x] Confirm the D1 two-case split is right, especially that pre-1.3.0 projects keep the overwrite path.
+      **Decided: confirmed as written** — pre-1.3.0 (no `baselines` map) keeps overwriting; only "has baselines
+      map, path missing, file exists on disk" gets `.new` treatment.
+- [x] Confirm flag naming: `--dry-run` (py/sh) and `-DryRun` (PowerShell switch), matching each shell's idiom.
+      **Decided: confirmed as written.**
+- [x] Decide whether `--dry-run` should exit non-zero when merges are pending (useful for CI) or always 0.
+      **Decided: always 0** — preview, not a gate.
 
-### Phase U1 — `--dry-run` (do this first: it makes U2 testable)
+### Phase U1 — `--dry-run` (do this first: it makes U2 testable) — ✅ Implemented 2026-07-26 (not yet U4-verified)
 
-- [ ] `upgrade.py`: add a `dry_run` flag parsed from `sys.argv`; introduce `write_text()`/`remove_if_exists()`
-      helpers; route **all** write sites through them — the per-file loop (lines ~139-201), the `HARNESS-VERSION`
-      write (~204), the bootstrap-file writes (~237-238), and the `.harness-meta.json` write (~255).
-- [ ] `upgrade.ps1`: same, as a `[switch]$DryRun` param — it is a 303-line parallel implementation of the same
-      logic, so every change here must mirror U1's Python change exactly.
-- [ ] `upgrade.sh`: accept and forward the flag (currently hardcodes exactly two positional args); update its
-      usage string.
-- [ ] Print a clear `DRY RUN` banner and suppress the "Changes are NOT committed" footer (nothing changed).
+- [x] `upgrade.py`: added a `dry_run` flag parsed from `sys.argv` (accepts `--dry-run` anywhere in argv);
+      introduced `write_text()`/`remove_if_exists()` helpers; routed **all** write sites through them — the
+      per-file loop, the `HARNESS-VERSION` write, the bootstrap-file writes, and the `.harness-meta.json` write
+      (now built as a string via `json.dumps` so it can go through `write_text()` too). `os.makedirs` is now
+      inside `write_text()` so dry-run also creates zero directories.
+- [x] `upgrade.ps1`: mirrored exactly via `[switch]$DryRun` param and `Write-ManagedText`/`Remove-IfExists`
+      helper functions (PowerShell-idiomatic names, same no-op-when-dry-run semantics).
+- [x] `upgrade.sh`: accepts `--dry-run` anywhere in its args (loop over `"$@"`, first non-flag arg is
+      `PROJECT_DIR`), forwards it to `upgrade.py`; usage string updated to `[--dry-run]`.
+- [x] `DRY RUN` banner: prints `Mode : DRY RUN -- nothing will be written` up top when active, and a
+      `DRY RUN -- nothing was written` closing line replacing the "Changes are NOT committed" footer.
+- [ ] **Not yet done**: full-tree hash / `git status` verification that dry-run truly writes zero bytes — that's
+      U4's job, not this phase's syntax-level implementation.
 
-### Phase U2 — Baseline safety fix
+### Phase U2 — Baseline safety fix — ✅ Implemented + smoke-tested 2026-07-26
 
-- [ ] `upgrade.py`: split the `else` at line ~190 per D1 — when `has_baselines` is true but the path has no
-      baseline entry **and the file exists**, write `<file>.new` and add to `merge_needed` instead of overwriting.
-- [ ] `upgrade.ps1`: mirror exactly (line ~190).
-- [ ] Report these distinctly from ordinary customized-file merges — the user needs to know *why* a `.new` appeared
-      for a file they never knowingly customized (e.g. "framework newly manages this path; your version was kept").
-- [ ] Update `harness-core/harness-manifest.json`'s `_baselinesComment` — it currently documents the old
-      "overwrite-everything for one run" semantics and would otherwise become a stale cross-reference
-      (AGENTS.md: "when editing a durable doc, update every other section referencing the changed fact").
+- [x] `upgrade.py`: split the `else` into `elif has_baselines:` (new `.new`-writing branch) vs `else:` (old
+      overwrite path) — when `has_baselines` is true but the path has no baseline entry **and the file exists**
+      (guaranteed at that point, since the `existing is None` case already `continue`d earlier), writes
+      `<file>.new` into a new `newly_managed` list instead of overwriting.
+- [x] `upgrade.ps1`: mirrored exactly (`elseif ($HasBaselines)` vs `else`), new `$NewlyManaged` list.
+- [x] Reported distinctly from ordinary customized-file merges, in both scripts — separate "N file(s) newly
+      managed by the framework" block explaining *why* (path added to manifest after last upgrade, framework
+      can't tell if it's the project's own file, so it's treated like a customization).
+- [x] Updated `harness-core/harness-manifest.json`'s `_baselinesComment` to document all three cases (unmodified /
+      customized / newly-managed-with-no-entry) instead of the old two-case description.
+- [x] **Smoke-tested** (not yet the full U4 matrix): reproduced the exact Homographormer shape — a hand-authored
+      file at a manifest-known path with no baseline entry — confirmed original byte-identical, `.new` written,
+      both dry-run and real-run agree. Also regression-checked a genuine pre-1.3.0 project (no `baselines` key at
+      all) with a pre-existing file still takes the overwrite path unchanged.
 
-### Phase U3 — Post-upgrade guidance for user-owned files
+### Phase U3 — Post-upgrade guidance for user-owned files — ✅ Implemented + smoke-tested 2026-07-26
 
-- [ ] When `added` contains any `.claude/commands/*.md`, print a reminder that `AGENTS.md`'s Workflow Prompts table
-      and `CLAUDE.md`'s command list are **user-owned** — upgrade cannot edit them — and name the commands added.
-      (Directly from the Homographormer plan's Phase H5, which exists only because nothing tells the user this.)
+- [x] When `added` contains any `.claude/commands/*.md`, both `upgrade.py` and `upgrade.ps1` now print a reminder
+      that `AGENTS.md`'s Workflow Prompts table and `CLAUDE.md`'s Claude Code Extras command list are
+      **user-owned** — upgrade cannot edit them — and name the commands added. Smoke-tested on both entry points
+      against a fresh pre-1.0 project (11 new commands correctly listed).
 
-### Phase U4 — Verification matrix (real projects, not simulation)
+### Phase U4 — Verification matrix (real projects, not simulation) — ✅ Passed 2026-07-26
 
-Follow the 1.4.0/M5 and 1.5.0/T4 technique: disposable projects from `git worktree` checkouts, deleted afterward.
+Followed the 1.4.0/M5 and 1.5.0/T4 technique: disposable projects from `git worktree` checkouts (`af1698f`, the
+1.3.0 commit; `f34eb77`, the pre-versioning commit — both predate `.harness-meta.json`'s `baselines`/existence
+respectively), generated via each worktree's own `setup.ps1` **non-interactively** (piped stdin works when
+`setup.ps1` is invoked directly via `powershell.exe -File ... < answers.txt`, bypassing this session's
+`-NonInteractive` wrapper on the PowerShell tool itself — `Read-Host` errors under that wrapper even with piped
+stdin, so the workaround was calling `powershell.exe` from the Bash tool instead). Both worktrees removed, both
+scratch project dirs deleted, after verification.
 
-- [ ] **Reproduce the Homographormer hazard synthetically**: generate a project at a commit predating a manifest
-      path, hand-author a file at that path, upgrade with the fix → assert `.new` written, original **byte-identical**.
-- [ ] **Regression: genuine pre-1.3.0 project** (no `baselines` map) still takes the overwrite path with its
-      startup warning — the fix must not turn a legitimate migration into a `.new` storm.
-- [ ] **Regression: normal customized file** still produces `.new` exactly as before.
-- [ ] **`--dry-run` writes nothing**: hash the whole project tree before/after; `git status` unchanged.
-- [ ] **`--dry-run` output == real-run output** for the same starting state (same classifications, same counts).
-- [ ] Run the matrix on **both** implementations — `upgrade.ps1` and `upgrade.sh`→`upgrade.py`. Both were
-      exercised this session, so both paths are known-runnable here.
-- [ ] Re-run the **real Homographormer dry run** with `--dry-run` against the actual project (safe by definition
-      now) and confirm the guide is reported as `.new`, not overwritten.
+- [x] **Reproduced the Homographormer hazard synthetically**: generated a real 1.3.0 TypeScript project from the
+      `af1698f` worktree (confirmed: its manifest has zero `multi-agent-collaboration.md` references), hand-authored
+      a file at `docs/how-to/multi-agent-collaboration.md`, upgraded with the current (fixed) `upgrade.ps1` →
+      reported as "1 file(s) newly managed", `.new` written, and the hand-authored original confirmed
+      **byte-identical** by direct `cat` after upgrade. No baseline was recorded for it (confirmed via grep on
+      `.harness-meta.json`), so a later upgrade will re-offer the merge until resolved — correct per D1.
+- [x] **Regression: genuine pre-versioning project** (generated from `f34eb77`, confirmed **no** `.harness-meta.json`
+      on disk at all — predates even P2) with a hand-customized `.editorconfig`: upgraded via current `upgrade.ps1`
+      → `.editorconfig` landed in the **overwritten** bucket (not newly-managed), matching old behavior exactly,
+      with the expected "predates harness versioning" warning.
+- [x] **Regression: normal customized file** (real baseline entry from a prior real upgrade, not synthetic):
+      hand-customized `.editorconfig` on the already-upgraded 1.3.0→1.5.0 test project (forced the per-file loop to
+      re-run by temporarily rolling its own `HARNESS-VERSION` back to 1.4.0, same technique as the 1.4.0/M5
+      precedent) → landed in the **merge_needed** bucket ("customized locally"), reported separately and correctly
+      from the still-pending `newly_managed` guide file in the same run.
+- [x] **`--dry-run` writes nothing**: full-tree SHA-256 hash (44 files) + `git status --porcelain` captured before
+      and after a `--dry-run` run that classified 2 added / 2 updated / 1 customized / 1 newly-managed — both
+      diffs **empty** (byte-for-byte identical, zero new untracked files).
+- [x] **`--dry-run` output == real-run output**: same project, same starting state — identical classification and
+      file lists between the `-DryRun` run and the immediately following real run; the real run then verified to
+      actually apply (hand-authored file still byte-identical after; `.new` present; no baseline recorded for it).
+- [x] Ran the matrix on **both** implementations: `upgrade.ps1` (primary, all scenarios above) cross-checked with
+      `upgrade.py` directly (identical classification on the same post-upgrade project state) and `upgrade.sh`
+      (via Git Bash + real `python3`, confirmed `--dry-run` forwards correctly both as a trailing and a leading
+      argument).
+- [x] Re-ran the **real Homographormer dry run** against the actual on-disk copy at
+      `C:\anyonecan_harness\anyonecan\Homographormer` (safe by construction now — dry-run is proven zero-write
+      above) — confirmed `docs/how-to/multi-agent-collaboration.md` reported as "1 file(s) newly managed" /
+      `.new`, **not** silently overwritten; the two previously-known `.new` merges
+      (`scripts/lint-format-hook.sh`, `tests/arch/test_dependencies.py`) landed correctly in the ordinary
+      `merge_needed` bucket; `git status --porcelain` inside that copy stayed empty after the dry-run. **Caveat
+      carried forward, not resolved here**: whether this on-disk copy is *the* real Homographormer project or a
+      stray leftover from a prior session's scratch analysis is still an open question flagged to the user at
+      session start — dry-run's provable zero-write safety made running it low-risk either way, but the copy's
+      identity itself is unresolved.
 
-### Phase U5 — Docs
+### Phase U5 — Docs — ✅ Done 2026-07-26
 
-- [ ] `FRAMEWORK-CHANGELOG.md` entry (heading per U0's decision).
-- [ ] `README.md` → Framework Versioning & Upgrades: document `--dry-run` as the recommended first step before any
-      upgrade.
-- [ ] Update `.workspace/plans/2026-07-25-apply-harness-1.5.0-to-homographormer.md`: **delete Phase H2** (the
-      manual rescue) and replace it with "run `--dry-run` first; the guide now arrives as `.new`". Also drop the
-      "Framework-side follow-up" note at its end — this plan supersedes it.
+- [x] `FRAMEWORK-CHANGELOG.md`: added a `## Tooling - 2026-07-26 (no HARNESS-VERSION bump)` entry (before the
+      `[1.5.0]` entry), summarizing `--dry-run`, the D1 baseline-safety fix, U3's command-registration reminder,
+      and the `_baselinesComment` update, plus the real-project verification technique used.
+- [x] `README.md` → Framework Versioning & Upgrades: added a `--dry-run`/`-DryRun` example block right after the
+      upgrade command, and extended the "Customized a framework-owned file?" paragraph to cover the new
+      "newly managed" case and the U3 command-registration reminder.
+- [x] Updated `.workspace/plans/2026-07-25-apply-harness-1.5.0-to-homographormer.md`: deleted the old Phase H2
+      manual rescue entirely; merged its content-porting purpose into the renumbered Phase H2 (was H3), now sourced
+      from the `.new` file instead of a manually-saved copy; Phase H1 gained an explicit `--dry-run`-first step;
+      re-ran both dry-run states (pre-fix, from the original session record, and post-fix, live against the real
+      on-disk project) and recorded both in the "Evidence" section; dropped the "Framework-side follow-up" section
+      since this plan now supersedes it; fixed every other cross-reference (`H3`→`H2` in two places, Acceptance
+      Criterion 7, the Risks table) so the doc is internally consistent under the new phase numbering.
 
 ## Acceptance Criteria
 
-1. `upgrade --dry-run` (all three entry points) writes **zero** bytes and reports the same classification the real
-   run would produce.
-2. A file the project authored at a path the framework later claimed is **never overwritten** — it gets `.new`.
-3. A genuine pre-1.3.0 project still upgrades via the overwrite path, unchanged.
-4. The user is told, at the end of an upgrade, which new commands need hand-registering and where.
-5. `harness-manifest.json`'s `_baselinesComment` matches actual behavior.
-6. The Homographormer plan no longer needs a manual rescue step.
+1. ✅ `upgrade --dry-run` (all three entry points) writes **zero** bytes and reports the same classification the
+   real run would produce. *(U1 + U4: full-tree hash + `git status` proven empty diff; `.py`/`.ps1`/`.sh` cross-checked.)*
+2. ✅ A file the project authored at a path the framework later claimed is **never overwritten** — it gets `.new`.
+   *(U2 + U4: reproduced synthetically and confirmed byte-identical; confirmed live against the real Homographormer copy.)*
+3. ✅ A genuine pre-1.3.0 project still upgrades via the overwrite path, unchanged. *(U4: verified on a real
+   pre-versioning project generated from the `f34eb77` worktree.)*
+4. ✅ The user is told, at the end of an upgrade, which new commands need hand-registering and where. *(U3, smoke-tested on both `.py` and `.ps1`.)*
+5. ✅ `harness-manifest.json`'s `_baselinesComment` matches actual behavior. *(U2.)*
+6. ✅ The Homographormer plan no longer needs a manual rescue step. *(U5: old Phase H2 deleted from that plan.)*
+
+**All six acceptance criteria met, 2026-07-26. Plan ready to close out** (pending user review / commit — nothing
+pushed yet).
 
 ## Risks
 

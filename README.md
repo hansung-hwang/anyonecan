@@ -241,6 +241,18 @@ existing projects don't have to stay frozen at their generation date:
 ./upgrade.sh /path/to/my-service
 ```
 
+**Preview first with `--dry-run`** (`-DryRun` on Windows) — it runs the exact same classification logic and
+writes **zero** bytes, so you can see what an upgrade would add, update, or flag for manual merge before
+committing to it:
+
+```bash
+# Windows
+.\upgrade.ps1 -ProjectDir "C:\projects\my-service" -DryRun
+
+# Mac / Linux
+./upgrade.sh /path/to/my-service --dry-run
+```
+
 Upgrade only touches files listed as **framework-owned** in
 `harness-core/harness-manifest.json` — workflow commands, hooks, arch
 tests, `scripts/validate.sh`, CI config. It never touches `AGENTS.md`,
@@ -262,7 +274,15 @@ upgrade run recognizes the file as caught up (advances its baseline,
 cleans up automatically) — no separate "mark as resolved" step. Projects
 generated before this existed fall back to the old overwrite-everything
 behavior for one upgrade, with a warning, and gain this protection from
-that point on.
+that point on. The same `<file>.new` protection also applies if the
+framework claims a path *after* your last upgrade and you already have a
+file there — upgrade can't tell whether it's yours, so it's never
+silently overwritten, and is reported separately as "newly managed by
+the framework" so you know why.
+
+If upgrade adds a new `.claude/commands/*.md` file, it also reminds you
+that `AGENTS.md`'s Workflow Prompts table and `CLAUDE.md`'s command list
+are yours to update — upgrade can't edit user-owned files for you.
 
 Any change to a framework-owned file requires bumping
 `harness-core/HARNESS-VERSION` and logging it in `FRAMEWORK-CHANGELOG.md`
