@@ -102,21 +102,24 @@ No active plan for the next session — start fresh, or pick up the small follow
   - **All 7 acceptance criteria met** — full detail in the plan file.
 - **Harness 1.4.0, 1.5.0, and now 1.6.0 — all Done, fully validated, committed, and pushed.** `origin/main` =
   `a802359` (confirmed synced with local `main`).
-- `agentic-eacc-mcp-server` (external project) was upgraded 1.2.0 → 1.3.0 in an earlier session, on its still-unmerged
-  `chore/harness-upgrade-1.2.0` branch (commit `e0d9c70`, on top of `d40aa6c`). Merging/pushing that branch is the
-  user's call, not made in any session so far — unrelated to this repo's own work, carried forward as a reminder.
+- `agentic-eacc-mcp-server` (external project) — **not present on this machine.** The user confirmed 2026-07-26
+  that this project was worked on on a different laptop; they don't know why this repo's `STATUS.md` had been
+  carrying a note about its `chore/harness-upgrade-1.2.0` branch. Searched this machine's filesystem — no such
+  project directory exists here. **Removed from this repo's tracking**; nothing to act on from this machine.
 
 ## Next Steps
 
-1. **User's call**: whether/when to merge Homographormer's `chore/harness-upgrade-1.6.0` branch into its `main`.
-   Not this session's decision — the branch is ready, validated, and waiting.
+1. **Decided 2026-07-26**: Homographormer's `chore/harness-upgrade-1.6.0` branch will **not** be merged into its
+   `main` — it's a separate project, merge decisions there are entirely out of this repo's scope. Branch stays as
+   a validated, ready artifact in that repo; no further action needed from here.
 2. Small, out-of-scope follow-up noted during plan 2: fix the `.workspace/plans/README.md` root/harness-core drift
    (root is missing 1.4.0's Owner field + Parallelization block).
-3. **Possible future cleanup, not urgent**: `C:\anyonecan_harness\anyonecan\Homographormer\` sitting nested inside
-   this framework repo's own working tree (untracked, own separate `.git`) is a structural oddity worth relocating
-   to a sibling directory someday — the user's call, not done unilaterally.
-4. **User's call, whenever**: merge/push `chore/harness-upgrade-1.2.0` in the `agentic-eacc-mcp-server` repo.
-5. **User's call, whenever a toolchain/admin environment is available**: validate the Java language pack's
+3. **Possible future cleanup, not urgent, user's call**: `C:\anyonecan_harness\anyonecan\Homographormer\` sits
+   nested inside this framework repo's own working tree (untracked, own separate `.git`) — a full separate project
+   physically living inside `anyonecan`'s folder rather than as a sibling directory. Not a git-history issue (its
+   history is self-contained), purely a filesystem-organization one; a plain folder move to a sibling location
+   would resolve it. Not done — the user's call, and not urgent.
+4. **User's call, whenever a toolchain/admin environment is available**: validate the Java language pack's
    `validate.sh` (`mvn verify`) — still unconfirmed end-to-end in this environment (`winget` blocks on an
    interactive Microsoft Store ToS prompt; no JDK/Maven present).
 
