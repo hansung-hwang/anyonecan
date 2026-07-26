@@ -1,26 +1,29 @@
-# Apply Harness 1.5.0 to Homographormer
+# Apply Harness 1.6.0 to Homographormer
 
-- **Date**: 2026-07-25
+- **Date**: 2026-07-25 (retargeted to 1.6.0 on 2026-07-26 — see sequencing note)
 - **Status**: In Progress (plan only; no changes made to Homographormer yet)
 - **Target project**: `C:\anyonecan_harness\anyonecan\Homographormer` — its own git repo (HEAD `e719135`, clean),
   Python pack, Korean comment language, currently **Harness 1.3.0**
-- **Upgrade path**: 1.3.0 → 1.5.0 (**skips 1.4.0** — this project never received the multi-agent release)
+- **Upgrade path**: 1.3.0 → 1.6.0 (**skips 1.4.0/1.5.0** — this project never received the multi-agent or
+  team-roles releases; retargeted from the original 1.3.0 → 1.5.0 once 1.6.0 landed, so this only needs running once)
 - **Precedent**: `.workspace/plans/2026-07-14-apply-harness-1.2.0-to-eacc-mcp.md` (same shape: applying a framework
   release to an external project from this repo's workspace)
 - **⚠ Sequencing — read before executing this plan.** Two framework plans were written *after* this one, both
-  triggered by what this upgrade exposed.
+  triggered by what this upgrade exposed. **Both are now done.**
   1. `.workspace/plans/2026-07-25-upgrade-tooling-safety-and-dry-run.md` — **done, 2026-07-26.** Added `--dry-run`
      and stopped upgrade from overwriting project-authored files. **This deleted this plan's riskiest step (the
      old Phase H2 manual rescue) — the guide is now protected structurally, not by a manual step below.** Verified
      directly against this real project (not a copy): a `--dry-run` run confirmed
      `docs/how-to/multi-agent-collaboration.md` now reports as "1 file(s) newly managed" / `.new`, not overwritten.
-  2. `.workspace/plans/2026-07-25-file-ownership-rules.md` — ships the ownership rule so this class of incident
-     stops happening. Its Phase O5 also relocates this project's custom guide to a project-owned path. Still open;
-     this plan does not depend on it.
+  2. `.workspace/plans/2026-07-25-file-ownership-rules.md` — **done, 2026-07-26.** Ships `docs/how-to/file-ownership.md`
+     and the "put project-specific docs in `docs/guides/`" rule. Its Phase H2 relocation note below is now
+     actionable: once this project's guide is merged and moved to `docs/guides/`, the recurring `.new` this plan's
+     original Acceptance Criterion 7 warned about stops recurring entirely (the path conflict is resolved, not
+     just made non-destructive).
 
 ## Goal
 
-Bring Homographormer from 1.3.0 to 1.5.0 **without touching its own source code**, and without destroying the
+Bring Homographormer from 1.3.0 to 1.6.0 **without touching its own source code**, and without destroying the
 project-specific harness customizations it has accumulated — particularly a heavily customized, Korean-language
 multi-agent guide that the framework would otherwise overwrite.
 
@@ -118,11 +121,12 @@ whitelists it, whichever comes first (companion plan `2026-07-25-file-ownership-
 
 - [ ] Confirm `git status` in Homographormer is clean and note the exact HEAD SHA as the rollback point
       (currently `e719135`; re-check at execution time, it may have moved).
-- [ ] Confirm the framework repo is at 1.5.0 **and has the tooling fix** (`harness-core/HARNESS-VERSION` = 1.5.0,
-      `upgrade.ps1`/`upgrade.py`/`upgrade.sh` support `-DryRun`/`--dry-run` and the newly-managed `.new` behavior —
-      implemented 2026-07-26, commit SHA not yet fixed at time of writing; re-check `git log --oneline -5` at
-      execution time). Do not run this plan against a pre-fix `upgrade` — it will overwrite the guide again.
-- [ ] Create a working branch in Homographormer, e.g. `chore/harness-upgrade-1.5.0` — do **not** upgrade directly
+- [ ] Confirm the framework repo is at 1.6.0 **and has both the tooling fix and the file-ownership rules**
+      (`harness-core/HARNESS-VERSION` = 1.6.0; `upgrade.ps1`/`upgrade.py`/`upgrade.sh` support `-DryRun`/`--dry-run`
+      and the newly-managed `.new` behavior; `docs/how-to/file-ownership.md` exists — both implemented 2026-07-26,
+      commit SHA not yet fixed at time of writing; re-check `git log --oneline -5` at execution time). Do not run
+      this plan against a pre-fix `upgrade` — it will overwrite the guide again.
+- [ ] Create a working branch in Homographormer, e.g. `chore/harness-upgrade-1.6.0` — do **not** upgrade directly
       on its main branch. (Matches the eacc-mcp precedent, which is still on its own upgrade branch.)
 
 ### Phase H1 — Preview, then run the upgrade
@@ -154,6 +158,14 @@ a rescue — the original file was never touched; this is a deliberate content m
       framework's numbering — the project's sections are its own and diverging numbering is expected.
 - [ ] Delete `docs/how-to/multi-agent-collaboration.md.new` once the merge is done (a leftover `.new` re-offers the
       same merge on the next upgrade — harmless, but noisy).
+- [ ] **New in the 1.6.0 retarget — relocate the merged guide to `docs/guides/multi-agent-collaboration.md`** (or
+      a name of the project's choosing under `docs/guides/`), per `docs/how-to/file-ownership.md`'s rule that
+      project-specific documentation belongs there, not in the framework-owned `docs/how-to/`. This is what
+      actually closes the recurring-`.new` gap noted in Acceptance Criterion 7 below — without this move, every
+      future upgrade re-offers the same merge forever (harmless, but permanent noise); with it, the path conflict
+      is gone and `docs/how-to/multi-agent-collaboration.md` on this project simply becomes the plain framework
+      guide going forward. Update any links to the old path (this project's own `AGENTS.md`, if it references the
+      guide by path).
 
 ### Phase H4 — Merge the two `.new` files
 
@@ -184,13 +196,13 @@ added by hand. Verified absent in the dry run.
       especially the arch test, since `tests/arch/test_dependencies.py` was just merged.
 - [ ] `git diff` the full branch and confirm **zero** source-code changes (`src/`, `HomoGraphormer/`, research
       dirs) — the user's hard requirement, re-verified on the real thing rather than the dry-run copy.
-- [ ] Confirm `HARNESS-VERSION` = 1.5.0 and `.harness-meta.json`'s `harnessVersion` = 1.5.0 (the 1.4.0-era bug
+- [ ] Confirm `HARNESS-VERSION` = 1.6.0 and `.harness-meta.json`'s `harnessVersion` = 1.6.0 (the 1.4.0-era bug
       where the JSON field went stale is fixed in this framework version).
 - [ ] Commit on the branch; merging to the project's main branch is the project owner's call.
 
 ## Acceptance Criteria
 
-1. Homographormer reports Harness 1.5.0 in both `HARNESS-VERSION` and `.harness-meta.json`.
+1. Homographormer reports Harness 1.6.0 in both `HARNESS-VERSION` and `.harness-meta.json`.
 2. **Zero** changes to project source code, verified by `git diff --name-only` on the real repo.
 3. The project's Korean, project-specific multi-agent guide is intact — its custom roles and §6 Phase-0 wave
    assignments still present.
@@ -198,11 +210,12 @@ added by hand. Verified absent in the dry run.
    files left behind.
 5. `/coordinate` and `/team` exist and are listed in `AGENTS.md`/`CLAUDE.md`.
 6. `./scripts/validate.sh` passes.
-7. Upgrade never touches the guide directly — it always arrives as `.new` for review. (Note: since no baseline is
-   ever recorded for a "newly managed" path, this `.new` will keep reappearing on *every* future upgrade unless the
-   project's own file comes to match the incoming template byte-for-byte, which is unlikely for a hand-translated
-   fork. That's expected, not a bug — companion plan `2026-07-25-file-ownership-rules.md` is where a permanent
-   whitelist mechanism for this path would be designed, if the recurring `.new` becomes annoying enough to matter.)
+7. Upgrade never touches the guide directly — it always arrives as `.new` for review, never overwritten. The
+   permanent fix (not just the non-destructive one) is Phase H2's new relocation step: once the merged guide moves
+   to `docs/guides/`, that path is never claimed by the manifest, so this `.new` stops recurring entirely from the
+   next upgrade onward — verified as the intended mechanism by `2026-07-25-file-ownership-rules.md`'s Phase O4
+   live-agent test (a fresh agent given an undirected guide-writing task chose `docs/guides/` on its own, in two
+   independent runs).
 
 ## Risks
 

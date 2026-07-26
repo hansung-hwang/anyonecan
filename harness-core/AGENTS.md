@@ -76,6 +76,20 @@ Layer dependency (unidirectional): `domain` ← `application` ← `infrastructur
 
 {{BANNED_ITEMS}} · direct `.env` edits · PRs without tests
 
+## File Ownership
+
+Three tiers, generated from `harness-manifest.json` (refreshed by every `upgrade`, so it's always current — see
+`docs/how-to/file-ownership.md` for the full list and mechanics): **Yours** (`AGENTS.md`, `CLAUDE.md`, source,
+build config, `.workspace/**`, `docs/adr/**`, the `*project-rules*` arch test) — edit freely, `upgrade` never
+touches these. **Framework's** (`.claude/commands/**`, `docs/how-to/**`, `scripts/validate.*`,
+`scripts/lint-format-hook.sh`, the `*dependencies*` arch test, hook/CI config) — don't edit; `upgrade` overwrites
+these when unmodified. **Customizable, at a cost** — edit a Framework's-tier file anyway and `upgrade` keeps your
+version and offers the template as `<file>.new` instead of overwriting.
+
+**Don't create new files inside a Framework's-tier directory** (`docs/how-to/`, `.claude/commands/`) — a future
+framework release can claim that exact path, and your file won't be recognized as yours. Put project-specific
+documentation in `docs/guides/` instead.
+
 ## Validation
 
 Always run after modifying code:
@@ -94,6 +108,10 @@ On a mistake:
 3. If it's a habit/pattern issue, add it to this file (`AGENTS.md` — the single rule source; `CLAUDE.md` and the other tool files import/point to it automatically)
 4. If it's an architecture decision, write a new ADR in `docs/adr/`
 5. Record the change in `HARNESS-CHANGELOG.md`
+
+Every path above (linter config, `AGENTS.md`, `docs/adr/`, `HARNESS-CHANGELOG.md`) is **Yours** tier — this loop
+never sends you into framework-owned territory. If a future step ever would, check it against **File Ownership**
+above first.
 
 ## Workflow Prompts
 

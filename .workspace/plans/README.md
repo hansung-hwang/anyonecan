@@ -7,6 +7,11 @@ tracking) to create one here. Skip it for trivial one-line fixes.
 The user can open any file in this directory to see what the agent is
 designing, deciding, and how far along it is.
 
+**If a plan proposes editing a `harness-core/` path registered in `harness-manifest.json`'s `frameworkOwned` or
+`languageSpecific`** (see `docs/how-to/file-ownership.md` and `AGENTS.md` → File Ownership / Framework Versioning),
+say so explicitly in **Approach** — that's a framework-owned change and needs the version-bump + changelog steps,
+not just an ordinary edit.
+
 ## Naming
 
 `YYYY-MM-DD-<kebab-case-topic>.md`

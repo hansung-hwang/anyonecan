@@ -95,9 +95,50 @@ if (existsSync(howToDir)) {
   }
 }
 
+// 4. File-ownership guard: harness-core/docs/how-to/file-ownership.md's
+// Framework-tier list (between its <!-- framework-tier:start/end --> markers)
+// must exactly match harness-manifest.json's frameworkOwned + every
+// language's languageSpecific paths, in both directions -- otherwise the
+// ownership doc silently drifts from what upgrade actually does, which is
+// the exact failure mode this whole guide exists to prevent (see
+// .workspace/plans/2026-07-25-file-ownership-rules.md, D4/Gate O0).
+const ownershipPath = join(ROOT, 'harness-core/docs/how-to/file-ownership.md')
+if (existsSync(ownershipPath)) {
+  const ownershipContent = readFileSync(ownershipPath, 'utf-8')
+  const tierMatch = ownershipContent.match(
+    /<!-- framework-tier:start -->([\s\S]*?)<!-- framework-tier:end -->/,
+  )
+  if (!tierMatch) {
+    console.error(`✗ ${ownershipPath} is missing its <!-- framework-tier:start/end --> markers`)
+    failed = true
+  } else {
+    const docPaths = new Set([...tierMatch[1].matchAll(/`([^`]+)`/g)].map((m) => m[1]))
+
+    const manifestPaths = new Set(manifest.frameworkOwned)
+    for (const paths of Object.values(manifest.languageSpecific ?? {})) {
+      for (const p of paths) manifestPaths.add(p)
+    }
+
+    for (const p of manifestPaths) {
+      if (!docPaths.has(p)) {
+        console.error(`✗ file-ownership.md's Framework tier is missing manifest path: ${p}`)
+        failed = true
+      }
+    }
+    for (const p of docPaths) {
+      if (!manifestPaths.has(p)) {
+        console.error(`✗ file-ownership.md's Framework tier lists a path absent from the manifest: ${p}`)
+        failed = true
+      }
+    }
+  }
+}
+
 if (failed) {
   console.error('\ncheck-sync failed.')
   process.exit(1)
 }
 
-console.log('✓ check-sync passed (command parity + no stale dual-edit instructions + manifest registration)')
+console.log(
+  '✓ check-sync passed (command parity + no stale dual-edit instructions + manifest registration + file-ownership sync)',
+)

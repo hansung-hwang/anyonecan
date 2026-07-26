@@ -66,6 +66,15 @@ Changes to user-owned files (`AGENTS.md`/`CLAUDE.md` rule content,
 `README.md`, build configs) do **not** need a version bump — `upgrade`
 never touches those files anyway.
 
+## File Ownership
+
+This repo doesn't consume the tier system below — `anyonecan` is the framework source, not a generated project, so
+nothing here runs `upgrade` against itself. What *does* apply: `harness-core/harness-manifest.json`'s
+`frameworkOwned`/`languageSpecific` sets decide which `harness-core/` template paths become off-limits ("Framework's
+tier") for every project this repo generates. Full contract, and what a generated project actually sees:
+`docs/how-to/file-ownership.md`. Keeping `harness-manifest.json` and `harness-core/docs/how-to/file-ownership.md`'s
+Framework tier in sync is mechanically enforced by `scripts/check-sync.mjs` — see that guide's §3.
+
 ## Architecture
 
 Layer dependency (unidirectional): `domain` ← `application` ← `infrastructure` ← `presentation`
@@ -97,6 +106,11 @@ On a mistake:
 3. If it's a habit/pattern issue, add it to this file (`AGENTS.md` — the single rule source; `CLAUDE.md` and the other tool files import/point to it automatically)
 4. If it's an architecture decision, write a new ADR in `docs/adr/`
 5. Record the change in `HARNESS-CHANGELOG.md`
+
+None of these paths are `harness-core/` template content, so this loop never risks touching a path a generated
+project would treat as framework-owned. If a fix *does* need to change `harness-core/`, check **File Ownership**
+above first — anything under `harness-core/.claude/commands/` or `harness-core/docs/how-to/` must be registered in
+`harness-manifest.json` or `upgrade` silently never delivers it.
 
 ## Workflow Prompts
 

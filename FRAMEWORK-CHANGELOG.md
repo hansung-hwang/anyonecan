@@ -10,6 +10,44 @@ they're pulling in.
 
 See `AGENTS.md` → "Framework Versioning" for the bump rule.
 
+## [1.6.0] - 2026-07-26
+
+**File ownership rules — tell projects what they may edit:**
+
+- Root cause: the Homographormer incident (see the Tooling entry below) traced back further than a code bug —
+  the shipped `AGENTS.md`/`CLAUDE.md` said nothing about which files a project may edit versus which the framework
+  manages, and the only machine-readable map (`harness-manifest.json`) was copied once at generation and never
+  refreshed, so it silently went stale. The project did nothing wrong; it had no way to know better.
+- New `docs/how-to/file-ownership.md` (framework-owned, added to every project): the three-tier model (**Yours**
+  — edit freely; **Framework's** — `upgrade` overwrites when unmodified; **Customizable, at a cost** — your
+  version kept, template arrives as `<file>.new`), the single highest-value rule (never create new files inside a
+  Framework's-tier directory — put project-specific docs in `docs/guides/` instead, which the manifest will never
+  claim), and exactly how the `.new` merge cycle resolves.
+- New short `## File Ownership` section in `AGENTS.md` (tier summary + the "don't create files in framework
+  directories" rule), placed next to `Validation`/`Steering Loop` where edit-time decisions happen. Reaches new
+  projects immediately; existing projects get it via the guide on upgrade (the section itself is user-owned, so it
+  doesn't retroactively appear in `AGENTS.md` — same asymmetry as every other `AGENTS.md`-only addition).
+- `harness-manifest.json` is now itself `frameworkOwned` — the map that used to go stale is now refreshed by every
+  upgrade. **One-time caveat for existing projects**: since this is the first time the manifest is
+  baseline-tracked, the first post-1.6.0 upgrade offers it as a "newly managed" `.new` rather than refreshing it
+  silently (the safe default when there's no baseline to compare against — see the Tooling entry's D1 fix). Once
+  that one `.new` is resolved (it's almost certainly identical to what the project already had), every later
+  upgrade refreshes it automatically, verified end-to-end with a real disposable project.
+- `scripts/check-sync.mjs` gained a fourth guard: `file-ownership.md`'s Framework-tier list (between
+  `<!-- framework-tier:start/end -->` markers) must exactly match `harness-manifest.json`'s `frameworkOwned` +
+  every language's `languageSpecific` paths, in both directions. Verified by deliberately breaking it three ways
+  (a real omission caught during this release's own Gate O0, plus two synthetic breaks) — all three correctly
+  failed the build, all three fixes confirmed.
+- `AGENTS.md`'s Steering Loop and `.workspace/plans/README.md` (both copies) now point at the ownership rule, so a
+  mistake-driven edit or a new plan can't casually propose changing framework territory without noticing.
+- Verified with real disposable projects, not simulation: fresh-generation matrix across all three languages
+  (guide + `AGENTS.md` section present, byte-identical delivery, no leftover `{{...}}` tokens); a real upgrade
+  matrix (pre-1.6.0 project → current tooling, confirmed `AGENTS.md` untouched per the design asymmetry, the
+  one-time manifest `.new` behavior, and full self-healing on the next upgrade after resolving it); and a live
+  test with fresh, zero-context agents given an undirected guide-writing task, to confirm the rule actually
+  changes behavior rather than merely existing in a file no one reads.
+- Full design record: `.workspace/plans/2026-07-25-file-ownership-rules.md`.
+
 ## Tooling - 2026-07-26 (no `HARNESS-VERSION` bump)
 
 **`upgrade` safety fix + `--dry-run`:**

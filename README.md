@@ -280,6 +280,17 @@ file there — upgrade can't tell whether it's yours, so it's never
 silently overwritten, and is reported separately as "newly managed by
 the framework" so you know why.
 
+**Which files are which?** Every generated project ships with
+`docs/how-to/file-ownership.md` — the full three-tier contract (Yours /
+Framework's / Customizable), plus the one rule worth memorizing: put
+project-specific documentation in `docs/guides/`, never in
+`docs/how-to/` (that directory is exclusively framework-owned, and a
+future release can claim any path inside it). `harness-manifest.json`
+itself is framework-owned too, so it's refreshed by every upgrade
+instead of going stale — existing projects upgrading past 1.6.0 see
+that refresh arrive as a one-time `<file>.new` (no baseline existed for
+it before), which self-resolves after that first merge.
+
 If upgrade adds a new `.claude/commands/*.md` file, it also reminds you
 that `AGENTS.md`'s Workflow Prompts table and `CLAUDE.md`'s command list
 are yours to update — upgrade can't edit user-owned files for you.

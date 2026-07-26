@@ -7,6 +7,11 @@ tracking) to create one here. Skip it for trivial one-line fixes.
 The user can open any file in this directory to see what the agent is
 designing, deciding, and how far along it is.
 
+**If a plan proposes editing a Framework's-tier or Customizable-tier path** (see
+`docs/how-to/file-ownership.md`), say so explicitly in **Approach** — that edit will be flagged as customized and
+produce a `<file>.new` on every future `upgrade` until it's resolved. This is rarely what you actually want; most
+plans should stay entirely in the **Yours** tier.
+
 ## Naming
 
 `YYYY-MM-DD-<kebab-case-topic>.md`
