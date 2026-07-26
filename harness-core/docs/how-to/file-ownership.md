@@ -6,9 +6,11 @@ framework source — this guide plus `harness-manifest.json` is the whole answer
 
 ## 1. The three tiers
 
-Every path in this project falls into exactly one of three tiers. `harness-manifest.json` is the source of truth —
-the tables below are generated from it and kept in sync by `scripts/check-sync.mjs` in the framework repo, not
-hand-maintained here, so they can't quietly drift from what `upgrade` actually does.
+Every path in this project falls into exactly one of three tiers. **`harness-manifest.json` is the source of
+truth** — your project's copy, refreshed by every `upgrade`. The Framework tier below is a hand-written mirror of
+it, but not an unchecked one: the framework repo's `scripts/check-sync.mjs` fails its build whenever this list and
+the manifest disagree, so a drift gets caught before it ships rather than silently rotting here. If the two ever
+*do* disagree in your copy, believe the manifest — that's what `upgrade` actually reads.
 
 ### Yours — edit freely, `upgrade` never touches these
 
@@ -95,9 +97,21 @@ future upgrade. That's not a bug; it's the only honest signal available without 
 
 ## 4. Checking a path's tier yourself
 
-1. Look it up in `harness-manifest.json` (copied into your project at generation time, refreshed on every
-   `upgrade` so it never goes stale): in `frameworkOwned` or your language's `languageSpecific` list → Framework's
-   tier. In `bootstrapIfMissing` or your language's `bootstrapLanguageSpecific` list → Yours (seeded once). Not
-   listed at all → Yours.
+1. Look it up in your project's `harness-manifest.json`: in `frameworkOwned` or your language's
+   `languageSpecific` list → Framework's tier. In `bootstrapIfMissing` or your language's
+   `bootstrapLanguageSpecific` list → Yours (seeded once, never overwritten). Not listed at all → Yours.
 2. When unsure whether editing a Framework's-tier file is safe: it's never *unsafe* — `upgrade` will never discard
    your change, per §3. It just means every future upgrade offers you a merge instead of applying cleanly.
+
+**Keeping your manifest copy current.** `harness-manifest.json` is itself Framework's-tier as of harness 1.6.0, so
+`upgrade` refreshes it like any other managed file — which is what stops the ownership map going stale, the
+original reason this whole contract exists. Two caveats worth knowing:
+
+- **Upgrading a project created before 1.6.0**: the first upgrade past 1.6.0 hands your manifest over as
+  `harness-manifest.json.new` rather than refreshing it in place. That's the §3 "newly managed" case doing its job
+  — before 1.6.0 there was no recorded baseline for this path, so `upgrade` can't prove your copy is untouched.
+  Diff it (it's almost certainly just the newer manifest), replace yours, delete the `.new`. From then on it
+  refreshes silently.
+- **If you edit your manifest copy**, it becomes customized like any other Framework's-tier file, and `upgrade`
+  will only ever offer `.new`s instead of refreshing it. Since your copy is purely informational — `upgrade` reads
+  the framework's own manifest, never yours — editing it buys nothing and costs you the auto-refresh. Don't.

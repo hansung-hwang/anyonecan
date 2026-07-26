@@ -50,11 +50,19 @@ are conditional and activate only when multiple sessions or sub-agents touch thi
 
 `harness-core/HARNESS-VERSION` (semver) is what every generated project
 carries and what `upgrade.ps1`/`upgrade.sh` compares against. Any change to
-a **framework-owned** file (anything listed in
-`harness-core/harness-manifest.json`'s `frameworkOwned`/`languageSpecific`:
-`.claude/commands/`, `scripts/status-context.sh`, `.claude/settings.json`,
-arch tests, `scripts/validate.sh`/`validate.ps1`, `.github/workflows/ci.yml`,
-`.husky/pre-commit`, `.editorconfig`, `.workspace/plans/README.md`) requires:
+a **framework-owned** file requires the two steps below.
+
+"Framework-owned" means **exactly** the paths in
+`harness-core/harness-manifest.json`'s `frameworkOwned` + `languageSpecific`
+sets — read them there, and nowhere else. A prose summary of that set used
+to live here and had gone stale twice (it was missing every
+`docs/how-to/**` guide, and later `harness-manifest.json` itself); the same
+list hand-copied into a doc drifted twice more during the 1.6.0 work. The
+one place it's safe to read a *copy* is
+`harness-core/docs/how-to/file-ownership.md`'s Framework tier, because
+`scripts/check-sync.mjs` fails the build when that copy and the manifest
+disagree. Nothing enforces a copy written here, so this section doesn't
+keep one.
 
 1. Bump `harness-core/HARNESS-VERSION` (patch for fixes/wording, minor for
    new commands/checks, major for breaking manifest changes)
