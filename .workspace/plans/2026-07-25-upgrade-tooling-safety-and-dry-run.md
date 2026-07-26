@@ -1,7 +1,7 @@
 # Upgrade Tooling — Safety Fix + Dry Run
 
 - **Date**: 2026-07-25
-- **Status**: Done (all phases U0-U5 complete and verified 2026-07-26; not yet committed/pushed)
+- **Status**: Done (all phases U0-U5 complete and verified 2026-07-26; committed `a5b022f`, pushed to `origin/main`)
 - **Target release**: Tooling fix — no `HARNESS-VERSION` bump (confirmed at Gate U0; changelog-only)
 - **Motivation**: found while planning the Homographormer 1.3.0 → 1.5.0 upgrade
   (`.workspace/plans/2026-07-25-apply-harness-1.5.0-to-homographormer.md`). That plan needs a manual
@@ -82,7 +82,7 @@ current" and advance a version marker with **zero** shipped file changes — pur
 - [x] Decide whether `--dry-run` should exit non-zero when merges are pending (useful for CI) or always 0.
       **Decided: always 0** — preview, not a gate.
 
-### Phase U1 — `--dry-run` (do this first: it makes U2 testable) — ✅ Implemented 2026-07-26 (not yet U4-verified)
+### Phase U1 — `--dry-run` (do this first: it makes U2 testable) — ✅ Implemented + U4-verified 2026-07-26
 
 - [x] `upgrade.py`: added a `dry_run` flag parsed from `sys.argv` (accepts `--dry-run` anywhere in argv);
       introduced `write_text()`/`remove_if_exists()` helpers; routed **all** write sites through them — the
@@ -95,8 +95,10 @@ current" and advance a version marker with **zero** shipped file changes — pur
       `PROJECT_DIR`), forwards it to `upgrade.py`; usage string updated to `[--dry-run]`.
 - [x] `DRY RUN` banner: prints `Mode : DRY RUN -- nothing will be written` up top when active, and a
       `DRY RUN -- nothing was written` closing line replacing the "Changes are NOT committed" footer.
-- [ ] **Not yet done**: full-tree hash / `git status` verification that dry-run truly writes zero bytes — that's
-      U4's job, not this phase's syntax-level implementation.
+- [x] Full-tree hash / `git status` verification that dry-run truly writes zero bytes — deferred to U4 at the time
+      this phase was written, and **U4 subsequently passed it** (identical non-trivial tree hash before/after,
+      empty `git status` diff, re-confirmed with a corrected null-delimited hash during the post-implementation
+      review).
 
 ### Phase U2 — Baseline safety fix — ✅ Implemented + smoke-tested 2026-07-26
 
@@ -196,8 +198,8 @@ scratch project dirs deleted, after verification.
 5. ✅ `harness-manifest.json`'s `_baselinesComment` matches actual behavior. *(U2.)*
 6. ✅ The Homographormer plan no longer needs a manual rescue step. *(U5: old Phase H2 deleted from that plan.)*
 
-**All six acceptance criteria met, 2026-07-26. Plan ready to close out** (pending user review / commit — nothing
-pushed yet).
+**All six acceptance criteria met, 2026-07-26. Plan closed out** — committed `a5b022f` and pushed to
+`origin/main`.
 
 ## Risks
 

@@ -1,8 +1,8 @@
 # File Ownership Rules — tell projects what they may edit
 
 - **Date**: 2026-07-25
-- **Status**: Done (all phases O0-O5 complete and verified 2026-07-26; `HARNESS-VERSION` bumped to 1.6.0; not yet
-  committed/pushed)
+- **Status**: Done (all phases O0-O5 complete and verified 2026-07-26; `HARNESS-VERSION` bumped to 1.6.0;
+  committed `bf3e429` + post-review fixes `ccaf5fa`, pushed to `origin/main`)
 - **Target release**: Harness 1.6.0 (ships framework-owned files → bump **is** required, unlike the tooling plan)
 - **Origin**: user proposal — *"생성된 하위 프로젝트에서 수정 가능한 부분과 업그레이드를 위해 접근 불가능한 부분을
   하네스 프레임워크가 규칙으로 명시해줘야 한다"* — validated against real evidence below.
@@ -212,8 +212,9 @@ stay accurate. Adding it to `frameworkOwned` makes upgrade refresh it every time
    *(O4 upgrade matrix confirms delivery + `AGENTS.md` untouched; O5's README/changelog entries document the
    asymmetry as intentional, matching every other `AGENTS.md`-only addition's precedent.)*
 
-**All six acceptance criteria met, 2026-07-26. Plan ready to close out** (pending user review / commit — nothing
-pushed yet). **Known follow-up, not part of this plan's scope**: `.workspace/plans/README.md`'s root vs
+**All six acceptance criteria met, 2026-07-26. Plan closed out** — committed `bf3e429` plus post-implementation
+review fixes `ccaf5fa`, pushed to `origin/main`.
+**Known follow-up, not part of this plan's scope**: `.workspace/plans/README.md`'s root vs
 `harness-core` copies have drifted independently (root is missing the "Owner" field and "Parallelization" block
 from 1.4.0) — found during O3, flagged in `STATUS.md`, not fixed here.
 

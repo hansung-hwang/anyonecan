@@ -148,6 +148,38 @@ claude        # when using Claude Code
 
 ---
 
+## After Generating: What's Yours vs. the Framework's
+
+The single most useful thing to know on day one, because it decides what a
+later `upgrade` may overwrite. Your project ships with the full contract at
+`docs/how-to/file-ownership.md`; this is the short version.
+
+| Tier | Examples | What `upgrade` does |
+|---|---|---|
+| **Yours** | `AGENTS.md`, `CLAUDE.md`, `README.md`, all source code, build/linter config, `.workspace/STATUS.md`·`worklog.md`·`plans/*.md`, `docs/adr/**`, the `*project-rules*` arch test | **Never touched.** Edit freely. |
+| **Framework's** | `.claude/commands/**`, `docs/how-to/**`, `scripts/validate.*`, `scripts/lint-format-hook.sh`, the `*dependencies*` arch test, `.editorconfig`, hook/CI config, `harness-manifest.json` | Overwritten when you haven't changed them. |
+| **Customizable, at a cost** | any Framework's-tier file you deliberately edit | Your version is kept; the new template arrives as `<file>.new` for you to merge. |
+
+`harness-manifest.json` in your project is the machine-readable source of
+truth for which paths are which, and `upgrade` refreshes it every run so it
+can't go stale.
+
+**The one rule worth memorizing: don't create new files inside a
+framework-owned directory.** A future release can claim any path inside
+`docs/how-to/` or `.claude/commands/` — and if your own file already sits
+there, `upgrade` has no way to know it's yours. Put project-specific
+documentation in **`docs/guides/`** instead; the framework will never claim
+that directory. (Same idea the arch tests already use: your custom checks
+belong in the `*project-rules*` file, never appended into the
+framework-owned `*dependencies*` one.)
+
+**Two things you own that the framework can't update for you:** `AGENTS.md`
+and `CLAUDE.md`. When an upgrade delivers a new slash command, it prints a
+reminder that you need to add it to `AGENTS.md`'s Workflow Prompts table and
+`CLAUDE.md`'s command list by hand.
+
+---
+
 ## Architecture Principles
 
 Layer dependency (unidirectional):
@@ -230,74 +262,92 @@ Harness hardened
 ## Framework Versioning & Upgrades
 
 Every generated project carries `HARNESS-VERSION` and `.harness-meta.json`
-(the answers given at generation time). When the framework itself improves,
-existing projects don't have to stay frozen at their generation date:
+(the answers given at generation time, plus a baseline hash of every managed
+file). When the framework improves, existing projects don't have to stay
+frozen at their generation date.
+
+### The upgrade workflow
+
+**1. Branch first** — especially on a real project with work in flight.
+`upgrade` writes into your working tree and never commits, so a branch keeps
+`main` clean regardless of what you decide afterwards.
 
 ```bash
-# Windows
-.\upgrade.ps1 -ProjectDir "C:\projects\my-service"
-
-# Mac / Linux
-./upgrade.sh /path/to/my-service
+git checkout -b chore/harness-upgrade
 ```
 
-**Preview first with `--dry-run`** (`-DryRun` on Windows) — it runs the exact same classification logic and
-writes **zero** bytes, so you can see what an upgrade would add, update, or flag for manual merge before
-committing to it:
+**2. Preview with `--dry-run`** (`-DryRun` on Windows). It runs the *exact
+same* classification logic as a real run and writes **zero** bytes — always
+safe, on any project, at any time.
 
 ```bash
-# Windows
-.\upgrade.ps1 -ProjectDir "C:\projects\my-service" -DryRun
-
-# Mac / Linux
-./upgrade.sh /path/to/my-service --dry-run
+.\upgrade.ps1 -ProjectDir "C:\projects\my-service" -DryRun   # Windows
+./upgrade.sh /path/to/my-service --dry-run                   # Mac / Linux
 ```
 
-Upgrade only touches files listed as **framework-owned** in
-`harness-core/harness-manifest.json` — workflow commands, hooks, arch
-tests, `scripts/validate.sh`, CI config. It never touches `AGENTS.md`,
-`CLAUDE.md`, `README.md`, `HARNESS-CHANGELOG.md`,
-`.workspace/STATUS.md`/`worklog.md`/`plans/*.md`, or any build config
-(`eslint.config.js`, `tsconfig.json`, `pom.xml`, ...) — those are yours.
-A few files that a project might not have yet (e.g. `.workspace/STATUS.md`,
-or ADR 001 — a project's decision record from the moment it's created, so
-its wording is yours to tailor) are created only if missing, never
-overwritten. Changes are left uncommitted so you can review `git diff`
-before committing.
+**3. Read the preview** (see the table below), then run it for real — same
+command, without the flag.
 
-**Customized a framework-owned file?** Upgrade won't silently overwrite it.
-Every managed file has a baseline hash recorded in `.harness-meta.json` at
-generation time; if your copy no longer matches that baseline, upgrade
-leaves it alone and writes the incoming template next to it as `<file>.new`
-instead. Diff the two, merge by hand, delete the `.new`, and the next
-upgrade run recognizes the file as caught up (advances its baseline,
-cleans up automatically) — no separate "mark as resolved" step. Projects
-generated before this existed fall back to the old overwrite-everything
-behavior for one upgrade, with a warning, and gain this protection from
-that point on. The same `<file>.new` protection also applies if the
-framework claims a path *after* your last upgrade and you already have a
-file there — upgrade can't tell whether it's yours, so it's never
-silently overwritten, and is reported separately as "newly managed by
-the framework" so you know why.
+**4. Resolve any `.new` files.** Diff each against your version, merge by
+hand, delete the `.new`. Nothing is finished while a `.new` remains.
 
-**Which files are which?** Every generated project ships with
-`docs/how-to/file-ownership.md` — the full three-tier contract (Yours /
-Framework's / Customizable), plus the one rule worth memorizing: put
-project-specific documentation in `docs/guides/`, never in
-`docs/how-to/` (that directory is exclusively framework-owned, and a
-future release can claim any path inside it). `harness-manifest.json`
-itself is framework-owned too, so it's refreshed by every upgrade
-instead of going stale — existing projects upgrading past 1.6.0 see
-that refresh arrive as a one-time `<file>.new` (no baseline existed for
-it before), which self-resolves after that first merge.
+**5. Register new slash commands** in `AGENTS.md` / `CLAUDE.md` if the run
+reported any — those files are yours, so `upgrade` can't do it for you.
 
-If upgrade adds a new `.claude/commands/*.md` file, it also reminds you
-that `AGENTS.md`'s Workflow Prompts table and `CLAUDE.md`'s command list
-are yours to update — upgrade can't edit user-owned files for you.
+**6. Validate and commit.** Run your project's own `./scripts/validate.sh`,
+confirm `git diff` shows nothing you didn't expect, then commit.
+
+### Reading the output
+
+| Bucket | Meaning | Action |
+|---|---|---|
+| `added` | New framework file you didn't have | none |
+| `updated` | You never changed it; took the new version | none |
+| `bootstrapped` | Was missing; seeded once, never overwritten again | none |
+| `customized locally … <file>.new` | **You edited it.** Your version kept | merge the `.new`, then delete it |
+| `newly managed by the framework … <file>.new` | The framework claimed a path where **you already had a file**. Yours kept | merge the `.new`, then delete it |
+| `overwritten (no baseline recorded)` | Pre-1.3.0 project, one-time migration | review with `git diff` |
+| `skipped` | Source missing, or needs metadata this project lacks | usually harmless; read the reason |
+
+Once a merged file matches its template exactly, the next run treats it as
+caught up, advances its baseline, and deletes the stray `.new` automatically
+— there's no separate "mark as resolved" step. If it *never* matches exactly
+(a heavily customized or translated file), the `.new` reappears every run.
+That's not a bug — it's the only honest signal available without a real
+three-way merge. To end it permanently, move your version to a path the
+framework doesn't own (e.g. `docs/guides/`).
+
+### Cautions
+
+- **`upgrade` never commits.** Changes are left in your working tree
+  deliberately, so you review before they become history.
+- **Never create files inside `docs/how-to/` or `.claude/commands/`.** A
+  future release can claim that exact path. Use `docs/guides/` for your own
+  documentation. This is the single most common way to end up with a
+  recurring `.new`.
+- **Editing a framework-owned file is allowed but not free.** It's never
+  unsafe — your change is never discarded — but every future upgrade will
+  offer you a merge instead of applying cleanly.
+- **Don't edit your project's `harness-manifest.json`.** It's purely
+  informational (upgrade reads the *framework's* copy, never yours), so
+  editing it buys nothing and costs you the automatic refresh.
+- **Upgrading a project generated before 1.6.0**: the first run hands your
+  `harness-manifest.json` over as a one-time `.new` rather than refreshing it
+  in place, because no baseline existed for that path before. Diff it,
+  replace yours, delete the `.new` — it refreshes silently from then on.
+- **Upgrading a project generated before 1.3.0** (no `baselines` map at all):
+  the first run overwrites framework-owned files unconditionally, with a
+  loud warning, and gains customization protection from that point on. Review
+  that run's `git diff` carefully.
+
+### Contributing to the framework itself
 
 Any change to a framework-owned file requires bumping
 `harness-core/HARNESS-VERSION` and logging it in `FRAMEWORK-CHANGELOG.md`
-(see `AGENTS.md` → "Framework Versioning").
+(see `AGENTS.md` → "Framework Versioning"). "Framework-owned" means exactly
+the paths in `harness-core/harness-manifest.json`'s `frameworkOwned` +
+`languageSpecific` sets — `scripts/check-sync.mjs` fails the build if the
+manifest and the shipped ownership guide ever disagree.
 
 ---
 
