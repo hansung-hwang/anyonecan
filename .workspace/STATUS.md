@@ -4,25 +4,24 @@
 > for history, see `worklog.md`. Read this first when starting a new session.
 
 **Last updated**: 2026-07-26
-**Active plan**: `.workspace/plans/2026-07-25-apply-harness-1.5.0-to-homographormer.md` (retargeted to 1.6.0)
-— **start here.** Plans 1 and 2 are both done. This is the last of the three linked plans.
+**Active plan**: none — **all three linked 2026-07-25 plans are now Done.**
 
 ## Current Goal
 
-Three linked plans from 2026-07-25 are being executed in order; each unblocked the next:
+The three linked plans from 2026-07-25 are **all complete**:
 
-1. **`2026-07-25-upgrade-tooling-safety-and-dry-run.md`** — ✅ **Done, committed `a5b022f`.** `--dry-run` on all
-   three entry points; the baseline-safety fix (a manifest path added after a project's last upgrade, where the
-   project already wrote a file there, now gets `.new` instead of silent overwrite).
-2. **`2026-07-25-file-ownership-rules.md`** — ✅ **Done, committed `bf3e429` + review fixes `ccaf5fa`.** Ships
+1. **`2026-07-25-upgrade-tooling-safety-and-dry-run.md`** — ✅ Done, committed `a5b022f`. `--dry-run` on all three
+   entry points; the baseline-safety fix (a manifest path added after a project's last upgrade, where the project
+   already wrote a file there, now gets `.new` instead of silent overwrite).
+2. **`2026-07-25-file-ownership-rules.md`** — ✅ Done, committed `bf3e429` + review fixes `ccaf5fa`. Ships
    `docs/how-to/file-ownership.md`, an `AGENTS.md` File Ownership section, makes `harness-manifest.json` itself
    framework-owned (D5), and a 4th `check-sync.mjs` guard keeping the doc and manifest from drifting apart.
    `HARNESS-VERSION` bumped to **1.6.0**.
-3. **`2026-07-25-apply-harness-1.5.0-to-homographormer.md`** (retargeted to 1.6.0) ← **next session starts here.**
-   Upgrade the real Homographormer sub-project. Its riskiest step (manual guide rescue) no longer exists — the
-   guide is protected structurally. Plan updated to add a new step: relocate the merged guide to `docs/guides/`,
-   which permanently closes the recurring-`.new` behavior a project-authored file at a framework path would
-   otherwise keep producing forever.
+3. **`2026-07-25-apply-harness-1.5.0-to-homographormer.md`** (retargeted to 1.6.0) — ✅ **Done, 2026-07-26.**
+   Homographormer upgraded 1.3.0 → 1.6.0 for real, committed on its own `chore/harness-upgrade-1.6.0` branch
+   (`d51a7a4`) — **not merged to its `main`**, that's the project owner's call.
+
+No active plan for the next session — start fresh, or pick up the small follow-ups in Next Steps below.
 
 ## Progress
 
@@ -43,45 +42,64 @@ Three linked plans from 2026-07-25 are being executed in order; each unblocked t
     highest-risk unverified assumption, confirmed by forcing the per-file loop on a fresh project); `setup.sh` has
     **full parity** with `setup.ps1` on all of it and produces a byte-identical baseline hash; `check-sync.mjs` is
     correctly absent from the manifest, so the guide's "the framework repo's check-sync.mjs" wording is accurate.
-  - **O0** (design gate): all decisions confirmed as recommended (`docs/guides/` location, check-sync guard over
-    generation, proceed with D5 now, minor version bump to 1.6.0). **Found and fixed a real bug during the gate
-    itself**: D1's illustrative tier table was already out of sync with the actual manifest (missing
-    `HARNESS-VERSION`, and — notably — `scripts/lint-format-hook.sh`, the exact file Homographormer customized).
-  - **O1**: new `harness-core/docs/how-to/file-ownership.md` (three tiers, the "don't create files in
-    framework-owned directories → use `docs/guides/`" rule, `.new` mechanics) + root's maintainer-framed copy; new
-    `## File Ownership` section in both `AGENTS.md` copies.
-  - **O2**: `harness-manifest.json` added to its own `frameworkOwned` (D5). New `check-sync.mjs` guard #4: the
-    guide's Framework-tier list (between `<!-- framework-tier:start/end -->` markers) must exactly match the
-    manifest's `frameworkOwned` + all `languageSpecific` paths, both directions. **Verified by deliberately
-    breaking it three ways** (one real omission — forgot to list `harness-manifest.json` itself in the guide after
-    adding it to the manifest — plus two synthetic breaks); all three caught, all three fixed.
-  - **O3**: Steering Loop (both `AGENTS.md` copies) and `.workspace/plans/README.md` (both copies) now point at
-    the ownership rule.
-  - **O4** (verification, real projects not simulation): fresh-generation matrix across TS/Python/Java (guide +
-    `AGENTS.md` section present, byte-identical delivery, no `{{...}}` leftovers); a real upgrade matrix using a
-    disposable pre-1.6.0 project (confirmed `AGENTS.md` untouched — the D3 asymmetry — and found a real,
-    correctly-designed one-time behavior: `harness-manifest.json` itself lands as "newly managed" `.new` on the
-    *first* post-1.6.0 upgrade since no baseline existed for it before D5, then self-heals from the second upgrade
-    onward, verified end-to-end); **the real test** — two independent fresh, zero-context `general-purpose`
-    subagents given an undirected guide-writing task, neither told about `docs/guides/` or this verification's
-    purpose, **both independently chose `docs/guides/`**, citing `AGENTS.md`'s File Ownership section. Verified
-    the files actually exist on disk, not just trusting the agents' self-report.
-  - **O5**: `FRAMEWORK-CHANGELOG.md` `[1.6.0]` entry; `HARNESS-VERSION` → 1.6.0; `README.md` documents the
-    ownership contract; the Homographormer plan retargeted 1.3.0→1.6.0 throughout and gained a `docs/guides/`
-    relocation step.
+  - Full phase-by-phase record (O0-O5, Gate O0's own tier-table bug, the check-sync guard's 3-way break-test) is in
+    that plan file — not repeated here since it's Done and won't be revisited unless something regresses.
   - **Found, out of scope, not fixed**: `.workspace/plans/README.md`'s root and `harness-core` copies have
     drifted independently of anything this plan touches — root is missing the entire "Owner" field and
     "Parallelization" block that 1.4.0 added to harness-core's copy. Worth its own small fix in a future session.
-- **Homographormer directory identity — resolved this session.** `C:\anyonecan_harness\anyonecan\Homographormer\`
-  (flagged as an open discrepancy at last session's close) is confirmed to be the **real, actively-developed
-  project**, not a leftover scratch copy — its own Claude Code session history spans 9 days (2026-07-17 to
-  2026-07-25) with megabytes of real transcripts; the alternate candidate location
-  (`C:\Users\rty10\Desktop\HomoGraphormer`) doesn't exist on disk and has no real session history. Last session's
-  STATUS.md claim that "the scratch copy was deleted" referred to a *different*, separate temporary copy from that
-  session's own dry-run testing — not this directory. **Not moved or otherwise touched** (only read and a
-  provably-safe `--dry-run` were run against it this session); nested-repo hygiene (a full git repo sitting inside
-  this framework repo's own working tree, untracked) is a structural oddity worth fixing eventually, but is the
-  user's call, not made unilaterally.
+- **Plan 3 (Homographormer upgrade) — done, real project, real commit, real validation.**
+  - **Homographormer directory identity — resolved this session, before running the upgrade.**
+    `C:\anyonecan_harness\anyonecan\Homographormer\` (flagged as an open discrepancy at last session's close) is
+    confirmed to be the **real, actively-developed project**, not a leftover scratch copy — its own Claude Code
+    session history spans 9 days (2026-07-17 to 2026-07-25) with megabytes of real transcripts; the alternate
+    candidate location (`C:\Users\rty10\Desktop\HomoGraphormer`) doesn't exist on disk and has no real session
+    history. Last session's STATUS.md claim that "the scratch copy was deleted" referred to a *different*,
+    separate temporary copy from that session's own dry-run testing — not this directory. Nested-repo hygiene (a
+    full git repo sitting inside this framework repo's own working tree, untracked) is still a structural oddity
+    worth fixing eventually, but wasn't touched — the user's call.
+  - **H0-H1**: pre-flight confirmed clean `git status`, HEAD matched the plan's recorded rollback point exactly
+    (`e719135`), branch `chore/harness-upgrade-1.6.0` created. `--dry-run` output **differed from the plan's
+    1.5.0-era recording in a fully anticipated way** (3 added not 2 — `file-ownership.md` is new in 1.6.0; 2
+    newly-managed `.new` not 1 — `harness-manifest.json` itself joined the guide, the documented D5 one-time
+    caveat) — cross-checked against the current FRAMEWORK-CHANGELOG.md before proceeding, not treated as project
+    drift. Real upgrade run confirmed `git status` matched exactly.
+  - **H2 (guide merge) — the real content-merge step.** Compared the project's 610-line Korean guide against the
+    387-line template section-by-section: 1:1 structural match except one genuinely new section, template §13
+    "Working as a team" (the `/team`-paired role-scoping layer) — confirmed by grepping the whole template for
+    role/team mentions outside §13 (none) and a principle-count check (7=7). Confirmed Solo status from
+    `.harness-meta.json` (no `projectMode`) and `worklog.md` (no team mentions) before porting a **short pointer**
+    (new §15, project's own numbering) rather than the full section, per the plan's own Solo-likely guidance.
+    Relocated the merged guide to `docs/guides/multi-agent-collaboration.md` via `git mv`, fixed the two path
+    references left in the project's `AGENTS.md`.
+  - **Real, unplanned finding during H2**: relocating the guide left `.claude/commands/coordinate.md`/`team.md`
+    (freshly delivered, framework-owned) with a dangling internal reference to the now-empty
+    `docs/how-to/multi-agent-collaboration.md` path. Fixed correctly, not by hand-editing the framework-owned
+    command files: forced the upgrade's per-file loop to run a second time, which delivered the plain framework
+    guide fresh at that path (`added`, proper baseline recorded) — restoring a normal, unmodified framework file
+    instead of a broken reference. Resolved `harness-manifest.json.new` in the same pass (diffed first — pure
+    newer-manifest content, no project edits — then applied); this file wasn't in the original plan's H4 scope
+    since it predates D5.
+  - **H4**: both `.new` files (`lint-format-hook.sh`, `test_dependencies.py`) diffed and confirmed the project's
+    version is a strict superset of the template in both cases; kept, `.new` deleted. The arch-test exclusion was
+    **run for real** (`pytest tests/arch/test_dependencies.py`, stdlib-only, no `.venv` needed) — 6/6 passed,
+    confirming the merge didn't just look safe but actually works.
+  - **H5**: registered `/coordinate`/`/team` in `AGENTS.md`'s Workflow Prompts table and `CLAUDE.md`. Used
+    **English, not Korean** for the new table rows — checked the existing table first and found it entirely
+    English (framework boilerplate, never translated at generation despite the project's Korean comment
+    language), so matched the table's actual observed style over the plan's literal wording.
+  - **H6**: real environment limitation, same class as Java's `mvn` — no project `.venv` in this session, so
+    `scripts/validate.sh` itself can't run (its `python3` fallback resolves to a broken Windows Store alias
+    instead of the working system Python that happens to have `mypy`/`ruff`/`pytest`/`torch`/`numpy` installed).
+    **Did not skip validation** — ran the script's exact three commands manually against the working interpreter:
+    `mypy src/` (2 files, clean), `ruff check src/ tests/` (clean), `pytest` (14/14, full `testpaths: tests`
+    scope). Confirmed zero changes under `src/`/`HomoGraphormer/`/`results/`, twice. `HARNESS-VERSION` and
+    `.harness-meta.json`'s `harnessVersion` both 1.6.0, no stale-field regression.
+  - **Commit**: the project's own `.husky/pre-commit` hook hits the identical broken-`python3` issue. **Did not
+    use `--no-verify`** — created a temporary `python3` wrapper (pointing at the working interpreter) scoped only
+    to the commit command's `PATH`, so the hook's own existing logic found a real interpreter and passed
+    legitimately; removed the wrapper immediately after. Committed as `d51a7a4` on `chore/harness-upgrade-1.6.0`;
+    `main` untouched.
+  - **All 7 acceptance criteria met** — full detail in the plan file.
 - **Harness 1.4.0, 1.5.0, and now 1.6.0 — all Done, fully validated, committed, and pushed.** `origin/main` =
   `a802359` (confirmed synced with local `main`).
 - `agentic-eacc-mcp-server` (external project) was upgraded 1.2.0 → 1.3.0 in an earlier session, on its still-unmerged
@@ -90,32 +108,30 @@ Three linked plans from 2026-07-25 are being executed in order; each unblocked t
 
 ## Next Steps
 
-1. ~~Push the commits to `origin/main`~~ — **done, 2026-07-26.** `origin/main` = `a802359` (4 commits:
-   `a5b022f`, `bf3e429`, `ccaf5fa`, `a802359`), local branch confirmed synced.
-2. **Start plan 3** (`apply-harness-1.5.0-to-homographormer.md`, retargeted to 1.6.0) — the real upgrade against
-   the real Homographormer project. This is a change to a separate, real, actively-developed project's repo, not
-   this framework's own — **requires explicit user confirmation before running for real** (not just `--dry-run`),
-   per this session's own risk-matching practice (a `--dry-run` is safe to run freely; a real `upgrade` that writes
-   files to another project's working tree is not). Also note that project has **two In-Progress plans of its own**
-   (`repro-hab-baselines`, `final-benchmarking-v2`), so run it at a natural boundary, not mid-benchmark.
-4. Small, out-of-scope follow-up noted during plan 2: fix the `.workspace/plans/README.md` root/harness-core drift
+1. **User's call**: whether/when to merge Homographormer's `chore/harness-upgrade-1.6.0` branch into its `main`.
+   Not this session's decision — the branch is ready, validated, and waiting.
+2. Small, out-of-scope follow-up noted during plan 2: fix the `.workspace/plans/README.md` root/harness-core drift
    (root is missing 1.4.0's Owner field + Parallelization block).
-5. **User's call, whenever**: merge/push `chore/harness-upgrade-1.2.0` in the `agentic-eacc-mcp-server` repo.
-6. **User's call, whenever a toolchain/admin environment is available**: validate the Java language pack's
+3. **Possible future cleanup, not urgent**: `C:\anyonecan_harness\anyonecan\Homographormer\` sitting nested inside
+   this framework repo's own working tree (untracked, own separate `.git`) is a structural oddity worth relocating
+   to a sibling directory someday — the user's call, not done unilaterally.
+4. **User's call, whenever**: merge/push `chore/harness-upgrade-1.2.0` in the `agentic-eacc-mcp-server` repo.
+5. **User's call, whenever a toolchain/admin environment is available**: validate the Java language pack's
    `validate.sh` (`mvn verify`) — still unconfirmed end-to-end in this environment (`winget` blocks on an
    interactive Microsoft Store ToS prompt; no JDK/Maven present).
 
 ## Blockers / Open Questions
 
-- **None blocking.** Plan 2 is fully done and verified; plan 3 just needs the commit/push above plus explicit
-  go-ahead before touching the real Homographormer repo.
-- **pnpm environment note**: this session found `pnpm` missing from this Windows box's Bash-tool PATH (a prior
-  session's install didn't persist as a discoverable executable — only its cache/store dirs remained). Fixed by
-  `npm install -g pnpm@10 --prefix "$APPDATA/npm"` (corepack's `pnpm@11.x` shim hits the same Node 18.17
-  `ERR_VM_DYNAMIC_IMPORT_CALLBACK_MISSING` incompatibility noted in earlier sessions — use `npm install -g pnpm@10`
-  directly, not corepack, on this box). `pnpm validate` now passes end-to-end again.
-- Environment limitation carried forward: no `mvn`/`javac` here, so any Java verification in these plans is
-  structural (generation) rather than build-level — same constraint as 1.4.0/M4, 1.5.0/T4, and now 1.6.0.
-- **Known false positive, don't re-investigate**: `/start`'s step 4.5 (`grep -l "Status.*In Progress"`) also
-  matches `2026-07-14-harness-1.3.0-customization-safety.md` and `plans/README.md`. Both are **Done/template** —
-  the grep hits *example* `- **Status**:` text inside their bodies, not their own status lines.
+- **None.** All three linked plans are Done and verified.
+- **Environment notes carried forward for future sessions on this box**:
+  - `pnpm` missing from Bash-tool PATH by default — fix with `npm install -g pnpm@10 --prefix "$APPDATA/npm"`
+    (corepack's `pnpm@11.x` shim hits a Node 18.17 `ERR_VM_DYNAMIC_IMPORT_CALLBACK_MISSING` incompatibility; use
+    `npm install -g pnpm@10` directly, not corepack).
+  - This box has **two Pythons that matter**: `python` → miniconda (`C:\Users\rty10\miniconda3`, has
+    mypy/ruff/pytest/torch/numpy installed) and `python3` → a Windows Store alias with none of those. Any script
+    that does `command -v python3` before falling back to bare `python` (several `validate.sh`/hook scripts do
+    this, by design, to prefer a project `.venv` first) will silently pick the broken one when no `.venv` exists.
+    Workaround used this session: a temporary `python3` shim pointing at miniconda's `python.exe`, placed early in
+    `PATH` for just the one command that needs it, never touching the system config.
+  - No `mvn`/`javac` here, so any Java verification in these plans is structural (generation) rather than
+    build-level — same constraint as 1.4.0/M4, 1.5.0/T4, and 1.6.0.

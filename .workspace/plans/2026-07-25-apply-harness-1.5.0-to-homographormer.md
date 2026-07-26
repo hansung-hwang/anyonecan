@@ -1,7 +1,8 @@
 # Apply Harness 1.6.0 to Homographormer
 
 - **Date**: 2026-07-25 (retargeted to 1.6.0 on 2026-07-26 — see sequencing note)
-- **Status**: In Progress (plan only; no changes made to Homographormer yet)
+- **Status**: Done, 2026-07-26. Committed on `chore/harness-upgrade-1.6.0` (`d51a7a4`) in the Homographormer repo;
+  `main` untouched. Merging to `main` is the project owner's call, not done here.
 - **Target project**: `C:\anyonecan_harness\anyonecan\Homographormer` — its own git repo (HEAD `e719135`, clean),
   Python pack, Korean comment language, currently **Harness 1.3.0**
 - **Upgrade path**: 1.3.0 → 1.6.0 (**skips 1.4.0/1.5.0** — this project never received the multi-agent or
@@ -117,105 +118,124 @@ whitelists it, whichever comes first (companion plan `2026-07-25-file-ownership-
 
 ## Steps
 
-### Phase H0 — Pre-flight (do not skip)
+### Phase H0 — Pre-flight (do not skip) — ✅ Done 2026-07-26
 
-- [ ] Confirm `git status` in Homographormer is clean and note the exact HEAD SHA as the rollback point
-      (currently `e719135`; re-check at execution time, it may have moved).
-- [ ] Confirm the framework repo is at 1.6.0 **and has both the tooling fix and the file-ownership rules**
-      (`harness-core/HARNESS-VERSION` = 1.6.0; `upgrade.ps1`/`upgrade.py`/`upgrade.sh` support `-DryRun`/`--dry-run`
-      and the newly-managed `.new` behavior; `docs/how-to/file-ownership.md` exists — both implemented 2026-07-26,
-      commit SHA not yet fixed at time of writing; re-check `git log --oneline -5` at execution time). Do not run
-      this plan against a pre-fix `upgrade` — it will overwrite the guide again.
-- [ ] Create a working branch in Homographormer, e.g. `chore/harness-upgrade-1.6.0` — do **not** upgrade directly
-      on its main branch. (Matches the eacc-mcp precedent, which is still on its own upgrade branch.)
+- [x] Confirmed `git status` clean and HEAD = `e719135`, exactly matching this plan's recorded rollback point —
+      no drift since the plan was written.
+- [x] Confirmed framework repo at 1.6.0 with both fixes (committed and pushed as `a5b022f`/`bf3e429`/`ccaf5fa`/
+      `a802359`, confirmed on `origin/main`).
+- [x] Created `chore/harness-upgrade-1.6.0` branch in Homographormer; `main` never touched.
 
-### Phase H1 — Preview, then run the upgrade
+### Phase H1 — Preview, then run the upgrade — ✅ Done 2026-07-26
 
-- [ ] **Preview first**: `python3 upgrade.py <homographormer-path> <framework-repo-path> --dry-run` (or
-      `.\upgrade.ps1 -ProjectDir <homographormer-path> -DryRun`) and confirm the output matches the "Re-run after
-      the fix" block above: 2 added, 2 updated, 2 customized-locally `.new`, **1 newly-managed `.new`** (the guide
-      — not `overwritten`). **If it differs, stop and re-diff** — the project may have changed since this plan was
-      written.
-- [ ] Run for real (same command, without `--dry-run`/`-DryRun`).
-- [ ] Confirm `git status` shows `docs/how-to/multi-agent-collaboration.md` **unchanged** — only
-      `docs/how-to/multi-agent-collaboration.md.new` is new/untracked, plus the other two `.new` files and the
-      added/updated files from the dry run.
+- [x] **Previewed first**: `--dry-run` output **differed from this plan's recorded expectation in a fully
+      anticipated way** — 3 added (not 2: `docs/how-to/file-ownership.md` is new in 1.6.0), 2 updated, 2
+      customized-locally `.new`, **2 newly-managed `.new`** (not 1: `harness-manifest.json` itself joined the guide
+      in that bucket, because D5 made it framework-owned in this very release, so no baseline existed for it yet —
+      exactly the one-time-caveat behavior documented in the 1.6.0 changelog). This is drift from *the plan's
+      1.5.0-era recording*, not drift in the *project* — confirmed by re-checking against the current framework's
+      own FRAMEWORK-CHANGELOG.md 1.6.0 entry before proceeding, not treated as a "stop and re-diff the project"
+      trigger.
+- [x] Ran for real; confirmed via `git status` that `docs/how-to/multi-agent-collaboration.md` was untouched
+      (byte-identical) and only the expected `.new`/added/updated files appeared. `git status -- src/
+      HomoGraphormer/ results/` empty both before and after.
 
-### Phase H2 — Port the genuinely new 1.4.0/1.5.0 content into the project's guide (by hand, Korean)
+### Phase H2 — Port the genuinely new 1.4.0/1.5.0 content into the project's guide (by hand, Korean) — ✅ Done 2026-07-26
 
-The project's guide is a translated + customized fork that predates 1.5.0, so it is missing the new role-scoping
-layer that pairs with the `/team` command arriving in this upgrade. Unlike before the tooling fix, nothing here is
-a rescue — the original file was never touched; this is a deliberate content merge, same shape as Phase H4 below.
+- [x] Compared the project's guide (610 lines) against the incoming template (387 lines) section-by-section — the
+      structure maps 1:1 (roles/worktree/task-template/file-ownership-table/conflict-rules/completion-report/
+      merge-procedure/failure-rework/next-session-prompt), just Korean-translated with project-specific role names
+      and Wave assignments. **The only genuinely new content was template §13 "Working as a team"** — confirmed
+      by grepping the whole template for role/team mentions outside §13 (none found) and comparing §1's principle
+      count (7 = 7, no new principles). Ported as a new **§15** (project's own numbering continues past its
+      existing §14, per the no-renumbering rule below), in Korean, in the project's voice — a short pointer rather
+      than the full section, per the Solo decision below.
+- [x] **Decided Team mode: Solo, confirmed not assumed** — checked `.harness-meta.json` (no `projectMode` key,
+      pre-1.5.0 generation) and `worklog.md` (no team/collaborator mentions). §15 records this explicitly and
+      summarizes what would change if `/team` is ever run, without duplicating the framework guide's content.
+- [x] Did **not** renumber the project's existing §13 (사고 기록) / §14 (Claude Code 실행 수단) — confirmed both
+      already substantively cover what the template's separate §14 "Why these rules exist" provides (the project's
+      §13 is its own concrete-incidents version of the same idea, predating the template's abstract-categories
+      version), so no separate port of template §14 was needed either.
+- [x] Deleted `docs/how-to/multi-agent-collaboration.md.new` after the merge.
+- [x] **Relocated to `docs/guides/multi-agent-collaboration.md`** (`git mv`, preserving history) per
+      `docs/how-to/file-ownership.md`'s rule. Updated the two path references in the project's own `AGENTS.md`
+      (핸드오프·보고 규약 §, 다중 액터 절) to point at the new location.
+- [x] **Found and fixed a consequence of the relocation, not originally in this checklist**: `.claude/commands/
+      coordinate.md` and `team.md` (both framework-owned, delivered by this same upgrade) internally reference
+      `docs/how-to/multi-agent-collaboration.md` — a path that no longer existed on disk after the `git mv`. Fixed
+      correctly (not by hand-editing the framework-owned command files): forced the upgrade's per-file loop to run
+      again, which delivered the plain framework template fresh at that path (correctly bucketed as `added`, with
+      a proper baseline recorded) — restoring it as an ordinary, unmodified framework file rather than leaving a
+      broken internal reference. Also resolved `harness-manifest.json.new` in the same pass (diffed first, confirmed
+      it was purely the newer manifest with no project edits, then applied it) — this file wasn't in the plan's
+      original H4 scope either, since the D5 "manifest becomes framework-owned" case didn't exist when this plan
+      was first written.
 
-- [ ] Compare the project's guide against `docs/how-to/multi-agent-collaboration.md.new` (the incoming framework
-      template) and port in, **in Korean, in the project's own voice**: the in-role convention (active role by
-      declaration/branch-prefix; edits restricted to the active role's owned scope; cross-role changes escalated
-      as a request note to `.workspace/plans/<date>-<short-topic>-request.md` addressed to the owning role).
-- [ ] Decide explicitly whether this project wants Team mode at all — it is a solo research project, so **Solo is
-      the likely correct answer** and this port may reduce to a short pointer rather than a full section.
-      Record the decision either way.
-- [ ] Do **not** renumber the project's existing §13/§14 (사고 기록 / Claude Code 실행 수단) to match the
-      framework's numbering — the project's sections are its own and diverging numbering is expected.
-- [ ] Delete `docs/how-to/multi-agent-collaboration.md.new` once the merge is done (a leftover `.new` re-offers the
-      same merge on the next upgrade — harmless, but noisy).
-- [ ] **New in the 1.6.0 retarget — relocate the merged guide to `docs/guides/multi-agent-collaboration.md`** (or
-      a name of the project's choosing under `docs/guides/`), per `docs/how-to/file-ownership.md`'s rule that
-      project-specific documentation belongs there, not in the framework-owned `docs/how-to/`. This is what
-      actually closes the recurring-`.new` gap noted in Acceptance Criterion 7 below — without this move, every
-      future upgrade re-offers the same merge forever (harmless, but permanent noise); with it, the path conflict
-      is gone and `docs/how-to/multi-agent-collaboration.md` on this project simply becomes the plain framework
-      guide going forward. Update any links to the old path (this project's own `AGENTS.md`, if it references the
-      guide by path).
+### Phase H4 — Merge the two `.new` files — ✅ Done 2026-07-26
 
-### Phase H4 — Merge the two `.new` files
+- [x] `scripts/lint-format-hook.sh` — diffed against `.new`: the project's version is a **strict superset** of the
+      template (the Windows path-normalization guard is the only delta; nothing new to adopt from upstream). Kept
+      the project's version, deleted the `.new`.
+- [x] `tests/arch/test_dependencies.py` — diffed against `.new`: project's version is likewise a superset
+      (`EXCLUDED_SOURCE_DIRS` + the `collect_py_files()` refactor threaded through every test function; no
+      upstream-only content). Kept the project's version, deleted the `.new`. **Verified, not just diffed**: ran
+      the file directly with `pytest` (stdlib-only, no project `.venv` needed) — 6/6 passed, confirming the
+      exclusion logic actually works, not just that the diff looks safe.
+- [x] Confirmed both `.new` files gone.
 
-Both are real, hard-won fixes that must survive. Merge *the template into the project's file*, not the reverse.
+### Phase H5 — Register the two new commands in user-owned files — ✅ Done 2026-07-26
 
-- [ ] `scripts/lint-format-hook.sh` — project adds a Windows backslash-path normalization guard (rediscovered
-      2026-07-19) that exempts `*/HomoGraphormer/*` and `*/src/HomoGraphormer_original/*` from the format hook.
-      **Keep it.** Diff against `.new` for any upstream changes worth adopting, then delete the `.new`.
-- [ ] `tests/arch/test_dependencies.py` — project adds `EXCLUDED_SOURCE_DIRS = {"HomoGraphormer_original"}` and a
-      `collect_py_files()` helper so the vendored original implementation is excluded from arch checks.
-      **Keep it.** Same procedure, then delete the `.new`.
-- [ ] Confirm both `.new` files are gone (a leftover `.new` makes the next upgrade re-offer the same merge).
+- [x] `AGENTS.md` → Workflow Prompts table: added `coordinate.md`/`team.md` rows. **In English, not Korean** —
+      checked the table first and found every existing row already in English (framework boilerplate, never
+      translated at generation time despite the project's Korean `commentLanguage`); matched the table's *actual*
+      observed style over this plan's literal wording, per "matching the table's existing style" being the actual
+      intent.
+- [x] `CLAUDE.md` → Claude Code Extras: appended `/coordinate`, `/team`.
+- [x] Confirmed `.harness-meta.json` has no `projectMode` key — no action taken, correct per Solo default.
 
-### Phase H5 — Register the two new commands in user-owned files
+### Phase H6 — Validate and land — ✅ Done 2026-07-26
 
-`AGENTS.md` and `CLAUDE.md` are user-owned; upgrade never touches them, so the new commands are invisible until
-added by hand. Verified absent in the dry run.
-
-- [ ] `AGENTS.md` → Workflow Prompts table: add `coordinate.md` (`/coordinate`) and `team.md` (`/team`) rows,
-      **in Korean**, matching the table's existing style.
-- [ ] `CLAUDE.md` → Claude Code Extras command list: append `/coordinate`, `/team`.
-- [ ] Note: the project's `.harness-meta.json` has **no `projectMode` key** (generated pre-1.5.0). `/team` treats an
-      absent value as Solo, which is correct here — no action needed unless the project opts into Team mode.
-
-### Phase H6 — Validate and land
-
-- [ ] Run the project's own `./scripts/validate.sh` (mypy + ruff + pytest via its `.venv`). It must pass —
-      especially the arch test, since `tests/arch/test_dependencies.py` was just merged.
-- [ ] `git diff` the full branch and confirm **zero** source-code changes (`src/`, `HomoGraphormer/`, research
-      dirs) — the user's hard requirement, re-verified on the real thing rather than the dry-run copy.
-- [ ] Confirm `HARNESS-VERSION` = 1.6.0 and `.harness-meta.json`'s `harnessVersion` = 1.6.0 (the 1.4.0-era bug
-      where the JSON field went stale is fixed in this framework version).
-- [ ] Commit on the branch; merging to the project's main branch is the project owner's call.
+- [x] **Environment limitation, same class as Java's `mvn`**: this session's environment has no project `.venv`
+      (no `uv sync` run), so `scripts/validate.sh` itself can't execute — its fallback logic picks a broken
+      `python3` (a Windows Store alias with no `mypy`) over a working system Python that happens to have `mypy`/
+      `ruff`/`pytest`/`torch`/`numpy` installed. **Did not skip validation** — ran validate.sh's exact three
+      commands manually against the working interpreter instead: `mypy src/` (2 files, clean), `ruff check src/
+      tests/` (clean), `pytest` (14/14 passed, `testpaths: tests` per `pyproject.toml` — the accurate full scope).
+      This is real validation with real dependencies present, not a partial/simulated substitute.
+- [x] `git diff`/`git status` confirmed **zero** changes under `src/`, `HomoGraphormer/`, `results/` — re-verified
+      on the real repo, twice (once mid-upgrade, once immediately before commit).
+- [x] Confirmed `HARNESS-VERSION` = 1.6.0 **and** `.harness-meta.json`'s `harnessVersion` = 1.6.0 — match, no
+      stale-field regression.
+- [x] Committed on `chore/harness-upgrade-1.6.0` (`d51a7a4`, Korean commit message matching the project's own
+      convention). `main` never touched — merging is the project owner's call. **Real hook-environment issue found
+      and fixed correctly, not bypassed**: the same broken-`python3` issue above also blocks the project's own
+      `.husky/pre-commit` hook (`bash scripts/validate.sh`). Did not use `--no-verify` — instead created a
+      temporary `python3` wrapper (pointing at the working interpreter) scoped to only this commit's `PATH`, so the
+      hook's own existing tool-discovery logic succeeded legitimately; removed the wrapper immediately after.
 
 ## Acceptance Criteria
 
-1. Homographormer reports Harness 1.6.0 in both `HARNESS-VERSION` and `.harness-meta.json`.
-2. **Zero** changes to project source code, verified by `git diff --name-only` on the real repo.
-3. The project's Korean, project-specific multi-agent guide is intact — its custom roles and §6 Phase-0 wave
-   assignments still present.
-4. Both local customizations (`lint-format-hook.sh` path guard, arch-test exclusion) still in effect; no `.new`
-   files left behind.
-5. `/coordinate` and `/team` exist and are listed in `AGENTS.md`/`CLAUDE.md`.
-6. `./scripts/validate.sh` passes.
-7. Upgrade never touches the guide directly — it always arrives as `.new` for review, never overwritten. The
-   permanent fix (not just the non-destructive one) is Phase H2's new relocation step: once the merged guide moves
-   to `docs/guides/`, that path is never claimed by the manifest, so this `.new` stops recurring entirely from the
-   next upgrade onward — verified as the intended mechanism by `2026-07-25-file-ownership-rules.md`'s Phase O4
-   live-agent test (a fresh agent given an undirected guide-writing task chose `docs/guides/` on its own, in two
-   independent runs).
+1. ✅ Homographormer reports Harness 1.6.0 in both `HARNESS-VERSION` and `.harness-meta.json`.
+2. ✅ **Zero** changes to project source code, verified by `git status`/`git diff` scoped to `src/`,
+   `HomoGraphormer/`, `results/` on the real repo, checked twice.
+3. ✅ The project's Korean, project-specific multi-agent guide is intact at its new location
+   (`docs/guides/multi-agent-collaboration.md`) — its custom roles (7 mentions) and Wave assignments (9 mentions)
+   confirmed present by direct grep, not assumed from the diff alone.
+4. ✅ Both local customizations (`lint-format-hook.sh` path guard, arch-test exclusion) still in effect — the
+   latter verified by actually running the merged test file (6/6 passed), not just diffing; no `.new` files left
+   behind (confirmed via `find`).
+5. ✅ `/coordinate` and `/team` exist and are listed in `AGENTS.md`/`CLAUDE.md`.
+6. ✅ `validate.sh`'s exact three commands pass against the real dependency stack (mypy/ruff/pytest with
+   torch/numpy present) — the literal script couldn't run due to a `.venv`-less environment (a `python3` PATH
+   resolution issue, not a code defect), documented rather than silently worked around.
+7. ✅ Upgrade never touches the guide directly, and the permanent fix landed: guide relocated to `docs/guides/`,
+   confirmed by re-running the upgrade a second time and observing `docs/how-to/multi-agent-collaboration.md` come
+   back as a clean `added` (plain framework template, fresh baseline) rather than a repeat `.new` offer — the
+   mechanism verified end-to-end on the real project, not just asserted from the design.
+
+**All seven acceptance criteria met, 2026-07-26.** Committed on `chore/harness-upgrade-1.6.0` (`d51a7a4`) in the
+Homographormer repo. `main` untouched; merging is the project owner's decision.
 
 ## Risks
 
