@@ -101,7 +101,27 @@ No active plan for the next session — start fresh, or pick up the small follow
     `main` untouched.
   - **All 7 acceptance criteria met** — full detail in the plan file.
 - **Harness 1.4.0, 1.5.0, and now 1.6.0 — all Done, fully validated, committed, and pushed.** `origin/main` =
-  `a802359` (confirmed synced with local `main`).
+  `4048be2` (confirmed synced with local `main`).
+- **Plan-status audit + README restructure (`4048be2`)** — done after the three plans closed, at the user's
+  request to verify everything landed and to organize the README's project-creation/upgrade guidance.
+  - **Found 4 real staleness defects**, all instances of this repo's own "update every section referencing the
+    changed fact" rule being violated in its own workspace docs: both 2026-07-25 plans still claimed "not yet
+    committed/pushed" in their Status line *and* acceptance-criteria footer hours after being committed and
+    pushed; `2026-07-14-harness-1.3.0-customization-safety.md` had claimed "commit pending user approval" for
+    **12 days** (`af1698f` landed the same day the plan was written); Phase U1's header still said "not yet
+    U4-verified" with an unchecked box for a proof U4 had since passed. All corrected.
+  - **`worklog.md` had no 2026-07-26 entry at all** — three completed plans and 7 commits were missing from the
+    append-only history. Two rows added (framework work; the Homographormer upgrade).
+  - **Systemic observation, not yet acted on**: the first three defects share one cause — a plan's `Status:` line
+    gets written *before* the commit exists, saying "not yet committed", and is never revisited afterward. The
+    existing AGENTS.md rule already covers it in principle; what would actually prevent it is not putting
+    commit state in a plan's Status line at all (it's guaranteed to go stale), or having `/done` check for it.
+    Left as an observation for the user to decide on rather than unilaterally adding another rule.
+  - **README restructured**: new "After Generating: What's Yours vs. the Framework's" section (three-tier table,
+    the `docs/guides/` rule, the two files the framework can't update for you), and "Framework Versioning &
+    Upgrades" split from one prose wall into a 6-step workflow, a table decoding all 7 output buckets, a Cautions
+    list, and a framework-contributor note. Bucket names verified against `upgrade.py`'s actual output strings
+    rather than written from memory.
 - `agentic-eacc-mcp-server` (external project) — **not present on this machine.** The user confirmed 2026-07-26
   that this project was worked on on a different laptop; they don't know why this repo's `STATUS.md` had been
   carrying a note about its `chore/harness-upgrade-1.2.0` branch. Searched this machine's filesystem — no such
