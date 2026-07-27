@@ -146,7 +146,7 @@ re-investigated.
 - [x] F3 — correct README:176–179 and the step-5 text at README:294
 - [x] F4 — record the deferral + un-defer trigger in `FRAMEWORK-CHANGELOG.md`
 - [x] `pnpm validate` + `node scripts/check-sync.mjs` green
-- [ ] Tell agentic-eacc-mcp-server that 1.6.1 ends its recurring `test_dependencies.py` `.new` — **not yet applied to that project**; it's still on 1.6.0. Its next upgrade run will deliver 1.6.1 as usual.
+- [x] Tell agentic-eacc-mcp-server that 1.6.1 ends its recurring `test_dependencies.py` `.new` — **applied and merged** the same day (`a8df888` on that project's `master`). Took the template wholesale; `--verify` confirms the file is no longer listed as customized, leaving `scripts/validate.ps1` as its only remaining one. Predicted outcome held exactly.
 
 ## Verification log (what actually ran, not just what the plan intended)
 

@@ -130,7 +130,11 @@ No active plan for the next session — start fresh, or pick up the small follow
   own `.workspace/worklog.md` (2026-07-27 row). **Merged to that project's `master` (fast-forward, now at
   `30e8715`)** — the merge also carried 3 pre-existing unmerged commits that had been sitting on the old
   `chore/harness-upgrade-1.2.0` branch (Phase 3A indexing fix + ADR 002 finalization), since the 1.6.0 branch was
-  cut from it rather than from `master`. Nothing further to do from this repo.
+  cut from it rather than from `master`. **Then upgraded again to 1.6.1** (`chore/harness-upgrade-1.6.1`, merged
+  fast-forward to its `master`, now at `a8df888`) — 1.6.1 exists *because of* this project's 1.6.0 upgrade (see
+  the changelog's F1), and applying it took the `tests/arch/test_dependencies.py` template wholesale, ending the
+  recurring `.new` that file had produced on every upgrade since 1.2.0. `scripts/validate.ps1` is now its only
+  customized framework file, for a real local reason. Nothing further to do from this repo.
   <details><summary>2026-07-26 note (superseded)</summary>Not present on this machine at the time; searched this
   machine's filesystem and found nothing. Since superseded by the above.</details>
 
