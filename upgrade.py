@@ -30,26 +30,72 @@ def normalized_hash(text: str) -> str:
     return hashlib.sha256(text.replace("\r\n", "\n").encode("utf-8")).hexdigest()
 
 
+# Headings seeded once at generation and expected to diverge with real
+# project content immediately -- never worth reporting as "missing" even
+# though they exist in harness-core/AGENTS.md too.
+_AGENTS_SECTIONS_PROJECT_OWNED = {
+    "Key Invariants (do not break)",
+    "Architecture",
+    "Coding Rules",
+    "Prohibited",
+}
+
+
+def extract_headings(path: str) -> list[str]:
+    """Top-level ('## ') Markdown heading text, in file order."""
+    if not os.path.isfile(path):
+        return []
+    headings = []
+    with open(path, "r", encoding="utf-8") as f:
+        for line in f:
+            if line.startswith("## "):
+                headings.append(line[3:].strip())
+    return headings
+
+
+def missing_agents_sections(project_dir: str, harness_core: str) -> list[str]:
+    """Framework-authored AGENTS.md sections the template has that the
+    project's copy doesn't. AGENTS.md is user-owned (upgrade never writes
+    it), so a section added by a later framework release never reaches an
+    existing project on its own -- this is advisory-only, derived from the
+    template itself rather than a hand-maintained list, so it can't drift
+    the way a separately-tracked list would.
+    """
+    template_headings = [
+        h for h in extract_headings(os.path.join(harness_core, "AGENTS.md"))
+        if h not in _AGENTS_SECTIONS_PROJECT_OWNED
+    ]
+    if not template_headings:
+        return []
+    project_headings = set(extract_headings(os.path.join(project_dir, "AGENTS.md")))
+    return [h for h in template_headings if h not in project_headings]
+
+
 def main() -> int:
     argv = sys.argv[1:]
     dry_run = "--dry-run" in argv
-    positional = [a for a in argv if a != "--dry-run"]
+    verify = "--verify" in argv
+    # Both are read-only (nothing written); --verify additionally always runs
+    # the full per-file classification (see the early-return note below) and
+    # exits non-zero if a previously-delivered file has since gone missing.
+    read_only = dry_run or verify
+    positional = [a for a in argv if a not in ("--dry-run", "--verify")]
     if len(positional) < 2:
-        print("Usage: upgrade.py <project_dir> <script_dir> [--dry-run]", file=sys.stderr)
+        print("Usage: upgrade.py <project_dir> <script_dir> [--dry-run] [--verify]", file=sys.stderr)
         return 1
     project_dir = os.path.abspath(positional[0])
     script_dir = os.path.abspath(positional[1])
     harness_core = os.path.join(script_dir, "harness-core")
 
     def write_text(path: str, content: str) -> None:
-        if dry_run:
+        if read_only:
             return
         os.makedirs(os.path.dirname(path), exist_ok=True)
         with open(path, "w", encoding="utf-8", newline="\n") as f:
             f.write(content)
 
     def remove_if_exists(path: str) -> None:
-        if dry_run:
+        if read_only:
             return
         if os.path.isfile(path):
             os.remove(path)
@@ -82,6 +128,8 @@ def main() -> int:
     print(f"Language    : {language or 'unknown (no .harness-meta.json)'}")
     if dry_run:
         print("Mode        : DRY RUN -- nothing will be written")
+    elif verify:
+        print("Mode        : VERIFY -- read-only check, nothing will be written")
     print()
 
     if not has_meta:
@@ -92,9 +140,14 @@ def main() -> int:
         print("! unconditionally this one run (review with git diff). Baselines will be recorded now")
         print("! so future upgrades can detect local customizations and protect them.")
 
-    if old_version == new_version and has_meta and has_baselines:
+    if old_version == new_version and has_meta and has_baselines and not read_only:
         print("OK: already up to date.")
         return 0
+    # --dry-run/--verify never take this shortcut, even when the version
+    # marker already matches -- a version string agreeing tells you nothing
+    # about whether individual managed files still match their templates
+    # (one could have been hand-reverted, or deleted, since the last real
+    # run). Both modes always run the full per-file classification below.
 
     # HARNESS-VERSION is handled separately below (unconditional marker bump,
     # no baseline/customization concept applies to it).
@@ -143,6 +196,12 @@ def main() -> int:
     merge_needed: list[str] = []
     newly_managed: list[str] = []
     skipped: list[str] = []
+    # Subset of `added` that isn't just "not delivered yet" -- these have a
+    # baseline recorded (meaning a past upgrade wrote them) but the file is
+    # gone from disk now, so something removed it after the fact. Drives
+    # --verify's exit code; a real/dry-run report still shows these under
+    # `added` as normal (self-healing on a real run is unaffected).
+    missing: list[str] = []
 
     for rel in files_to_update:
         src = resolve_source(rel)
@@ -185,6 +244,8 @@ def main() -> int:
                 new_baselines[rel] = new_hash
             remove_if_exists(new_dst)
             added.append(rel)
+            if has_baselines and rel in baselines:
+                missing.append(rel)
             continue
 
         baseline_hash = baselines.get(rel) if has_baselines else None
@@ -291,6 +352,13 @@ def main() -> int:
             print(f"  {f_}")
     if not (added or updated or overwritten or bootstrapped):
         print("OK: no file content changes (already current).")
+    if missing:
+        print()
+        print(f"! {len(missing)} of the above 'added' file(s) were previously delivered by an upgrade")
+        print("! and are now missing from the project (not just pending delivery) -- possible accidental")
+        print("! deletion. A real run restores them from the template:")
+        for f_ in missing:
+            print(f"  {f_}")
     if merge_needed:
         print()
         print(f"! {len(merge_needed)} file(s) customized locally -- left untouched, new template written as '<file>.new':")
@@ -324,7 +392,23 @@ def main() -> int:
         print("!   - AGENTS.md -> Workflow Prompts table")
         print("!   - CLAUDE.md -> Claude Code Extras command list")
 
+    missing_sections = missing_agents_sections(project_dir, harness_core)
+    if missing_sections:
+        print()
+        print(f"! {len(missing_sections)} AGENTS.md section(s) from the current template are missing from this")
+        print("! project's AGENTS.md -- it's user-owned, so upgrade never writes it for you. Add by hand")
+        print("! (see harness-core/AGENTS.md for the current wording), or ignore if deliberately dropped:")
+        for h in missing_sections:
+            print(f"  ## {h}")
+
     print()
+    if verify:
+        if missing:
+            print(f"FAIL: --verify found {len(missing)} previously-delivered file(s) missing. See above.")
+        else:
+            print("OK: --verify found no missing files (customized/newly-managed files above are fine --")
+            print("    they're a legitimate state, not a failure).")
+        return 1 if missing else 0
     if dry_run:
         print("! DRY RUN -- nothing was written. Re-run without --dry-run to apply.")
     else:

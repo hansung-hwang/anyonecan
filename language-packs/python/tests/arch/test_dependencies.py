@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import ast
 import re
+import sys
 from pathlib import Path
 
 ROOT_DIR = Path(__file__).parent.parent.parent
@@ -15,15 +16,11 @@ LAYER_ORDER: dict[str, int] = {
     "presentation": 3,
 }
 
-# Python standard-library allowlist (usable from the domain layer)
-STDLIB_ROOTS: set[str] = {
-    "os", "sys", "re", "json", "typing", "pathlib", "datetime",
-    "collections", "functools", "itertools", "abc", "dataclasses",
-    "enum", "math", "io", "logging", "uuid", "contextlib",
-    "copy", "hashlib", "time", "urllib", "http", "email",
-    "ast", "inspect", "types", "weakref", "threading", "string",
-    "__future__",
-}
+# Every standard-library top-level module name (usable from the domain layer).
+# Sourced from the interpreter itself (Python 3.10+) instead of a hand-maintained
+# list -- a hardcoded subset drifts (missing real stdlib modules a project legitimately
+# uses) without ever catching up, since nothing forces it to be revisited.
+STDLIB_ROOTS: frozenset[str] = sys.stdlib_module_names
 
 
 def collect_py_files(directory: Path) -> list[Path]:

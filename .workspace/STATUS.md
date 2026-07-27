@@ -122,10 +122,17 @@ No active plan for the next session — start fresh, or pick up the small follow
     Upgrades" split from one prose wall into a 6-step workflow, a table decoding all 7 output buckets, a Cautions
     list, and a framework-contributor note. Bucket names verified against `upgrade.py`'s actual output strings
     rather than written from memory.
-- `agentic-eacc-mcp-server` (external project) — **not present on this machine.** The user confirmed 2026-07-26
-  that this project was worked on on a different laptop; they don't know why this repo's `STATUS.md` had been
-  carrying a note about its `chore/harness-upgrade-1.2.0` branch. Searched this machine's filesystem — no such
-  project directory exists here. **Removed from this repo's tracking**; nothing to act on from this machine.
+- `agentic-eacc-mcp-server` (external project, `agentic-eacc-mcp-server/` in this repo's working tree) — **is now
+  present on this machine** as of 2026-07-27 (contradicts the 2026-07-26 note below, which is now stale — the
+  project must have been copied/cloned onto this machine between those two dates). 2026-07-27: upgraded its
+  harness from 1.3.0 to 1.6.0 on branch `chore/harness-upgrade-1.6.0` (commit `30e8715` in that project's own repo,
+  not this one — it's a separate git repository nested in this working tree, not a submodule). Full detail in its
+  own `.workspace/worklog.md` (2026-07-27 row). **Merged to that project's `master` (fast-forward, now at
+  `30e8715`)** — the merge also carried 3 pre-existing unmerged commits that had been sitting on the old
+  `chore/harness-upgrade-1.2.0` branch (Phase 3A indexing fix + ADR 002 finalization), since the 1.6.0 branch was
+  cut from it rather than from `master`. Nothing further to do from this repo.
+  <details><summary>2026-07-26 note (superseded)</summary>Not present on this machine at the time; searched this
+  machine's filesystem and found nothing. Since superseded by the above.</details>
 
 ## Next Steps
 

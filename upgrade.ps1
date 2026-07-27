@@ -2,7 +2,7 @@
 # upgrade.ps1 — Apply the latest harness-core / language-pack framework files
 # to an already-generated project (Windows).
 #
-# Usage: .\upgrade.ps1 -ProjectDir "C:\projects\my-app"
+# Usage: .\upgrade.ps1 -ProjectDir "C:\projects\my-app" [-DryRun] [-Verify]
 #
 # Only touches files listed in harness-core/harness-manifest.json
 # ("frameworkOwned" + the project's "languageSpecific" set). Never touches
@@ -22,8 +22,14 @@
 
 param(
     [Parameter(Mandatory = $true)][string]$ProjectDir,
-    [switch]$DryRun
+    [switch]$DryRun,
+    [switch]$Verify
 )
+
+# Both are read-only (nothing written); -Verify additionally always runs the
+# full per-file classification (see the early-return note below) and exits
+# non-zero if a previously-delivered file has since gone missing.
+$ReadOnly = $DryRun -or $Verify
 
 $ErrorActionPreference = "Stop"
 
@@ -54,14 +60,47 @@ function Get-NormalizedHash([string]$text) {
     return [System.BitConverter]::ToString($Sha256.ComputeHash($bytes)).Replace("-", "").ToLower()
 }
 
+# Headings seeded once at generation and expected to diverge with real
+# project content immediately -- never worth reporting as "missing" even
+# though they exist in harness-core/AGENTS.md too.
+$AgentsSectionsProjectOwned = @(
+    "Key Invariants (do not break)",
+    "Architecture",
+    "Coding Rules",
+    "Prohibited"
+)
+
+function Get-Headings([string]$Path) {
+    if (-not (Test-Path $Path)) { return @() }
+    $headings = @()
+    foreach ($line in Get-Content $Path) {
+        if ($line -like "## *") { $headings += $line.Substring(3).Trim() }
+    }
+    return $headings
+}
+
+function Get-MissingAgentsSections([string]$ProjectDir, [string]$HarnessCoreDir) {
+    # Framework-authored AGENTS.md sections the template has that the
+    # project's copy doesn't. AGENTS.md is user-owned (upgrade never writes
+    # it), so a section added by a later framework release never reaches an
+    # existing project on its own -- this is advisory-only, derived from the
+    # template itself rather than a hand-maintained list, so it can't drift
+    # the way a separately-tracked list would.
+    $templateHeadings = @(Get-Headings (Join-Path $HarnessCoreDir "AGENTS.md")) |
+        Where-Object { $AgentsSectionsProjectOwned -notcontains $_ }
+    if ($templateHeadings.Count -eq 0) { return @() }
+    $projectHeadings = @(Get-Headings (Join-Path $ProjectDir "AGENTS.md"))
+    return @($templateHeadings | Where-Object { $projectHeadings -notcontains $_ })
+}
+
 function Write-ManagedText([string]$Path, [string]$Content) {
-    if ($DryRun) { return }
+    if ($ReadOnly) { return }
     New-Item -ItemType Directory -Force -Path (Split-Path $Path -Parent) | Out-Null
     [System.IO.File]::WriteAllText($Path, $Content, $utf8NoBom)
 }
 
 function Remove-IfExists([string]$Path) {
-    if ($DryRun) { return }
+    if ($ReadOnly) { return }
     if (Test-Path $Path) { Remove-Item $Path -Force }
 }
 
@@ -83,6 +122,7 @@ Write-Info "Old version : $OldVersion"
 Write-Info "New version : $NewVersion"
 Write-Info "Language    : $(if ($Language) { $Language } else { 'unknown (no .harness-meta.json)' })"
 if ($DryRun) { Write-Info "Mode        : DRY RUN -- nothing will be written" }
+elseif ($Verify) { Write-Info "Mode        : VERIFY -- read-only check, nothing will be written" }
 Write-Host ""
 
 if (-not $HasMeta) {
@@ -94,10 +134,15 @@ if (-not $HasMeta) {
     Write-Warn "so future upgrades can detect local customizations and protect them."
 }
 
-if ($OldVersion -eq $NewVersion -and $HasMeta -and $HasBaselines) {
+if ($OldVersion -eq $NewVersion -and $HasMeta -and $HasBaselines -and -not $ReadOnly) {
     Write-Ok "Already up to date."
     exit 0
 }
+# -DryRun/-Verify never take this shortcut, even when the version marker
+# already matches -- a version string agreeing tells you nothing about
+# whether individual managed files still match their templates (one could
+# have been hand-reverted, or deleted, since the last real run). Both modes
+# always run the full per-file classification below.
 
 $Manifest = Get-Content $ManifestPath -Raw | ConvertFrom-Json
 
@@ -120,6 +165,12 @@ $Overwritten  = [System.Collections.Generic.List[string]]::new()
 $MergeNeeded  = [System.Collections.Generic.List[string]]::new()
 $NewlyManaged = [System.Collections.Generic.List[string]]::new()
 $Skipped      = [System.Collections.Generic.List[string]]::new()
+# Subset of $Added that isn't just "not delivered yet" -- these have a
+# baseline recorded (meaning a past upgrade wrote them) but the file is gone
+# from disk now, so something removed it after the fact. Drives -Verify's
+# exit code; a real/dry-run report still shows these under $Added as normal
+# (self-healing on a real run is unaffected).
+$Missing      = [System.Collections.Generic.List[string]]::new()
 $NewBaselines = [ordered]@{}
 
 function Resolve-Source([string]$rel) {
@@ -183,6 +234,9 @@ foreach ($rel in $FilesToUpdate) {
         if ($HasMeta) { $NewBaselines[$rel] = $newHash }
         Remove-IfExists $newDst
         $Added.Add($rel)
+        if ($HasBaselines -and ($Meta.baselines.PSObject.Properties.Name -contains $rel)) {
+            $Missing.Add($rel)
+        }
         continue
     }
 
@@ -307,6 +361,13 @@ if ($Bootstrapped.Count -gt 0) {
 if ($Added.Count -eq 0 -and $Updated.Count -eq 0 -and $Overwritten.Count -eq 0 -and $Bootstrapped.Count -eq 0) {
     Write-Ok "No file content changes (already current)."
 }
+if ($Missing.Count -gt 0) {
+    Write-Host ""
+    Write-Warn "$($Missing.Count) of the above 'added' file(s) were previously delivered by an upgrade"
+    Write-Warn "and are now missing from the project (not just pending delivery) -- possible accidental"
+    Write-Warn "deletion. A real run restores them from the template:"
+    foreach ($f in $Missing) { Write-Host "  $f" -ForegroundColor Yellow }
+}
 if ($MergeNeeded.Count -gt 0) {
     Write-Host ""
     Write-Warn "$($MergeNeeded.Count) file(s) customized locally — left untouched, new template written as '<file>.new':"
@@ -340,8 +401,25 @@ if ($NewCommands.Count -gt 0) {
     Write-Warn "  - CLAUDE.md -> Claude Code Extras command list"
 }
 
+$MissingSections = Get-MissingAgentsSections $ProjectDir $HarnessCoreDir
+if ($MissingSections.Count -gt 0) {
+    Write-Host ""
+    Write-Warn "$($MissingSections.Count) AGENTS.md section(s) from the current template are missing from this"
+    Write-Warn "project's AGENTS.md -- it's user-owned, so upgrade never writes it for you. Add by hand"
+    Write-Warn "(see harness-core/AGENTS.md for the current wording), or ignore if deliberately dropped:"
+    foreach ($h in $MissingSections) { Write-Host "  ## $h" -ForegroundColor Yellow }
+}
+
 Write-Host ""
-if ($DryRun) {
+if ($Verify) {
+    if ($Missing.Count -gt 0) {
+        Write-Error "FAIL: -Verify found $($Missing.Count) previously-delivered file(s) missing. See above."
+        exit 1
+    } else {
+        Write-Ok "-Verify found no missing files (customized/newly-managed files above are fine --"
+        Write-Ok "    they're a legitimate state, not a failure)."
+    }
+} elseif ($DryRun) {
     Write-Warn "DRY RUN -- nothing was written. Re-run without -DryRun to apply."
 } else {
     Write-Warn "Changes are NOT committed. Review with 'git diff' inside the project, then commit."

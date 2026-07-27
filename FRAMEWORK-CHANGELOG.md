@@ -10,6 +10,100 @@ they're pulling in.
 
 See `AGENTS.md` → "Framework Versioning" for the bump rule.
 
+## [1.6.1] - 2026-07-27
+
+**Python domain-purity check: stdlib allowlist replaced with `sys.stdlib_module_names`:**
+
+- Root cause: `language-packs/python/tests/arch/test_dependencies.py`'s `test_domain_purity`
+  gated "the domain layer must not import external libraries" behind a hand-written 30-name
+  `STDLIB_ROOTS` set. It was missing real stdlib modules (`calendar`, `zoneinfo` confirmed
+  missing) — a false positive on ordinary standard-library usage, not third-party code, the
+  thing the check was actually meant to catch.
+- Found via a real project upgrade (`agentic-eacc-mcp-server`, 1.3.0 → 1.6.0): its
+  `domain/clock.py` (`zoneinfo`) and `domain/relative_date.py` (`calendar`) tripped this
+  false positive, and the only available fix at the time was editing the framework-owned
+  file directly — which permanently reclassifies it as "customized," so it now regenerates a
+  `.new` on every future upgrade indefinitely. The same project had already re-added the same
+  two names once before, during its 1.2.0 → 1.3.0 upgrade — this cost it manual work twice.
+- Fix: `STDLIB_ROOTS` now reads `sys.stdlib_module_names` (297 names, Python 3.10+; the pack
+  requires `>=3.12`) instead of a hardcoded subset, so it can't go stale the same way again.
+  The check's intent is unchanged (still blocks third-party packages in `domain/`); the
+  allowlist already contained `os`/`urllib`/`http`/`threading`, so this doesn't newly permit
+  a class of import the check was ever trying to exclude.
+- Does **not** retroactively fix already-upgraded projects with a customized copy of this
+  file (like `agentic-eacc-mcp-server`) — their next upgrade will still offer 1.6.1's version
+  as a `.new`. Once merged, their file becomes byte-identical to the template again and the
+  recurring `.new` ends for good.
+- Verified against a real generated project (not simulation): swapped the new template into
+  `agentic-eacc-mcp-server`'s `tests/arch/test_dependencies.py` in place — `test_domain_purity`
+  passed with `calendar`/`zoneinfo` present and no manual allowlist edit; a negative control
+  (injecting a genuine third-party import, `numpy`, into a domain-layer file) still failed the
+  same test. Trial files discarded, project's committed file left untouched (`git status`
+  clean afterward).
+- Full design record, including F2/F3 (below, same session) and F4 (deliberately deferred, same
+  n=2 bar 1.5.0 used for `check-agent-scope`): `.workspace/plans/2026-07-27-upgrade-feedback-from-eacc-1.6.0.md`.
+
+## Tooling - 2026-07-27 (no `HARNESS-VERSION` bump)
+
+**`upgrade --verify` + `AGENTS.md` missing-section reporting:**
+
+`upgrade.py`/`upgrade.ps1`/`upgrade.sh` are framework-repo tooling, never copied into a
+generated project, so per `AGENTS.md` → Framework Versioning this doesn't require a version
+bump — same precedent as the 1.6.0-era `--dry-run` work. Both fixes came from the same
+`agentic-eacc-mcp-server` 1.6.0 upgrade session that produced 1.6.1 above.
+
+- **`--verify` (`-Verify` on Windows), all three entry points**: a read-only mode for
+  scripting, distinct from `--dry-run`'s preview-for-a-human framing. Exits non-zero only if a
+  file the framework previously delivered (has a baseline entry) is now absent from the
+  project — a customized or newly-managed file is a legitimate state, not a failure, so
+  neither triggers a non-zero exit.
+- **Closed a real blind spot shared by `--verify` and `--dry-run`**: both previously inherited
+  the same early-return as a normal run — if the project's `HARNESS-VERSION` already matched
+  the framework's, the script printed "already up to date" and returned before classifying a
+  single file. A version string agreeing says nothing about whether an individual managed file
+  still matches its template; this session's own `--dry-run` run against an already-upgraded
+  project produced exactly that uninformative result, and verifying the upgrade actually took a
+  throwaway hash-diff script instead. Fixed by skipping the early-return for `--dry-run`/
+  `--verify` only (a plain no-flag run keeps the old fast-path, unchanged, since that's a
+  write-mode command where speed is the point and nothing was reported as broken about it).
+- **`AGENTS.md` missing-section advisory**: `upgrade` now compares a project's `AGENTS.md`
+  headings against `harness-core/AGENTS.md`'s and prints any framework-authored section the
+  project doesn't have (excluding the seeded-at-generation, project-owned headings: Key
+  Invariants, Architecture, Coding Rules, Prohibited). `AGENTS.md` stays user-owned and
+  unwritten either way — this only reports. Closes a real gap: 1.4.0's "Handoff and Reporting"
+  and 1.6.0's "File Ownership" both shipped as new template sections with no mechanism telling
+  an existing project they existed, beyond the pre-existing new-slash-command reminder (which
+  only covers `.claude/commands/*.md`, not `AGENTS.md` prose). Found by hand this session,
+  diffing `agentic-eacc-mcp-server`'s `AGENTS.md` headings against the template manually — the
+  gap this change closes.
+- **Derived, not hand-maintained**: the missing-section list comes from parsing
+  `harness-core/AGENTS.md`'s own `## ` headings at run time, not a separately tracked list in
+  the manifest. A hand-copied list is exactly the drift failure mode `AGENTS.md`'s own Framework
+  Versioning section already warns about (it happened to that section's own prose twice); this
+  avoids adding a fourth copy to keep in sync.
+- Verified against the real `agentic-eacc-mcp-server` project (not simulation), all three
+  entry points: `--dry-run`/`--verify` no longer short-circuit on a version match and correctly
+  report its 2 genuinely customized files; a deliberately deleted previously-delivered file
+  (`.claude/commands/adr.md`) was correctly flagged as missing with a non-zero `--verify` exit,
+  while a file with no baseline entry (simulating "never delivered yet") was correctly treated
+  as ordinary pending delivery, not a failure; confirmed neither read-only mode wrote anything
+  to disk in either case. Missing-section detection verified against the real project in both
+  directions: zero false positives at its current state (both sections already added), and a
+  temporarily-stripped copy of one section correctly reported as missing, in both `upgrade.py`
+  and `upgrade.ps1` (PowerShell syntax-parsed clean via
+  `[System.Management.Automation.Language.Parser]::ParseFile`). All trial edits were made
+  in-place and restored via `git checkout` immediately after, confirmed by a clean `git status`
+  each time — no lasting changes to the project used for verification.
+- Full design record: `.workspace/plans/2026-07-27-upgrade-feedback-from-eacc-1.6.0.md`.
+
+**F4 (retiring a removed/renamed framework-owned manifest path) — deliberately deferred, not
+forgotten:** no framework release has yet needed to retire a managed path, so this is a
+zero-incident, real-but-hypothetical gap. Declining to build `retired`-path handling now on the
+same n=2 bar 1.5.0 used to defer `check-agent-scope` in its own changelog entry — one project's
+upgrade surfacing the *shape* of a future problem isn't the same as a second real occurrence
+needing the fix. **Un-defer trigger**: the first release that actually needs to retire a
+manifest path, at which point there's a concrete case to design against instead of a guess.
+
 ## [1.6.0] - 2026-07-26
 
 **File ownership rules — tell projects what they may edit:**

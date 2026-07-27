@@ -174,9 +174,14 @@ belong in the `*project-rules*` file, never appended into the
 framework-owned `*dependencies*` one.)
 
 **Two things you own that the framework can't update for you:** `AGENTS.md`
-and `CLAUDE.md`. When an upgrade delivers a new slash command, it prints a
-reminder that you need to add it to `AGENTS.md`'s Workflow Prompts table and
-`CLAUDE.md`'s command list by hand.
+and `CLAUDE.md`. `upgrade` prints a reminder by hand in two cases: a new
+slash command (add it to `AGENTS.md`'s Workflow Prompts table and
+`CLAUDE.md`'s command list), and a new `AGENTS.md` **section** shipped by a
+later framework release — 1.4.0's "Handoff and Reporting" and 1.6.0's "File
+Ownership" both landed this way, and a project generated before either
+release won't have them unless you add them yourself. `upgrade`/`--dry-run`/
+`--verify` all compare your `AGENTS.md`'s headings against the current
+template and list any that are missing.
 
 ---
 
@@ -277,13 +282,21 @@ git checkout -b chore/harness-upgrade
 ```
 
 **2. Preview with `--dry-run`** (`-DryRun` on Windows). It runs the *exact
-same* classification logic as a real run and writes **zero** bytes — always
-safe, on any project, at any time.
+same* per-file classification a real run does — including when your version
+marker already matches the framework's, so a file that was hand-reverted or
+deleted since your last upgrade still gets caught — and writes **zero**
+bytes. Always safe, on any project, at any time.
 
 ```bash
 .\upgrade.ps1 -ProjectDir "C:\projects\my-service" -DryRun   # Windows
 ./upgrade.sh /path/to/my-service --dry-run                   # Mac / Linux
 ```
+
+Related: **`--verify`** (`-Verify`) runs the same read-only classification
+but is meant for scripting rather than reading — it exits non-zero only if a
+file the framework previously delivered has since gone missing (a
+customized or newly-managed file is a legitimate state, not a failure).
+Useful in CI as a "did something delete a managed file" check.
 
 **3. Read the preview** (see the table below), then run it for real — same
 command, without the flag.
@@ -291,8 +304,10 @@ command, without the flag.
 **4. Resolve any `.new` files.** Diff each against your version, merge by
 hand, delete the `.new`. Nothing is finished while a `.new` remains.
 
-**5. Register new slash commands** in `AGENTS.md` / `CLAUDE.md` if the run
-reported any — those files are yours, so `upgrade` can't do it for you.
+**5. Register new slash commands, and add any missing `AGENTS.md` sections,**
+if the run reported either — those files are yours, so `upgrade` can't edit
+them for you. Both are printed the same way: a list of what's missing and
+where it belongs.
 
 **6. Validate and commit.** Run your project's own `./scripts/validate.sh`,
 confirm `git diff` shows nothing you didn't expect, then commit.
@@ -308,6 +323,8 @@ confirm `git diff` shows nothing you didn't expect, then commit.
 | `newly managed by the framework … <file>.new` | The framework claimed a path where **you already had a file**. Yours kept | merge the `.new`, then delete it |
 | `overwritten (no baseline recorded)` | Pre-1.3.0 project, one-time migration | review with `git diff` |
 | `skipped` | Source missing, or needs metadata this project lacks | usually harmless; read the reason |
+| `… were previously delivered … now missing` | A managed file the framework wrote before is gone from disk | real run restores it; `--verify` exits non-zero on this |
+| `AGENTS.md section(s) … missing` | A framework-authored section (e.g. 1.4.0's Handoff and Reporting, 1.6.0's File Ownership) isn't in your `AGENTS.md` | add it by hand, or ignore if deliberate |
 
 Once a merged file matches its template exactly, the next run treats it as
 caught up, advances its baseline, and deletes the stray `.new` automatically
