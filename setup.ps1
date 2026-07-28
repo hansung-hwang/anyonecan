@@ -226,13 +226,13 @@ if ($SelectedPack.postGenerate -eq "java-packages") {
 
 # ── 5b. Write .harness-meta.json (lets upgrade.ps1 re-render templated files
 #         and detect local customizations later) ──
-$HarnessVersion = (Get-Content (Join-Path $HarnessCoreDir "HARNESS-VERSION") -Raw).Trim()
+$HarnessVersion = (Get-Content (Join-Path $HarnessCoreDir "HARNESS-VERSION") -Raw -Encoding UTF8).Trim()
 
 # Baseline hash (LF-normalized SHA-256) of every file upgrade.ps1 is allowed to
 # overwrite, recorded at generation time. On a later upgrade, a file whose hash
 # no longer matches its baseline was customized by the project -- upgrade
 # leaves it alone instead of silently discarding the change.
-$ManifestForBaselines = Get-Content (Join-Path $HarnessCoreDir "harness-manifest.json") -Raw | ConvertFrom-Json
+$ManifestForBaselines = Get-Content (Join-Path $HarnessCoreDir "harness-manifest.json") -Raw -Encoding UTF8 | ConvertFrom-Json
 $BaselineFiles = [System.Collections.Generic.List[string]]::new()
 foreach ($rel in $ManifestForBaselines.frameworkOwned) { if ($rel -ne "HARNESS-VERSION") { $BaselineFiles.Add($rel) } }
 $langFilesForBaseline = $ManifestForBaselines.languageSpecific.$Language
@@ -247,6 +247,52 @@ foreach ($rel in $BaselineFiles) {
     $normalized = ($raw -replace "`r`n", "`n")
     $hash = [System.BitConverter]::ToString($Sha256.ComputeHash([System.Text.Encoding]::UTF8.GetBytes($normalized))).Replace("-", "").ToLower()
     $Baselines[$rel] = $hash
+}
+
+# Record a hash of every framework-authored AGENTS.md section this project
+# has at generation time, so upgrade.ps1/upgrade.py never see a "first run"
+# gap -- without this, a freshly generated project would get zero drift
+# reporting until whatever release happens to follow generation. Same
+# excluded set as upgrade's missing-section check (seeded once, expected to
+# diverge from the template immediately, never worth tracking).
+$AgentsSectionsProjectOwned = @(
+    "Key Invariants (do not break)",
+    "Architecture",
+    "Coding Rules",
+    "Prohibited"
+)
+$AgentsTemplateSections = [ordered]@{}
+$templateAgentsPath = Join-Path $HarnessCoreDir "AGENTS.md"
+if (Test-Path $templateAgentsPath) {
+    $sectionBodies = [ordered]@{}
+    $currentHeading = $null
+    $sb = $null
+    # -Encoding UTF8 required -- Get-Content's default follows the system
+    # codepage and silently mangles non-ASCII bytes (em-dashes, curly quotes,
+    # any non-English heading) without it on a non-UTF8-codepage Windows box.
+    foreach ($line in Get-Content $templateAgentsPath -Encoding UTF8) {
+        if ($line -like "## *") {
+            if ($null -ne $currentHeading) { $sectionBodies[$currentHeading] = $sb.ToString() }
+            $currentHeading = $line.Substring(3).Trim()
+            $sb = New-Object System.Text.StringBuilder
+        } elseif ($null -ne $currentHeading) {
+            [void]$sb.Append($line).Append("`n")
+        }
+    }
+    if ($null -ne $currentHeading) { $sectionBodies[$currentHeading] = $sb.ToString() }
+
+    $generatedHeadings = @()
+    foreach ($line in Get-Content (Join-Path $OutputDir "AGENTS.md") -Encoding UTF8) {
+        if ($line -like "## *") { $generatedHeadings += $line.Substring(3).Trim() }
+    }
+
+    foreach ($heading in $sectionBodies.Keys) {
+        if ($AgentsSectionsProjectOwned -contains $heading) { continue }
+        if ($generatedHeadings -notcontains $heading) { continue }
+        $normalized = ($sectionBodies[$heading] -replace "`r`n", "`n")
+        $hash = [System.BitConverter]::ToString($Sha256.ComputeHash([System.Text.Encoding]::UTF8.GetBytes($normalized))).Replace("-", "").ToLower()
+        $AgentsTemplateSections[$heading] = $hash
+    }
 }
 $Sha256.Dispose()
 
@@ -268,6 +314,7 @@ if ($ProjectMode -eq "team") {
 }
 $MetaOrdered["harnessVersion"] = $HarnessVersion
 $MetaOrdered["baselines"] = $Baselines
+$MetaOrdered["agentsTemplateSections"] = $AgentsTemplateSections
 $MetaJson = $MetaOrdered | ConvertTo-Json -Depth 6
 [System.IO.File]::WriteAllText((Join-Path $OutputDir ".harness-meta.json"), $MetaJson, $utf8NoBom)
 

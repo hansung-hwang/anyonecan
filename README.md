@@ -174,14 +174,20 @@ belong in the `*project-rules*` file, never appended into the
 framework-owned `*dependencies*` one.)
 
 **Two things you own that the framework can't update for you:** `AGENTS.md`
-and `CLAUDE.md`. `upgrade` prints a reminder by hand in two cases: a new
+and `CLAUDE.md`. `upgrade` prints a reminder by hand in three cases: a new
 slash command (add it to `AGENTS.md`'s Workflow Prompts table and
-`CLAUDE.md`'s command list), and a new `AGENTS.md` **section** shipped by a
+`CLAUDE.md`'s command list); a new `AGENTS.md` **section** shipped by a
 later framework release — 1.4.0's "Handoff and Reporting" and 1.6.0's "File
 Ownership" both landed this way, and a project generated before either
-release won't have them unless you add them yourself. `upgrade`/`--dry-run`/
-`--verify` all compare your `AGENTS.md`'s headings against the current
-template and list any that are missing.
+release won't have them unless you add them yourself; and, since 1.7.0, a
+section your `AGENTS.md` **already has** whose *template body* changed since
+your last upgrade — the heading matches so nothing looks missing, but the
+framework's own wording moved on. `upgrade`/`--dry-run`/`--verify` all
+compare your `AGENTS.md`'s headings against the current template for the
+first two, and a per-section content hash (recorded in `.harness-meta.json`,
+never comparing your own prose) for the third — so a section you translated
+or rewrote never gets flagged as if it were wrong, only ever "the framework's
+version changed, go look".
 
 ---
 
@@ -325,6 +331,7 @@ confirm `git diff` shows nothing you didn't expect, then commit.
 | `skipped` | Source missing, or needs metadata this project lacks | usually harmless; read the reason |
 | `… were previously delivered … now missing` | A managed file the framework wrote before is gone from disk | real run restores it; `--verify` exits non-zero on this |
 | `AGENTS.md section(s) … missing` | A framework-authored section (e.g. 1.4.0's Handoff and Reporting, 1.6.0's File Ownership) isn't in your `AGENTS.md` | add it by hand, or ignore if deliberate |
+| `AGENTS.md section(s) you already have changed …` | A section you already have moved on in the template since your last upgrade (1.7.0+) | diff against `harness-core/AGENTS.md`, pull in by hand if it applies to you |
 
 Once a merged file matches its template exactly, the next run treats it as
 caught up, advances its baseline, and deletes the stray `.new` automatically

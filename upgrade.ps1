@@ -71,12 +71,73 @@ $AgentsSectionsProjectOwned = @(
 )
 
 function Get-Headings([string]$Path) {
+    # -Encoding UTF8 is required, not cosmetic: Get-Content's default encoding
+    # follows the system's active codepage, which silently mangles non-ASCII
+    # bytes (found via this feature's own verification -- a Korean project's
+    # heading, or any em-dash/curly-quote in template prose, corrupts to "?"
+    # without it on a non-UTF8-codepage Windows box).
     if (-not (Test-Path $Path)) { return @() }
     $headings = @()
-    foreach ($line in Get-Content $Path) {
+    foreach ($line in Get-Content $Path -Encoding UTF8) {
         if ($line -like "## *") { $headings += $line.Substring(3).Trim() }
     }
     return $headings
+}
+
+function Get-Sections([string]$Path) {
+    # Top-level ('## ') sections as {heading: body}. Body is every line
+    # between a heading and the next '## ' heading (or EOF), each line
+    # followed by "`n" -- matching how upgrade.py's `extract_sections()`
+    # reconstructs a section from Python's line iteration (which keeps each
+    # line's own trailing "\n"), so both scripts hash identical bytes for
+    # identical template content. -Encoding UTF8 required -- see Get-Headings.
+    if (-not (Test-Path $Path)) { return @{} }
+    $result = [ordered]@{}
+    $current = $null
+    $sb = $null
+    foreach ($line in Get-Content $Path -Encoding UTF8) {
+        if ($line -like "## *") {
+            if ($null -ne $current) { $result[$current] = $sb.ToString() }
+            $current = $line.Substring(3).Trim()
+            $sb = New-Object System.Text.StringBuilder
+        } elseif ($null -ne $current) {
+            [void]$sb.Append($line).Append("`n")
+        }
+    }
+    if ($null -ne $current) { $result[$current] = $sb.ToString() }
+    return $result
+}
+
+function Get-ChangedAgentsTemplateSections([string]$ProjectDir, [string]$HarnessCoreDir, $Meta) {
+    # Framework-authored AGENTS.md sections the project already has, whose
+    # *template body* changed since this project's last recorded hash for
+    # that section. Hashes only the template's body, never the project's own
+    # prose -- so a section the project translated or deliberately rewrote
+    # never false-positives here, same principle as Get-MissingAgentsSections
+    # not flagging a renamed heading. The check only ever claims "the
+    # framework's version of this changed, go look", never "yours is wrong".
+    #
+    # A section with no prior recorded hash (first run under this feature, or
+    # a section the project doesn't have yet) is recorded silently and not
+    # reported -- there is no "since your last upgrade" baseline yet, and
+    # reporting every historical change at once on first run would be exactly
+    # the noise that trains people to ignore the advisory.
+    if ($null -eq $Meta) { return @{ Changed = @(); Hashes = @{} } }
+    $templateSections = Get-Sections (Join-Path $HarnessCoreDir "AGENTS.md")
+    $trackedNames = @($templateSections.Keys | Where-Object { $AgentsSectionsProjectOwned -notcontains $_ })
+    if ($trackedNames.Count -eq 0) { return @{ Changed = @(); Hashes = @{} } }
+    $projectHeadings = @(Get-Headings (Join-Path $ProjectDir "AGENTS.md"))
+    $recorded = if ($Meta.PSObject.Properties.Name -contains "agentsTemplateSections") { $Meta.agentsTemplateSections } else { $null }
+    $changed = [System.Collections.Generic.List[string]]::new()
+    $newHashes = [ordered]@{}
+    foreach ($heading in $trackedNames) {
+        if ($projectHeadings -notcontains $heading) { continue }
+        $currentHash = Get-NormalizedHash $templateSections[$heading]
+        $priorHash = if ($recorded -and ($recorded.PSObject.Properties.Name -contains $heading)) { $recorded.$heading } else { $null }
+        if ($priorHash -and $priorHash -ne $currentHash) { $changed.Add($heading) }
+        $newHashes[$heading] = $currentHash
+    }
+    return @{ Changed = @($changed); Hashes = $newHashes }
 }
 
 function Get-MissingAgentsSections([string]$ProjectDir, [string]$HarnessCoreDir) {
@@ -108,13 +169,14 @@ if (-not (Test-Path $ManifestPath)) { Write-Error "harness-manifest.json not fou
 
 $MetaPath = Join-Path $ProjectDir ".harness-meta.json"
 $HasMeta  = Test-Path $MetaPath
-$Meta     = if ($HasMeta) { Get-Content $MetaPath -Raw | ConvertFrom-Json } else { $null }
+$Meta     = if ($HasMeta) { Get-Content $MetaPath -Raw -Encoding UTF8 | ConvertFrom-Json } else { $null }
 $Language = if ($Meta) { $Meta.language } else { $null }
 $HasBaselines = $HasMeta -and $Meta.PSObject.Properties.Name -contains "baselines" -and $Meta.baselines
+$ChangedSectionsResult = Get-ChangedAgentsTemplateSections $ProjectDir $HarnessCoreDir $Meta
 
 $OldVersionPath = Join-Path $ProjectDir "HARNESS-VERSION"
-$OldVersion = if (Test-Path $OldVersionPath) { (Get-Content $OldVersionPath -Raw).Trim() } else { "unknown (pre-versioning)" }
-$NewVersion = (Get-Content (Join-Path $HarnessCoreDir "HARNESS-VERSION") -Raw).Trim()
+$OldVersion = if (Test-Path $OldVersionPath) { (Get-Content $OldVersionPath -Raw -Encoding UTF8).Trim() } else { "unknown (pre-versioning)" }
+$NewVersion = (Get-Content (Join-Path $HarnessCoreDir "HARNESS-VERSION") -Raw -Encoding UTF8).Trim()
 
 Write-Header "Harness Upgrade"
 Write-Info "Project     : $ProjectDir"
@@ -144,7 +206,7 @@ if ($OldVersion -eq $NewVersion -and $HasMeta -and $HasBaselines -and -not $Read
 # have been hand-reverted, or deleted, since the last real run). Both modes
 # always run the full per-file classification below.
 
-$Manifest = Get-Content $ManifestPath -Raw | ConvertFrom-Json
+$Manifest = Get-Content $ManifestPath -Raw -Encoding UTF8 | ConvertFrom-Json
 
 # HARNESS-VERSION is handled separately below (unconditional marker bump, no
 # baseline/customization concept applies to it).
@@ -335,6 +397,11 @@ if ($HasMeta) {
     } else {
         $Meta | Add-Member -MemberType NoteProperty -Name "harnessVersion" -Value $NewVersion
     }
+    if ($Meta.PSObject.Properties.Name -contains "agentsTemplateSections") {
+        $Meta.agentsTemplateSections = $ChangedSectionsResult.Hashes
+    } else {
+        $Meta | Add-Member -MemberType NoteProperty -Name "agentsTemplateSections" -Value $ChangedSectionsResult.Hashes
+    }
     $MetaJson = $Meta | ConvertTo-Json -Depth 6
     Write-ManagedText $MetaPath $MetaJson
 }
@@ -406,8 +473,21 @@ if ($MissingSections.Count -gt 0) {
     Write-Host ""
     Write-Warn "$($MissingSections.Count) AGENTS.md section(s) from the current template are missing from this"
     Write-Warn "project's AGENTS.md -- it's user-owned, so upgrade never writes it for you. Add by hand"
-    Write-Warn "(see harness-core/AGENTS.md for the current wording), or ignore if deliberately dropped:"
+    Write-Warn "(see harness-core/AGENTS.md for the current wording). Matched by exact heading text, so a"
+    Write-Warn "translated or renamed heading (e.g. a non-English AGENTS.md) shows up here even if the"
+    Write-Warn "section already exists under a different name -- check before adding a duplicate. Otherwise"
+    Write-Warn "ignore if deliberately dropped:"
     foreach ($h in $MissingSections) { Write-Host "  ## $h" -ForegroundColor Yellow }
+}
+
+$ChangedSections = @($ChangedSectionsResult.Changed)
+if ($ChangedSections.Count -gt 0) {
+    Write-Host ""
+    Write-Warn "$($ChangedSections.Count) AGENTS.md section(s) you already have changed in the current template"
+    Write-Warn "since this project's last upgrade -- AGENTS.md is user-owned, so upgrade never writes it for"
+    Write-Warn "you. This only means the framework's version changed, not that yours is wrong; diff against"
+    Write-Warn "harness-core/AGENTS.md and pull in the change by hand if it applies to you:"
+    foreach ($h in $ChangedSections) { Write-Host "  ## $h" -ForegroundColor Yellow }
 }
 
 Write-Host ""

@@ -10,6 +10,106 @@ they're pulling in.
 
 See `AGENTS.md` → "Framework Versioning" for the bump rule.
 
+## [1.7.0] - 2026-07-28
+
+**`upgrade`: detect when a template `AGENTS.md` section's body changed, not just whether it's missing:**
+
+- 1.6.1 could only tell a project that a framework-authored `AGENTS.md` section was entirely
+  *absent*. It said nothing when a section the project already has had its *body* quietly
+  move on in a later release — the heading matches on both sides, so nothing looked wrong.
+- Measured before building anything: across `harness-core/AGENTS.md`'s full history, "heading
+  stayed, body changed" happened **11 times** in 8 of the file's 10 revising commits. After
+  discounting what other mechanisms already cover (`Coding Rules` is project-owned; 3 of the
+  `Workflow Prompts` changes are already covered by the new-slash-command reminder), **8 events
+  were genuinely undetected** — more than double the 4 *missing-section* events 1.6.1 built
+  tooling for. Confirmed with a live instance: `Homographormer`'s `Work Journal` was missing a
+  sentence the template gained in the 1.4.0 era; fixed by hand this session, but nothing had
+  told the project it was stale.
+- **Core design property, carried over from 1.6.1's own lesson**: hash the *template's*
+  section body, never the project's own prose. A translated or deliberately rewritten section
+  (like a Korean project's own `Handoff and Reporting`) never false-positives here — the same
+  principle that stops 1.6.1's missing-section check from flagging a renamed heading. The
+  advisory only ever claims "the framework's version of this changed, go look", never "yours
+  is wrong".
+- New `.harness-meta.json` key `agentsTemplateSections` (section name → hash of the
+  template's body as of the project's last upgrade). A section with no recorded hash yet
+  (first run under this feature, or a section the project doesn't have) is recorded silently,
+  not reported — there's no "since your last upgrade" baseline to compare against, and
+  dumping every historical change on first run would train people to ignore the channel.
+  `setup.ps1`/`setup.sh` record this map at generation time so a freshly generated project
+  never hits that first-run gap at all.
+- **Real bug found and fixed during verification, not by inspection**: a freshly generated
+  test project reported 5 sections "changed" seconds after being generated from the exact
+  template it was just stamped from. Root cause: `Get-Content` in PowerShell defaults to the
+  system's active codepage, not UTF-8 — on this non-English-codepage Windows box it silently
+  mangled em-dashes and other non-ASCII template prose into `?`, producing a hash mismatch
+  against the correctly-UTF-8-read Python side. Fixed every `Get-Content` call in
+  `upgrade.ps1`/`setup.ps1` that reads UTF-8 template/project content to specify
+  `-Encoding UTF8` explicitly. This also silently fixes a **pre-existing, independent bug**
+  from 1.6.1: `Get-Headings` (the missing-section check's own heading reader) had the same gap
+  — any non-English `AGENTS.md` heading read via `upgrade.ps1` was at risk of the identical
+  corruption, and `.harness-meta.json` itself (author names, `commentLanguage` values like
+  "한국어 (Korean)") was being silently mangled on every `upgrade.ps1` run against a non-English
+  project and re-written corrupted. Neither had been exercised by 1.6.1's own verification,
+  which only used ASCII English content.
+- **Why this required a version bump when 1.6.0's `--dry-run` and 1.6.1's `--verify` didn't**:
+  none of `upgrade.py`/`upgrade.ps1`/`upgrade.sh`/`setup.ps1`/`setup.sh`/`.harness-meta.json`
+  are manifest-owned, so the letter of the versioning rule doesn't require a bump. But
+  `upgrade.py`'s own early return (`if old_version == new_version and has_meta and
+  has_baselines and not read_only: return 0`) means a plain write-mode run on an
+  already-current project exits before this feature's hash-recording code ever runs — the
+  feature would ship permanently dormant for every project already caught up, including the
+  one it was built for. `--dry-run`/`--verify` bypass that early return but are read-only by
+  contract and can't establish the baseline either. Bumping to 1.7.0 is what makes the feature
+  reachable, not a visibility preference.
+- Verified against real generation and real projects, not simulation: a project generated
+  fresh via the fixed `setup.ps1` reports zero changed/missing sections immediately; a
+  deliberate mutation of a template section's body (`Steering Loop`) was correctly detected by
+  name in both `upgrade.py --verify` and `upgrade.ps1 -Verify`, with the mutation reverted via
+  `git checkout` afterward and confirmed clean; `--dry-run`/real-mode-with-matching-versions
+  both confirmed to write nothing to `.harness-meta.json`, by diffing the file before and
+  after.
+- Full design record, including the ratified S0 decisions (per-section vs. whole-file
+  hashing, the exclusion set, first-run-silent behavior) and the version-bump reasoning above
+  stated in full: `.workspace/plans/2026-07-28-agents-section-drift-detection.md`.
+
+## Tooling - 2026-07-28 (no `HARNESS-VERSION` bump)
+
+**`AGENTS.md` missing-section advisory: honest about its own limitation:**
+
+`upgrade.py`/`upgrade.ps1` (`upgrade.sh` delegates to `upgrade.py`, so only two files needed
+the edit) are framework-repo tooling, never copied into a generated project, so per `AGENTS.md`
+→ Framework Versioning this doesn't require a version bump — same precedent as `--dry-run`
+(1.6.0) and `--verify` (1.6.1).
+
+- Found applying 1.6.1 to `Homographormer` (Korean-language project): its `AGENTS.md` has
+  translated the "Handoff and Reporting" heading to `## 핸드오프·보고 규약` — the section
+  genuinely exists, translated, but 1.6.1's missing-section advisory (exact heading-text match)
+  reported it as missing anyway, indistinguishable in the printed output from a section that
+  was never added at all.
+- Not fixed by detecting translations — no reliable, low-cost way to do that from heading text
+  alone, and the false positive is harmless (advisory-only, doesn't affect `--verify`'s exit
+  code). Fixed by making the message honest about what the check actually does: added a line
+  to both entry points' advisory text stating the match is by exact heading text, so a
+  translated or renamed heading will show up here even though the section already exists —
+  check before adding a duplicate.
+- **Deliberately deferred, not built now**: an alias map in `.harness-meta.json`
+  (`agentsSectionAliases: {"Handoff and Reporting": "핸드오프·보고 규약"}`) would resolve this
+  for real, at the cost of upgrade needing to read and trust project-declared state for a
+  check that's currently pure template-vs-project comparison. One confirmed occurrence so far
+  (`Homographormer`) — deferring on the same n=2 bar this changelog already uses for
+  `check-agent-scope` (1.5.0) and F4 (below, in 1.6.1's entry). **Un-defer trigger**: a second
+  non-English project hitting the same false positive.
+- **Separately noted, not addressed here**: this advisory only detects a *missing* heading, not
+  a template section whose *body* changed since a project's last upgrade while the heading
+  stayed put (confirmed happening in practice — `Homographormer`'s "Work Journal" section
+  predates a 1.4.0-era sentence in the template about where newly-learned rules get appended,
+  and the advisory says nothing about it since both projects have the heading). Real gap,
+  bigger than the translation case since it's language-independent, but a genuinely new
+  feature (would need per-section content hashes recorded in `.harness-meta.json`, analogous
+  to the existing per-file baseline hashes) — not a wording fix, so out of scope for this
+  same-day change. Candidate for its own future plan.
+
 ## [1.6.1] - 2026-07-27
 
 **Python domain-purity check: stdlib allowlist replaced with `sys.stdlib_module_names`:**

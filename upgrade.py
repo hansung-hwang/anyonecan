@@ -53,6 +53,24 @@ def extract_headings(path: str) -> list[str]:
     return headings
 
 
+def extract_sections(path: str) -> dict[str, str]:
+    """Top-level ('## ') sections as {heading: body}. Body is every line
+    between a heading and the next '## ' heading (or EOF), verbatim.
+    """
+    if not os.path.isfile(path):
+        return {}
+    sections: dict[str, list[str]] = {}
+    current: str | None = None
+    with open(path, "r", encoding="utf-8") as f:
+        for line in f:
+            if line.startswith("## "):
+                current = line[3:].strip()
+                sections[current] = []
+            elif current is not None:
+                sections[current].append(line)
+    return {h: "".join(lines) for h, lines in sections.items()}
+
+
 def missing_agents_sections(project_dir: str, harness_core: str) -> list[str]:
     """Framework-authored AGENTS.md sections the template has that the
     project's copy doesn't. AGENTS.md is user-owned (upgrade never writes
@@ -69,6 +87,53 @@ def missing_agents_sections(project_dir: str, harness_core: str) -> list[str]:
         return []
     project_headings = set(extract_headings(os.path.join(project_dir, "AGENTS.md")))
     return [h for h in template_headings if h not in project_headings]
+
+
+def changed_agents_template_sections(
+    project_dir: str, harness_core: str, meta: dict | None
+) -> tuple[list[str], dict[str, str]]:
+    """Framework-authored AGENTS.md sections the project already has, whose
+    *template body* changed since this project's last recorded hash for that
+    section. Hashes only the template's body, never the project's own prose
+    -- so a section the project translated or deliberately rewrote never
+    false-positives here, the same way a renamed heading doesn't in
+    missing_agents_sections(). The check only ever claims "the framework's
+    version of this changed, go look", never "yours is wrong".
+
+    A section with no prior recorded hash (first run under this feature, or
+    a section the project doesn't have yet) is recorded silently and not
+    reported -- there is no "since your last upgrade" baseline to compare
+    against yet, and reporting every historical change at once on first run
+    would be exactly the noise that trains people to ignore the advisory.
+
+    Returns (changed section names, hash map to persist for next time).
+    Callers only persist the second value on a real (non-read-only) run --
+    same convention as `baselines`, enforced by the caller's write_text().
+    """
+    if meta is None:
+        return [], {}
+    template_sections = {
+        h: b for h, b in extract_sections(os.path.join(harness_core, "AGENTS.md")).items()
+        if h not in _AGENTS_SECTIONS_PROJECT_OWNED
+    }
+    if not template_sections:
+        return [], {}
+    project_headings = set(extract_headings(os.path.join(project_dir, "AGENTS.md")))
+    recorded: dict = meta.get("agentsTemplateSections", {})
+    changed: list[str] = []
+    new_hashes: dict[str, str] = {}
+    for heading, body in template_sections.items():
+        if heading not in project_headings:
+            # Not present in the project at all -- missing_agents_sections()
+            # already reports this; nothing to compare a body change against,
+            # and nothing recorded yet for whenever the project adds it.
+            continue
+        current_hash = normalized_hash(body)
+        prior_hash = recorded.get(heading)
+        if prior_hash is not None and prior_hash != current_hash:
+            changed.append(heading)
+        new_hashes[heading] = current_hash
+    return changed, new_hashes
 
 
 def main() -> int:
@@ -112,6 +177,7 @@ def main() -> int:
             meta = json.load(f)
     language = meta.get("language") if meta else None
     has_baselines = bool(has_meta and meta.get("baselines"))
+    changed_sections, new_section_hashes = changed_agents_template_sections(project_dir, harness_core, meta)
 
     old_version_path = os.path.join(project_dir, "HARNESS-VERSION")
     if os.path.isfile(old_version_path):
@@ -331,6 +397,7 @@ def main() -> int:
         # metadata silently reports the pre-upgrade version even though the
         # file on disk (and every framework-owned file) has moved on.
         meta["harnessVersion"] = new_version
+        meta["agentsTemplateSections"] = new_section_hashes
         write_text(meta_path, json.dumps(meta, indent=2, ensure_ascii=False) + "\n")
 
     print()
@@ -397,8 +464,20 @@ def main() -> int:
         print()
         print(f"! {len(missing_sections)} AGENTS.md section(s) from the current template are missing from this")
         print("! project's AGENTS.md -- it's user-owned, so upgrade never writes it for you. Add by hand")
-        print("! (see harness-core/AGENTS.md for the current wording), or ignore if deliberately dropped:")
+        print("! (see harness-core/AGENTS.md for the current wording). Matched by exact heading text, so a")
+        print("! translated or renamed heading (e.g. a non-English AGENTS.md) shows up here even if the")
+        print("! section already exists under a different name -- check before adding a duplicate. Otherwise")
+        print("! ignore if deliberately dropped:")
         for h in missing_sections:
+            print(f"  ## {h}")
+
+    if changed_sections:
+        print()
+        print(f"! {len(changed_sections)} AGENTS.md section(s) you already have changed in the current template")
+        print("! since this project's last upgrade -- AGENTS.md is user-owned, so upgrade never writes it for")
+        print("! you. This only means the framework's version changed, not that yours is wrong; diff against")
+        print("! harness-core/AGENTS.md and pull in the change by hand if it applies to you:")
+        for h in changed_sections:
             print(f"  ## {h}")
 
     print()

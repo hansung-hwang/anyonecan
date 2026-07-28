@@ -296,6 +296,41 @@ for rel in baseline_files:
     content = fp.read_text(encoding="utf-8").replace("\r\n", "\n")
     baselines[rel] = hashlib.sha256(content.encode("utf-8")).hexdigest()
 
+# Record a hash of every framework-authored AGENTS.md section this project
+# has at generation time, so upgrade.py/upgrade.ps1 never see a "first run"
+# gap -- without this, a freshly generated project would get zero drift
+# reporting until whatever release happens to follow generation. Same
+# excluded set as upgrade's missing-section check (seeded once, expected to
+# diverge from the template immediately, never worth tracking).
+_agents_sections_project_owned = {
+    "Key Invariants (do not break)",
+    "Architecture",
+    "Coding Rules",
+    "Prohibited",
+}
+agents_template_sections: dict[str, str] = {}
+template_agents_path = script_dir / "harness-core" / "AGENTS.md"
+if template_agents_path.is_file():
+    section_bodies: dict[str, list[str]] = {}
+    current = None
+    for line in template_agents_path.read_text(encoding="utf-8").splitlines(keepends=True):
+        if line.startswith("## "):
+            current = line[3:].strip()
+            section_bodies[current] = []
+        elif current is not None:
+            section_bodies[current].append(line)
+    generated_agents = output / "AGENTS.md"
+    generated_headings = set()
+    if generated_agents.is_file():
+        for line in generated_agents.read_text(encoding="utf-8").splitlines(keepends=True):
+            if line.startswith("## "):
+                generated_headings.add(line[3:].strip())
+    for heading, lines in section_bodies.items():
+        if heading in _agents_sections_project_owned or heading not in generated_headings:
+            continue
+        body = "".join(lines).replace("\r\n", "\n")
+        agents_template_sections[heading] = hashlib.sha256(body.encode("utf-8")).hexdigest()
+
 mode = os.environ["PROJECT_MODE"]
 
 meta = {
@@ -315,6 +350,7 @@ if mode == "team":
     meta["roster"] = {}
 meta["harnessVersion"] = os.environ["HARNESS_VERSION"]
 meta["baselines"] = baselines
+meta["agentsTemplateSections"] = agents_template_sections
 (output / ".harness-meta.json").write_text(
     json.dumps(meta, indent=2, ensure_ascii=False) + "\n", encoding="utf-8"
 )
