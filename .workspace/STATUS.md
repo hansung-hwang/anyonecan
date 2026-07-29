@@ -10,9 +10,10 @@ of E0-E7 complete and committed.
 
 ## Current Goal
 
-None active. The last unit of work (Harness **1.8.0** → **1.8.1**,
-`.harnessignore` project-declared excluded paths plus the audit fixes) is
-shipped. Waiting on the user for the next task.
+None active. Harness **1.8.0** → **1.8.1** (`.harnessignore` plus the
+post-implementation audit fixes) is shipped, merged to `main` on **both**
+this repo and `Homographormer`, and this repo's `main` is pushed to
+`origin`. Waiting on the user for the next task.
 
 ## Progress
 
@@ -51,12 +52,26 @@ shipped. Waiting on the user for the next task.
   `.new` in existing ones; and a 1.8.0 → 1.8.1 Python upgrade delivering
   the hook fix cleanly with **no** `.new` — which is how `Homographormer`
   will receive it.
-- **`Homographormer` migrated to 1.8.0 in its own repo** (separate nested
-  git repo, not part of this commit): branch
-  `chore/harness-upgrade-1.8.0`, commit `3b10776`. `upgrade.sh --verify`
-  reports zero customized files — the plan's explicit success measure
-  (E6) achieved. Merge-to-`main` there remains the project owner's call,
-  unchanged from every prior upgrade.
+- **`Homographormer` upgraded to 1.8.1 and merged to its own `main`**
+  (separate nested git repo, not part of this repo's commits). Forked
+  `chore/harness-upgrade-1.8.1` off the `1.8.0` branch tip (continuing the
+  established sequential-branch pattern), applied the fix from the
+  paragraph above via `upgrade.sh` (single-file update, no `.new`), full
+  `validate.sh` 14/14 and `upgrade.sh --verify` clean, committed `09aaa74`.
+  **At the user's explicit request, this session reversed the prior
+  "merge stays the project owner's call, deliberately left unmerged"
+  precedent** (every worklog entry since the 1.6.0 upgrade) — `main`
+  hadn't diverged, so `chore/harness-upgrade-1.8.1` fast-forwarded into
+  `main` cleanly (`09aaa74`), bringing the entire previously-unmerged
+  1.6.0→1.8.1 chain (7 commits, 30 files, including real project work
+  like the Phase 0 test promotion) onto `main` in one step. Re-validated
+  and re-`--verify`'d on `main` post-merge — both clean. The five
+  `chore/harness-upgrade-*` branches are now fully merged but left in
+  place (not deleted; wasn't requested).
+- **This repo's `main` pushed to `origin`** (`2c15277`..`b5a0761`, 4
+  commits) — also at the user's explicit request. This repo never had a
+  feature branch this session (1.8.0/1.8.1 landed directly on `main`), so
+  "merge" was a no-op here; only the push was new.
 - **This session's own workspace-doc audit** (2026-07-29, before the
   commit above): found and fixed two staleness defects in `.workspace/`
   itself —
@@ -92,32 +107,27 @@ shipped. Waiting on the user for the next task.
 No committed next task. Candidates surfaced but not started, in rough
 priority order:
 
-1. **`Homographormer` is one patch behind**: it sits at 1.8.0 and carries
-   the buggy lint hook. It is *not* currently mis-skipping anything (its
-   directory casing differs from its patterns), so this isn't urgent — but
-   its next upgrade should be 1.8.1, which was verified to apply cleanly
-   with no `.new`. Project owner's call, as with every prior upgrade there.
-2. **Needs a Java toolchain**: settle the Java `ImportOption` question
+1. **Needs a Java toolchain**: settle the Java `ImportOption` question
    recorded in the plan's Post-implementation audit — whether the absolute
    compiled-class URI makes source-directory patterns inert for the
    ArchUnit checks. Un-defer trigger: a working `mvn`/`javac`, or the first
    Java project that actually needs an exclusion.
-3. **User's call, not urgent**: `C:\anyonecan_harness\anyonecan\Homographormer\`
+2. **User's call, needs a toolchain**: validate the Java language pack's
+   `validate.sh` (`mvn verify`) end-to-end — still unconfirmed in this
+   environment (no `mvn`/`javac`), a standing gap since 1.4.0. Shares a
+   blocker with item 1.
+3. **Still deferred, unchanged**: the `agentsSectionAliases` map for
+   translated `AGENTS.md` headings (n=1; un-defer trigger is a second
+   non-English project hitting the same false positive).
+4. **User's call, not urgent**: `C:\anyonecan_harness\anyonecan\Homographormer\`
    sits nested inside this repo's working tree (untracked here, own
    separate `.git`) rather than as a sibling directory. Filesystem
    organization only, not a git-history issue — same note carried since
    2026-07-28.
-4. **User's call, needs a toolchain**: validate the Java language pack's
-   `validate.sh` (`mvn verify`) end-to-end — still unconfirmed in this
-   environment (no `mvn`/`javac`), a standing gap since 1.4.0. Shares a
-   blocker with item 2.
-5. **Still deferred, unchanged**: the `agentsSectionAliases` map for
-   translated `AGENTS.md` headings (n=1; un-defer trigger is a second
-   non-English project hitting the same false positive).
-6. `Homographormer` now has four sequential unmerged upgrade branches
-   (`chore/harness-upgrade-1.6.0` → `1.6.1` → `1.7.0` → `1.8.0`, each
-   forked from the last). Project owner's call on whether/when to merge;
-   worth knowing the chain exists before starting a future upgrade there.
+5. **Cosmetic**: `Homographormer` has five `chore/harness-upgrade-*`
+   branches (`1.6.0` through `1.8.1`), all now fully merged into its
+   `main` as of this session, left undeleted. Safe to prune whenever the
+   user wants (`git branch -d <name>` for each, or leave as history).
 
 ## Blockers / Open Questions
 
