@@ -10,6 +10,45 @@ they're pulling in.
 
 See `AGENTS.md` → "Framework Versioning" for the bump rule.
 
+## [1.8.1] - 2026-07-29
+
+**Post-implementation audit of 1.8.0 — one real defect in the Python lint hook, one doc drift:**
+
+Found by auditing the shipped files against the plan rather than re-reading the plan, the same practice that
+caught real defects after 1.4.0, 1.5.0, and 1.7.0.
+
+- **`scripts/lint-format-hook.sh` (Python) matched `.harnessignore` patterns against the *absolute* path, not
+  the path relative to the project root.** 1.8.0's design fixed one match rule for all five consumers
+  ("normalize to forward slashes, **relative to the project root**"); four implemented it, this one didn't —
+  it computed the project root (for locating `.harnessignore`) but never used it to relativize. Effect: any
+  project living under a directory whose name matches a pattern had **every** file silently skipped — no lint,
+  no format, exit 0, no message. A project at `~/research/myproject` with `research` in `.harnessignore` would
+  never be linted again. `Homographormer` escaped it only because its directory (`Homographormer`) differs in
+  letter case from its patterns (`HomoGraphormer`).
+  Reproduced live before fixing and re-verified after: with pattern `vendor`, a project under an ancestor
+  directory named `vendor` skipped `src/app.py` while the arch test in that same project correctly reported it
+  as not ignored — the two Python consumers disagreeing on the same file. After the fix both agree, and
+  genuine in-project exclusions (`src/vendor/lib.py`, and `Homographormer`'s real
+  `HomoGraphormer`/`HomoGraphormer_original` patterns) still exclude correctly.
+  The fix relativizes against the project root before matching, using `pwd -W` on Git Bash (where `pwd` yields
+  MSYS `/c/...` while `file_path` arrives as Windows `C:\...`, so a prefix strip would otherwise never match)
+  and falling back to plain `pwd` elsewhere; the prefix comparison is case-insensitive because Windows paths
+  are, and the drive letter's case isn't guaranteed to agree between the two sources.
+- **`README.md`'s Framework tier table still listed `scripts/lint-format-hook.sh` only** after 1.8.0
+  registered the TypeScript `.mjs` hook and updated both `harness-core/AGENTS.md` and
+  `docs/how-to/file-ownership.md`. `check-sync.mjs` binds the *guide's* tier list to the manifest but does not
+  guard `README.md`, so nothing caught it. Now `scripts/lint-format-hook.*`; the "adding a language pack"
+  section was corrected the same way and now states the manifest-registration requirement that TypeScript's
+  hook went without until 1.8.0.
+- **Java's `.harnessignore` support is unchanged but has a known open question**, recorded rather than
+  silently left: `DependencyTest.java` passes `location.toString()` (an absolute URI of a *compiled class*
+  under `target/classes`) to `isIgnored` in the ArchUnit `ImportOption`, while the same file's
+  file-existence check passes a project-relative source path. So the same absolute-path deviation fixed above
+  likely applies there too, and separately a pattern naming a *source* directory may not appear in a compiled
+  output path at all. Not fixed here because it can't be verified in this environment (no `mvn`/`javac`, the
+  standing limit since 1.4.0) and a blind fix to an unrunnable file is how the original deviation shipped.
+  Tracked in `.workspace/plans/2026-07-28-project-excluded-paths.md`.
+
 ## [1.8.0] - 2026-07-29
 
 **Project-declared excluded paths (`.harnessignore`) — ends the permanent `.new` a vendored/reference
@@ -42,6 +81,11 @@ directory forces on every upgrade:**
   been frozen at its generation date since the language pack existed, with no fix ever reaching an existing
   project. Registered now (`languageSpecific.typescript`); `docs/how-to/file-ownership.md`'s Framework tier
   updated to match, `check-sync.mjs` still passes.
+  **One-time cost for existing TypeScript projects**: because the path had no baseline, the first upgrade
+  after this release lands it in the "newly managed" bucket — your existing copy is kept and the template
+  arrives as `scripts/lint-format-hook.mjs.new` to merge by hand. Confirmed by upgrading a real 1.7.0-era
+  generated project. Same shape as 1.6.1's note about already-customized `test_dependencies.py` copies: once
+  merged and the `.new` deleted, the file is managed normally from then on.
 - **Upstreamed a real Windows bug found while researching this**: the template's Python lint hook had no
   backslash normalization before path matching — `Homographormer` hit this for real (2026-07-19: Windows
   delivers `file_path` with backslashes, so a `*/pattern/*` case guard silently never matched) and had

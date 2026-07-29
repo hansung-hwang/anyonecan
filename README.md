@@ -157,7 +157,7 @@ later `upgrade` may overwrite. Your project ships with the full contract at
 | Tier | Examples | What `upgrade` does |
 |---|---|---|
 | **Yours** | `AGENTS.md`, `CLAUDE.md`, `README.md`, all source code, build/linter config, `.workspace/STATUS.md`·`worklog.md`·`plans/*.md`, `docs/adr/**`, `.harnessignore`, the `*project-rules*` arch test | **Never touched.** Edit freely. |
-| **Framework's** | `.claude/commands/**`, `docs/how-to/**`, `scripts/validate.*`, `scripts/lint-format-hook.sh`, the `*dependencies*` arch test, `.editorconfig`, hook/CI config, `harness-manifest.json` | Overwritten when you haven't changed them. |
+| **Framework's** | `.claude/commands/**`, `docs/how-to/**`, `scripts/validate.*`, `scripts/lint-format-hook.*`, the `*dependencies*` arch test, `.editorconfig`, hook/CI config, `harness-manifest.json` | Overwritten when you haven't changed them. |
 | **Customizable, at a cost** | any Framework's-tier file you deliberately edit | Your version is kept; the new template arrives as `<file>.new` for you to merge. |
 
 `harness-manifest.json` in your project is the machine-readable source of
@@ -389,7 +389,11 @@ needed to add a language.
 2. Write `pack.json` (display name, menu order, aliases, AGENTS.md rules +
    banned items, install-tool candidates) plus the required files:
    - `scripts/validate.sh` — validation command for that language
-   - `scripts/lint-format-hook.sh` — for PostToolUse hook (optional)
+   - `scripts/lint-format-hook.*` — for PostToolUse hook (optional; use the
+     extension your pack's `.claude/settings.json` invokes — `.sh` for Python,
+     `.mjs` for TypeScript). If you add one, register it in
+     `harness-manifest.json` under `languageSpecific.<language>` or `upgrade`
+     will never manage it — TypeScript's went unregistered until 1.8.0.
    - `.claude/settings.json` — hook configuration
    - `.github/workflows/ci.yml` — CI configuration, named typecheck/lint/test steps
    - Architecture tests implementing the 5-check parity matrix (layer

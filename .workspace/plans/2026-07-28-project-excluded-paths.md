@@ -2,6 +2,9 @@
 
 - **Date**: 2026-07-28
 - **Status**: Done — shipped as 1.8.0, all of E1-E7 complete (2026-07-29).
+  Post-implementation audit the same day found one real defect (Python lint hook) and one doc drift, both
+  fixed in **1.8.1**; one open question on E3 (Java) is recorded below and deliberately deferred. See
+  **Post-implementation audit** before treating E1/E3 as fully verified.
 
 > **Closed 2026-07-29.** All of E0-E7 done in one session (see checklist
 > below for what each phase actually delivered). Nothing left to resume —
@@ -196,6 +199,38 @@ plus a `FRAMEWORK-CHANGELOG.md` entry.
       and `docs/how-to/file-ownership.md` (Yours-tier prose + Framework-tier
       list) updated to match. `check-sync.mjs` and `pnpm validate` both
       clean at session end.
+
+## Post-implementation audit (2026-07-29, shipped as 1.8.1)
+
+Audited the shipped files against this plan rather than re-reading the plan — same practice as the 1.4.0,
+1.5.0 and 1.7.0 audits. Most of E1-E7 verified correct by live execution (fresh `setup.sh` generation for
+TypeScript **and** Java, a real 1.7.0→1.8.0 upgrade from a disposable `git worktree` at `2c15277`, and
+`upgrade.sh --verify`). Three findings:
+
+1. **Real defect, fixed in 1.8.1** — E1's claim that the Python lint hook implements the same match rule as
+   the arch test was **false**: it matched the absolute path, never relativizing to the project root, so a
+   project living under a directory whose name matched a pattern had every file silently skipped. E1 was
+   marked `[x]` on the strength of a live test that only exercised paths *inside* the project, where the
+   absolute and relative forms agree — the deviation was invisible to it. Reproduced, fixed, and re-verified
+   with cases on both sides of the boundary; see the 1.8.1 changelog entry.
+2. **Doc drift, fixed in 1.8.1** — `README.md`'s Framework tier table wasn't updated when E2 registered the
+   TypeScript `.mjs` hook, though `AGENTS.md` and `file-ownership.md` were. `check-sync.mjs` guards the
+   guide against the manifest but not `README.md`.
+3. **Open question on E3 (Java), not fixed** — `DependencyTest.java` passes `location.toString()` to
+   `isIgnored` inside the ArchUnit `ImportOption`. That is an absolute URI of a **compiled class** under
+   `target/classes`, whereas the same file's file-existence check passes a project-relative **source** path.
+   Two consequences, both unverified: the absolute-path deviation fixed in (1) probably applies here too, and
+   a pattern naming a source directory may never appear in a compiled-output path, meaning the exclusion
+   could be inert for the ArchUnit checks. **Deliberately not fixed blind** — E3 already shipped
+   structural-verification-only for want of `mvn`/`javac` (the standing limit since 1.4.0), and that is
+   precisely how the deviation in (1) reached a release. **Un-defer trigger**: the first environment with a
+   working Java toolchain, or the first Java project that actually needs an exclusion.
+
+Method note for future audits: two of this session's own test harnesses were themselves buggy (unescaped
+backslashes in hand-written JSON, then a `\\$var` bash quoting trap) and produced *false passes* — every
+case reported the expected answer for the wrong reason. Both were caught only by printing the actual input
+and intermediate state rather than trusting the pass/fail line. Verify the fixture before trusting the
+verdict.
 
 ## Notes
 
