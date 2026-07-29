@@ -7,10 +7,10 @@ tracking) to create one here. Skip it for trivial one-line fixes.
 The user can open any file in this directory to see what the agent is
 designing, deciding, and how far along it is.
 
-**If a plan proposes editing a `harness-core/` path registered in `harness-manifest.json`'s `frameworkOwned` or
-`languageSpecific`** (see `docs/how-to/file-ownership.md` and `AGENTS.md` → File Ownership / Framework Versioning),
-say so explicitly in **Approach** — that's a framework-owned change and needs the version-bump + changelog steps,
-not just an ordinary edit.
+**If a plan proposes editing a Framework's-tier or Customizable-tier path** (see
+`docs/how-to/file-ownership.md`), say so explicitly in **Approach** — that edit will be flagged as customized and
+produce a `<file>.new` on every future `upgrade` until it's resolved. This is rarely what you actually want; most
+plans should stay entirely in the **Yours** tier.
 
 ## Naming
 
@@ -23,6 +23,7 @@ not just an ordinary edit.
 
 - **Date**: YYYY-MM-DD
 - **Status**: In Progress | Done | Abandoned
+- **Owner**: (optional — only when multiple people share this project; who owns this task)
 
 ## Goal
 
@@ -40,6 +41,34 @@ Design/implementation strategy, key decisions and trade-offs.
 ## Notes
 
 Open questions, alternatives considered, links to ADRs if relevant.
+
+## Parallelization (optional — only for multi-agent work)
+
+Fill this in only when at least two tasks are genuinely independent and the parallelism benefit exceeds
+delegation/review/integration cost. Otherwise delete this section — single-agent is the default. `/coordinate`
+(Claude Code) generates this section directly from the active task; see
+`docs/how-to/multi-agent-collaboration.md` for the full model.
+
+- **Coordinator**: the one session that integrates, runs full validation, updates shared docs, and runs `/done`.
+- **Base SHA**: the fixed commit every agent branch forks from (set after Wave 0 prerequisites are committed).
+- **Shared / generated files** (Coordinator-owned; no agent writes these): e.g. `.workspace/**`, lockfiles,
+  generated bundles/manifests, result tables.
+- **Full validation command + environment**: the exact command, working directory, and any writable-temp/env flags.
+
+### Wave 0 — prerequisites (Coordinator, committed before assignments)
+- shared fixtures / scaffolding / interfaces that agents build on
+
+### Wave 1 — assignments (one writer per file per wave)
+| Agent | Goal (one sentence) | Allowed files | Prohibited files | Depends on |
+|---|---|---|---|---|
+|  |  |  | `.workspace/**`, shared/generated, other agents' files |  |
+
+### Integration order
+1. ...
+
+### Completion authority
+Only the Coordinator updates shared journals, regenerates derived artifacts, and runs `/done`.
+Sub-agents report `requirement → file/symbol/test location`, their commit SHA, and validation command+result.
 ```
 
 ## Multiple Team Members
@@ -53,7 +82,10 @@ many at once:
   the branch being merged in), don't try to union it.
 - **`worklog.md`** is append-only. On a merge conflict, keep **both** sides'
   rows rather than picking one — it's a log, not a single source of truth
-  for current state.
+  for current state. Rows may optionally include an author column
+  (`| date | author | summary | files | plan |`) when it's useful to know
+  who did what; single-contributor projects can leave it out.
 - Plan files (this directory) are one-per-task and named by date+topic, so
   they rarely conflict; if two members start a plan with the same name on
-  the same day, disambiguate with a suffix (`-2`).
+  the same day, disambiguate with a suffix (`-2`). The template's optional
+  `Owner` field records who owns a given task's plan.

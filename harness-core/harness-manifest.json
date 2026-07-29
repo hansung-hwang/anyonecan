@@ -27,6 +27,7 @@
   "languageSpecific": {
     "typescript": [
       "scripts/validate.sh",
+      "scripts/lint-format-hook.mjs",
       "src/tests/arch/dependencies.test.ts",
       ".claude/settings.json",
       ".github/workflows/ci.yml",
@@ -53,7 +54,8 @@
   "bootstrapIfMissing": [
     ".workspace/STATUS.md",
     ".workspace/worklog.md",
-    "docs/adr/001-clean-architecture-layers.md"
+    "docs/adr/001-clean-architecture-layers.md",
+    ".harnessignore"
   ],
   "_bootstrapLanguageSpecificComment": "Same never-overwrite semantics as bootstrapIfMissing, but keyed by language like languageSpecific -- these seed a project-owned architecture-test file (see docs/investigations pattern from a real generated project: a custom arch check like 'RAG-heavy modules must not be imported at boot' belongs in a file upgrade never touches, not squeezed into the framework-owned dependencies test that upgrade overwrites).",
   "bootstrapLanguageSpecific": {

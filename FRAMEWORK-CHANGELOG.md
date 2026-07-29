@@ -10,6 +10,54 @@ they're pulling in.
 
 See `AGENTS.md` → "Framework Versioning" for the bump rule.
 
+## [1.8.0] - 2026-07-29
+
+**Project-declared excluded paths (`.harnessignore`) — ends the permanent `.new` a vendored/reference
+directory forces on every upgrade:**
+
+- New user-owned `.harnessignore` (plain text, one pattern per line, `#` comments, seeded empty via
+  `bootstrapIfMissing`) lets a project mark vendored/research directories out of scope for the framework's
+  arch tests and lint hooks **without editing a framework-owned file**. Editing one of those directly was
+  already the single most common way to end up with a recurring `.new` (see `README.md` Cautions) — this
+  gives that specific, common case a supported alternative instead.
+  Match semantics, identical across all five consumers: normalize to forward slashes, relative to the
+  project root; a pattern with no `/` matches if any path segment equals it; a pattern containing `/`
+  matches as a substring of the normalized path. No globbing, no negation — additive later if ever needed,
+  can't be walked back once shipped.
+- **Why now**: `Homographormer` re-offered the same two hand-edited files (`tests/arch/test_dependencies.py`,
+  `scripts/lint-format-hook.sh`) as `.new` at three consecutive upgrades (1.3.0→1.6.0, 1.6.0→1.6.1,
+  1.6.1→1.7.0) with no end condition — a strictly worse recurrence pattern than the one 1.6.1's
+  `STDLIB_ROOTS` fix already treated as justifying a fix at two occurrences.
+- **All five consumers updated**: Python's `tests/arch/test_dependencies.py` + `scripts/lint-format-hook.sh`,
+  TypeScript's `src/tests/arch/dependencies.test.ts` + `scripts/lint-format-hook.mjs`, Java's
+  `src/test/java/arch/DependencyTest.java` (via a custom ArchUnit `ImportOption` plus a
+  `Files.readAllLines`-based check for the file-existence rule). Live-verified end-to-end for Python and
+  TypeScript, including a real Windows backslash path exercised through the actual hook process (not
+  simulated) — added a vendored file with a real violation, confirmed the arch test/lint hook catch it,
+  confirmed `.harnessignore` suppresses it, confirmed removing the entry restores the violation. Java stays
+  structural-only (generation + code review, template placeholder substitution confirmed byte-identical) —
+  no `mvn`/`javac` available in this environment, same constraint as 1.4.0 through 1.7.0.
+- **`scripts/lint-format-hook.mjs` (TypeScript) was copied at generation and actively wired by that pack's
+  `.claude/settings.json`, but was never in `harness-manifest.json`** — every TypeScript project's copy has
+  been frozen at its generation date since the language pack existed, with no fix ever reaching an existing
+  project. Registered now (`languageSpecific.typescript`); `docs/how-to/file-ownership.md`'s Framework tier
+  updated to match, `check-sync.mjs` still passes.
+- **Upstreamed a real Windows bug found while researching this**: the template's Python lint hook had no
+  backslash normalization before path matching — `Homographormer` hit this for real (2026-07-19: Windows
+  delivers `file_path` with backslashes, so a `*/pattern/*` case guard silently never matched) and had
+  fixed it only in its own already-customized copy. Now upstreamed into the template so every Windows
+  Python project gets it by default instead of rediscovering the bug.
+- **Unrelated bug found and fixed during verification, not by inspection**: generating a Java project
+  through `setup.sh` on Windows left `{{BASE_PACKAGE}}` unsubstituted in `DependencyTest.java`. Root cause:
+  `setup.sh` captures a `python3` subprocess's stdout via command substitution for its language-pack menu
+  data; this box's `python3` writes `\r\n` even though `print()` only appends `\n`, and command substitution
+  only strips the trailing `\n`, leaving a `\r` on the last field of each parsed line. For Java that field is
+  `postGenerate`, so the `== "java-packages"` check silently failed and the base-package prompt (and its
+  substitution) never ran. Fixed by stripping `\r` from both `python3`-sourced variables in `setup.sh`
+  (`PACKS_RAW`, `INSTALL_DATA`); `setup.ps1` is unaffected (uses `ConvertFrom-Json` directly, no subprocess
+  text capture). Neither `setup.sh` nor `setup.ps1` is manifest-owned, so this fix ships without its own
+  version bump — folded into this release since it was found in the course of this work.
+
 ## [1.7.0] - 2026-07-28
 
 **`upgrade`: detect when a template `AGENTS.md` section's body changed, not just whether it's missing:**

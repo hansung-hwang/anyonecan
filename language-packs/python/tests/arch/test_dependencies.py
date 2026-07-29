@@ -23,10 +23,38 @@ LAYER_ORDER: dict[str, int] = {
 STDLIB_ROOTS: frozenset[str] = sys.stdlib_module_names
 
 
+def load_harnessignore() -> list[str]:
+    """Patterns from the project's .harnessignore (bare name -> path segment, '/' -> substring)"""
+    ignore_file = ROOT_DIR / ".harnessignore"
+    if not ignore_file.exists():
+        return []
+    patterns: list[str] = []
+    for line in ignore_file.read_text(encoding="utf-8").splitlines():
+        stripped = line.strip()
+        if not stripped or stripped.startswith("#"):
+            continue
+        patterns.append(stripped)
+    return patterns
+
+
+HARNESSIGNORE_PATTERNS: list[str] = load_harnessignore()
+
+
+def is_ignored(file_path: Path) -> bool:
+    rel = file_path.relative_to(ROOT_DIR).as_posix()
+    for pattern in HARNESSIGNORE_PATTERNS:
+        if "/" in pattern:
+            if pattern in rel:
+                return True
+        elif pattern in rel.split("/"):
+            return True
+    return False
+
+
 def collect_py_files(directory: Path) -> list[Path]:
     return [
         p for p in directory.rglob("*.py")
-        if "__pycache__" not in p.parts and not p.name.startswith("test_")
+        if "__pycache__" not in p.parts and not p.name.startswith("test_") and not is_ignored(p)
     ]
 
 
@@ -147,7 +175,7 @@ def test_file_naming_convention() -> None:
     violations: list[str] = []
 
     for file in SRC_DIR.rglob("*.py"):
-        if "__pycache__" in file.parts or file.name.startswith("__"):
+        if "__pycache__" in file.parts or file.name.startswith("__") or is_ignored(file):
             continue
         if not pattern.match(file.name):
             violations.append(str(file.relative_to(ROOT_DIR)))

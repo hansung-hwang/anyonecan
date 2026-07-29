@@ -1,0 +1,12 @@
+# .harnessignore -- paths the framework's arch tests and lint hooks skip.
+#
+# One pattern per line. Blank lines and lines starting with # are ignored.
+# A pattern with no "/" matches any path segment (e.g. "vendor" skips
+# src/vendor/anything). A pattern containing "/" matches as a substring of
+# the forward-slash-normalized path, relative to the project root.
+# No globbing, no negation.
+#
+# Use this for vendored/reference/research code you didn't write and don't
+# want linted or arch-checked -- without editing a framework-owned file
+# (see docs/how-to/file-ownership.md). This file is yours; upgrade seeds it
+# once and never overwrites it.

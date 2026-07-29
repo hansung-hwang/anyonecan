@@ -156,7 +156,7 @@ later `upgrade` may overwrite. Your project ships with the full contract at
 
 | Tier | Examples | What `upgrade` does |
 |---|---|---|
-| **Yours** | `AGENTS.md`, `CLAUDE.md`, `README.md`, all source code, build/linter config, `.workspace/STATUS.md`·`worklog.md`·`plans/*.md`, `docs/adr/**`, the `*project-rules*` arch test | **Never touched.** Edit freely. |
+| **Yours** | `AGENTS.md`, `CLAUDE.md`, `README.md`, all source code, build/linter config, `.workspace/STATUS.md`·`worklog.md`·`plans/*.md`, `docs/adr/**`, `.harnessignore`, the `*project-rules*` arch test | **Never touched.** Edit freely. |
 | **Framework's** | `.claude/commands/**`, `docs/how-to/**`, `scripts/validate.*`, `scripts/lint-format-hook.sh`, the `*dependencies*` arch test, `.editorconfig`, hook/CI config, `harness-manifest.json` | Overwritten when you haven't changed them. |
 | **Customizable, at a cost** | any Framework's-tier file you deliberately edit | Your version is kept; the new template arrives as `<file>.new` for you to merge. |
 
@@ -351,7 +351,11 @@ framework doesn't own (e.g. `docs/guides/`).
   recurring `.new`.
 - **Editing a framework-owned file is allowed but not free.** It's never
   unsafe — your change is never discarded — but every future upgrade will
-  offer you a merge instead of applying cleanly.
+  offer you a merge instead of applying cleanly. If what you actually need is
+  to exclude a vendored/reference directory from the arch tests and lint
+  hooks, use `.harnessignore` instead (project root, one pattern per line) —
+  it's yours, `upgrade` never touches it, and it keeps the arch test and lint
+  hook byte-identical to the template forever.
 - **Don't edit your project's `harness-manifest.json`.** It's purely
   informational (upgrade reads the *framework's* copy, never yours), so
   editing it buys nothing and costs you the automatic refresh.

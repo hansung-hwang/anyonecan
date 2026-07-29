@@ -80,11 +80,14 @@ Layer dependency (unidirectional): `domain` ← `application` ← `infrastructur
 
 Three tiers, generated from `harness-manifest.json` (refreshed by every `upgrade`, so it's always current — see
 `docs/how-to/file-ownership.md` for the full list and mechanics): **Yours** (`AGENTS.md`, `CLAUDE.md`, source,
-build config, `.workspace/**`, `docs/adr/**`, the `*project-rules*` arch test) — edit freely, `upgrade` never
-touches these. **Framework's** (`.claude/commands/**`, `docs/how-to/**`, `scripts/validate.*`,
-`scripts/lint-format-hook.sh`, the `*dependencies*` arch test, hook/CI config) — don't edit; `upgrade` overwrites
+build config, `.workspace/**`, `docs/adr/**`, `.harnessignore`, the `*project-rules*` arch test) — edit freely,
+`upgrade` never touches these. **Framework's** (`.claude/commands/**`, `docs/how-to/**`, `scripts/validate.*`,
+`scripts/lint-format-hook.*`, the `*dependencies*` arch test, hook/CI config) — don't edit; `upgrade` overwrites
 these when unmodified. **Customizable, at a cost** — edit a Framework's-tier file anyway and `upgrade` keeps your
 version and offers the template as `<file>.new` instead of overwriting.
+
+Need to exclude a vendored/reference directory from the arch test or lint hook? Add it to `.harnessignore`
+instead of hand-editing a Framework's-tier file — that's exactly what it's for.
 
 **Don't create new files inside a Framework's-tier directory** (`docs/how-to/`, `.claude/commands/`) — a future
 framework release can claim that exact path, and your file won't be recognized as yours. Put project-specific

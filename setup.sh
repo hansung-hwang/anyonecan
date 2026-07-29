@@ -49,6 +49,11 @@ for p in packs:
 print(f"DEFAULT:{default_lang}")
 PYEOF
 )
+# Windows python3 writes stdout in text mode (\r\n) even though print() only
+# appends \n; command substitution keeps the \r, which corrupts the last
+# field of each DATA line ("postgen") enough to break the == "java-packages"
+# check below and silently skip the base-package prompt. Strip it.
+PACKS_RAW="${PACKS_RAW//$'\r'/}"
 
 echo ""
 echo "Select language:"
@@ -370,6 +375,7 @@ for c in install["candidates"]:
 print("NOTFOUND\t" + install["notFoundMessage"])
 PYEOF
 )
+INSTALL_DATA="${INSTALL_DATA//$'\r'/}"
 
 HANDLED=0
 while IFS=$'\t' read -r tool check run retryfix successmsg; do

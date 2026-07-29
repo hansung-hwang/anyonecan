@@ -17,10 +17,15 @@ the manifest disagree, so a drift gets caught before it ships rather than silent
 `AGENTS.md`, `CLAUDE.md`, `README.md`, `HARNESS-CHANGELOG.md`, all source code, build config
 (`package.json`/`tsconfig.json`/`pyproject.toml`/`pom.xml`/etc.), linter config, `.workspace/STATUS.md`,
 `.workspace/worklog.md`, `.workspace/plans/*.md` (except `plans/README.md`, which is framework-owned), `docs/adr/**`,
-and the project-specific `*project-rules*` architecture test (`src/tests/arch/project-rules.test.ts` /
-`tests/arch/test_project_rules.py` / `src/test/java/arch/ProjectRulesTest.java`, depending on language). Some of
-these are seeded once by `setup`/`upgrade` if missing (`STATUS.md`, `worklog.md`, ADR 001, the project-rules test)
-— but once created, they're never touched again. They're yours from the moment they exist.
+`.harnessignore`, and the project-specific `*project-rules*` architecture test
+(`src/tests/arch/project-rules.test.ts` / `tests/arch/test_project_rules.py` /
+`src/test/java/arch/ProjectRulesTest.java`, depending on language). Some of these are seeded once by
+`setup`/`upgrade` if missing (`STATUS.md`, `worklog.md`, ADR 001, `.harnessignore`, the project-rules test) — but
+once created, they're never touched again. They're yours from the moment they exist.
+
+`.harnessignore` lists vendored/reference/research paths the framework's arch tests and lint hooks should skip —
+edit it instead of hand-patching a Framework's-tier file when you need to exclude a directory (see its own header
+comment for the pattern syntax).
 
 ### Framework's — do not edit; `upgrade` overwrites these when you haven't customized them
 
@@ -48,6 +53,7 @@ these are seeded once by `setup`/`upgrade` if missing (`STATUS.md`, `worklog.md`
 - `scripts/validate.sh`
 - `scripts/validate.ps1` (Python projects only)
 - `scripts/lint-format-hook.sh` (Python projects only)
+- `scripts/lint-format-hook.mjs` (TypeScript projects only)
 - `src/tests/arch/dependencies.test.ts` (TypeScript projects only)
 - `tests/arch/test_dependencies.py` (Python projects only)
 - `src/test/java/arch/DependencyTest.java` (Java projects only)

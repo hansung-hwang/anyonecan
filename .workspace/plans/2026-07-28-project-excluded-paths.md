@@ -1,27 +1,17 @@
 # Project-declared excluded paths (ending Homographormer's permanent `.new`)
 
 - **Date**: 2026-07-28
-- **Status**: In Progress — **design ratified, implementation not started.**
+- **Status**: Done — shipped as 1.8.0, all of E1-E7 complete (2026-07-29).
 
-> **Resume here (next session).** E0 is closed and the design is settled; no
-> implementation file has been touched. `git status` was clean of any
-> `language-packs/`, `harness-core/`, `upgrade.*`, or `setup.*` change at
-> handoff (handoff SHA below). Start at **E4**, not E1 — the
-> `.harnessignore` template file and its manifest registration are the
-> shared artifact every other phase depends on, so building it first keeps
-> E1-E3 from each inventing their own contract. Facts already gathered, so
-> they don't need re-deriving:
-> - Template lives at `harness-core/.harnessignore`;
->   `bootstrapIfMissing` currently holds `.workspace/STATUS.md`,
->   `.workspace/worklog.md`, `docs/adr/001-clean-architecture-layers.md` —
->   add it there (language-agnostic, so *not* `bootstrapLanguageSpecific`).
-> - Five consumers to update: arch tests for all three languages
->   (`tests/arch/test_dependencies.py`, `src/tests/arch/dependencies.test.ts`,
->   `src/test/java/arch/DependencyTest.java`) and two lint hooks
->   (`scripts/lint-format-hook.sh` python, `scripts/lint-format-hook.mjs`
->   typescript). Java has no `PostToolUse` hook.
-> - The Python lint hook already shells out to `python3` to parse the hook's
->   own JSON stdin, so reading a plain-text file there is trivial.
+> **Closed 2026-07-29.** All of E0-E7 done in one session (see checklist
+> below for what each phase actually delivered). Nothing left to resume —
+> `Homographormer` is on `chore/harness-upgrade-1.8.0` (commit `3b10776`,
+> not merged to `main` — that's still the project owner's call, see E6),
+> and the framework repo's own `git status` at handoff has the expected
+> `harness-core/`, `language-packs/*/`, `setup.sh`, `README.md`,
+> `FRAMEWORK-CHANGELOG.md` changes plus the new
+> `harness-core/.harnessignore` and untracked `Homographormer/`, all
+> uncommitted pending the user's review.
 
 ## Goal
 
@@ -145,35 +135,67 @@ plus a `FRAMEWORK-CHANGELOG.md` entry.
       `/` matches if the normalized relative path **contains it as a
       substring**. Blank lines and `#` comments ignored. No globbing, no
       negation.
-- [ ] **E1 — Python pack**: read `.harnessignore` in `test_dependencies.py`'s
-      `collect_py_files()` and in `lint-format-hook.sh`; upstream the
-      backslash normalization (bug 1 above) at the same time.
-- [ ] **E2 — TypeScript pack**: same in `dependencies.test.ts` and
-      `lint-format-hook.mjs`; **register the `.mjs` in the manifest** (bug 2).
-- [ ] **E3 — Java pack**: same in `DependencyTest.java` via
-      `Files.readAllLines`. Note the standing environment limit — no
-      `mvn`/`javac` on this box, so Java verification stays structural
-      (generation + code review), consistent with 1.4.0/M4 through 1.7.0.
-- [ ] **E4 — manifest + bootstrap**: register `.harnessignore` under
-      `bootstrapIfMissing`; confirm `scripts/check-sync.mjs`'s
-      manifest-registration guard still passes; seed a commented empty file.
-- [ ] **E5 — verify against real projects, not simulation**: (a) generate a
-      fresh project per language and confirm the seeded `.harnessignore` is
-      inert (no behavior change when empty); (b) **break-test** — add a real
-      exclusion and confirm the arch test and lint hook both honor it, and
-      that removing it restores the violation; (c) confirm the Windows
-      backslash path is actually exercised, not assumed.
-- [ ] **E6 — migrate `Homographormer` and prove the payoff**: write its two
-      directories into `.harnessignore`, revert both customized files to the
-      template, run `upgrade --verify` and confirm **zero** customized files
-      and **zero** `.new` — the whole point of this plan. Then run its full
-      `validate.sh` to prove the arch checks still exclude the research tree
-      exactly as before.
-- [ ] **E7 — docs + version**: bump to 1.8.0; `FRAMEWORK-CHANGELOG.md`
-      entry; `README.md` Cautions currently names editing a framework file as
-      "the single most common way to end up with a recurring `.new`" — it
-      should now point at `.harnessignore` as the supported alternative for
-      this case; `docs/how-to/file-ownership.md` likely needs the same.
+- [x] **E1 — Python pack** (2026-07-29): `collect_py_files()` and
+      `test_file_naming_convention()` in `test_dependencies.py`, and
+      `lint-format-hook.sh`, all read `.harnessignore` via a shared
+      `is_ignored()`/inline-bash equivalent. Backslash normalization (bug 1)
+      upstreamed into the bash hook. Live-verified: pytest catches a real
+      violation, `.harnessignore` suppresses it, removing the entry restores
+      it; hook live-tested with a genuine Windows backslash path against
+      both an excluded file (untouched) and a non-excluded file (reformatted
+      by ruff).
+- [x] **E2 — TypeScript pack** (2026-07-29): same in `collectTsFiles()`
+      (`dependencies.test.ts`) and `lint-format-hook.mjs`; **`.mjs`
+      registered in the manifest** (bug 2) under `languageSpecific.typescript`,
+      `docs/how-to/file-ownership.md`'s Framework tier updated to match.
+      Live-verified via `vitest run` against a real generated project:
+      baseline inert (15/15 pass), break-test violation caught, suppressed
+      by `.harnessignore`, restored on removal; hook live-tested with a real
+      Windows path the same way as Python.
+- [x] **E3 — Java pack** (2026-07-29): `DependencyTest.java` reads
+      `.harnessignore` via `Files.readAllLines`, applied through a custom
+      ArchUnit `ImportOption` (covers all `ClassFileImporter`-based checks)
+      plus the same `isIgnored()` helper in the file-existence check. No
+      `mvn`/`javac` on this box, so verification stayed structural
+      (generation + code review + confirming `{{BASE_PACKAGE}}`
+      substitution is byte-identical to the template) — consistent with
+      1.4.0 through 1.7.0.
+- [x] **E4 — manifest + bootstrap** (2026-07-29): `.harnessignore` registered
+      under `bootstrapIfMissing`; `scripts/check-sync.mjs` passes; seeded
+      commented-empty template at `harness-core/.harnessignore`.
+- [x] **E5 — verify against real projects, not simulation** (2026-07-29):
+      generated one project per language via `setup.sh` into scratch
+      (Java needed a real base package, TypeScript/Python didn't). All (a)
+      seeded-empty-is-inert, (b) break-test-then-restore, and (c)
+      real-Windows-backslash-path checks done live, not simulated — see E1/E2
+      above for specifics. **Found and fixed an unrelated pre-existing bug
+      along the way**: `setup.sh`'s `python3`-subprocess capture picks up a
+      trailing `\r` on this box's Windows `python3` (text-mode stdout), which
+      silently broke Java's `postGenerate` detection and left
+      `{{BASE_PACKAGE}}` unsubstituted — fixed by stripping `\r` from
+      `PACKS_RAW`/`INSTALL_DATA` in `setup.sh` (not manifest-owned, no
+      version bump required, folded into 1.8.0's changelog entry anyway).
+- [x] **E6 — migrate `Homographormer` and prove the payoff** (2026-07-29):
+      new branch `chore/harness-upgrade-1.8.0` off the existing
+      `chore/harness-upgrade-1.7.0` (continuing the established sequential-
+      branch pattern; merging any of the four to `main` is still the project
+      owner's call, unchanged from the 1.7.0 handoff note). Wrote
+      `HomoGraphormer` + `HomoGraphormer_original` into `.harnessignore`,
+      reverted both customized files to the (now `.harnessignore`-aware)
+      template — both byte-identical to `language-packs/python`'s copies.
+      `upgrade.sh Homographormer --verify` reports **"OK: no file content
+      changes (already current)"** — zero customized files, zero `.new`.
+      Full `scripts/validate.sh` (mypy + ruff + pytest, 14 tests) passes;
+      the two lint-hook exclusions live-tested with real Windows paths
+      (untouched); committed as `3b10776`.
+- [x] **E7 — docs + version** (2026-07-29): `harness-core/HARNESS-VERSION`
+      → 1.8.0; `FRAMEWORK-CHANGELOG.md` entry added (covers the feature, the
+      two upstreamed bugs, and the `setup.sh` `\r` fix); `README.md`'s
+      "Editing a framework-owned file is allowed but not free" Caution and
+      its tier table now mention `.harnessignore`; `harness-core/AGENTS.md`
+      and `docs/how-to/file-ownership.md` (Yours-tier prose + Framework-tier
+      list) updated to match. `check-sync.mjs` and `pnpm validate` both
+      clean at session end.
 
 ## Notes
 

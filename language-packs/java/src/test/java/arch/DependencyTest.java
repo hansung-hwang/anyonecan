@@ -29,7 +29,47 @@ class DependencyTest {
 
     private static final String BASE_PACKAGE = "{{BASE_PACKAGE}}";
 
+    private static List<String> loadHarnessignorePatterns() {
+        Path ignoreFile = Paths.get(".harnessignore");
+        if (!Files.exists(ignoreFile)) {
+            return List.of();
+        }
+        try {
+            List<String> patterns = new ArrayList<>();
+            for (String line : Files.readAllLines(ignoreFile)) {
+                String trimmed = line.trim();
+                if (!trimmed.isEmpty() && !trimmed.startsWith("#")) {
+                    patterns.add(trimmed);
+                }
+            }
+            return patterns;
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
+    }
+
+    private static final List<String> HARNESSIGNORE_PATTERNS = loadHarnessignorePatterns();
+
+    private static boolean isIgnored(String path) {
+        String normalized = path.replace('\\', '/');
+        for (String pattern : HARNESSIGNORE_PATTERNS) {
+            if (pattern.contains("/")) {
+                if (normalized.contains(pattern)) {
+                    return true;
+                }
+            } else {
+                for (String segment : normalized.split("/")) {
+                    if (segment.equals(pattern)) {
+                        return true;
+                    }
+                }
+            }
+        }
+        return false;
+    }
+
     private final JavaClasses classes = new ClassFileImporter()
+            .withImportOption(location -> !isIgnored(location.toString()))
             .importPackages(BASE_PACKAGE);
 
     @Test
@@ -95,7 +135,7 @@ class DependencyTest {
         try (var stream = Files.list(domainDir)) {
             for (Path file : (Iterable<Path>) stream::iterator) {
                 String name = file.getFileName().toString();
-                if (!name.endsWith(".java") || name.equals("package-info.java")) {
+                if (!name.endsWith(".java") || name.equals("package-info.java") || isIgnored(file.toString())) {
                     continue;
                 }
                 String className = name.substring(0, name.length() - ".java".length());

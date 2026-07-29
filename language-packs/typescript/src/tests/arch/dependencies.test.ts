@@ -2,7 +2,26 @@ import { describe, expect, it } from 'vitest'
 import { existsSync, readFileSync, readdirSync, statSync } from 'fs'
 import { basename, join, relative } from 'path'
 
-const SRC_DIR = join(process.cwd(), 'src')
+const ROOT_DIR = process.cwd()
+const SRC_DIR = join(ROOT_DIR, 'src')
+
+function loadHarnessignore(): string[] {
+  const ignoreFile = join(ROOT_DIR, '.harnessignore')
+  if (!existsSync(ignoreFile)) return []
+  return readFileSync(ignoreFile, 'utf-8')
+    .split('\n')
+    .map((line) => line.trim())
+    .filter((line) => line.length > 0 && !line.startsWith('#'))
+}
+
+const HARNESSIGNORE_PATTERNS = loadHarnessignore()
+
+function isIgnored(filePath: string): boolean {
+  const rel = relative(ROOT_DIR, filePath).split(/[\\/]/).join('/')
+  return HARNESSIGNORE_PATTERNS.some((pattern) =>
+    pattern.includes('/') ? rel.includes(pattern) : rel.split('/').includes(pattern),
+  )
+}
 
 const LAYER_ORDER: Record<string, number> = {
   domain: 0,
@@ -38,6 +57,7 @@ function collectTsFiles(dir: string): string[] {
   const result: string[] = []
   for (const entry of readdirSync(dir)) {
     const fullPath = join(dir, entry)
+    if (isIgnored(fullPath)) continue
     if (statSync(fullPath).isDirectory()) {
       result.push(...collectTsFiles(fullPath))
     } else if (entry.endsWith('.ts') && !entry.endsWith('.test.ts')) {
