@@ -9,7 +9,7 @@
 //      together — that phrasing is exactly the pre-P1 bug this script
 //      exists to catch if it ever creeps back in (e.g. a careless /fix edit).
 import { readdirSync, readFileSync, existsSync } from 'node:fs'
-import { join } from 'node:path'
+import { basename, dirname, join, resolve } from 'node:path'
 
 const ROOT = process.cwd()
 const PAIRS = [[join(ROOT, '.claude/commands'), join(ROOT, 'harness-core/.claude/commands')]]
@@ -20,13 +20,25 @@ const STALE_PATTERNS = [
   /AGENTS\.md\s*\+\s*`?CLAUDE\.md/i,
   /sync addition to `?CLAUDE\.md/i,
   /update `?CLAUDE\.md`? \+ `?AGENTS\.md`? together/i,
+  /add (?:a )?reference to `?CLAUDE\.md/i,
+  /add[^\n]*link[^\n]*section of `?CLAUDE\.md/i,
+  /`?AGENTS\.md`?\s+imports it/i,
+  /`?AGENTS\.md`?\s*(?:and|\/|,)\s*`?AGENTS\.md/i,
+  /\.Codex\/settings\.json/,
 ]
+
+const commandNames = readdirSync(join(ROOT, '.claude/commands'))
+  .filter((name) => name.endsWith('.md'))
+  .map((name) => name.slice(0, -3))
+const skillFiles = ['', 'harness-core/'].flatMap((prefix) =>
+  commandNames.map((name) => `${prefix}.agents/skills/source-command-${name}/SKILL.md`))
 
 const SCAN_FILES = [
   'AGENTS.md',
   'CLAUDE.md',
   'harness-core/AGENTS.md',
   'harness-core/CLAUDE.md',
+  ...skillFiles,
   ...readdirSync(join(ROOT, '.claude/commands')).map((f) => `.claude/commands/${f}`),
   ...readdirSync(join(ROOT, 'harness-core/.claude/commands')).map(
     (f) => `harness-core/.claude/commands/${f}`,
@@ -34,6 +46,38 @@ const SCAN_FILES = [
 ]
 
 let failed = false
+
+// Skills route to the maintained command instead of keeping a divergent copy.
+for (const rel of skillFiles) {
+  const fp = join(ROOT, rel)
+  if (!existsSync(fp)) {
+    console.error(`✗ Missing workflow skill: ${rel}`)
+    failed = true
+    continue
+  }
+  const content = readFileSync(fp, 'utf-8')
+  const references = [...content.matchAll(/\[[^\]]+\]\(([^)]+)\)/g)]
+    .map((match) => resolve(dirname(fp), match[1]))
+  const scope = rel.startsWith('harness-core/') ? join(ROOT, 'harness-core') : ROOT
+  const command = basename(dirname(rel)).replace('source-command-', '')
+  const required = [join(scope, 'AGENTS.md'), join(scope, '.claude/commands', `${command}.md`)]
+  for (const target of required) {
+    if (!references.includes(target) || !existsSync(target)) {
+      console.error(`✗ ${rel} must reference existing ${target}`)
+      failed = true
+    }
+  }
+  for (const target of references) {
+    if (!existsSync(target)) {
+      console.error(`✗ ${rel} has a broken reference: ${target}`)
+      failed = true
+    }
+  }
+  if (/^#{1,6}\s+(?:\/|Command Template\b)|^```/m.test(content)) {
+    console.error(`✗ ${rel} embeds workflow instructions; reference the shared command instead`)
+    failed = true
+  }
+}
 
 // 1. Command file-list parity
 for (const [a, b] of PAIRS) {
@@ -74,6 +118,13 @@ for (const rel of SCAN_FILES) {
 const manifestPath = join(ROOT, 'harness-core/harness-manifest.json')
 const manifest = JSON.parse(readFileSync(manifestPath, 'utf-8'))
 const frameworkOwned = new Set(manifest.frameworkOwned)
+for (const rel of skillFiles.filter((file) => file.startsWith('harness-core/'))) {
+  if (!frameworkOwned.has(rel.slice('harness-core/'.length))) {
+    console.error(`✗ ${rel} is not registered in frameworkOwned`)
+    failed = true
+  }
+}
+
 
 const commandsDir = join(ROOT, 'harness-core/.claude/commands')
 for (const f of readdirSync(commandsDir)) {
@@ -139,6 +190,6 @@ if (failed) {
   process.exit(1)
 }
 
-console.log(
-  '✓ check-sync passed (command parity + no stale dual-edit instructions + manifest registration + file-ownership sync)',
+console.info(
+  '✓ check-sync passed (skill references + command parity + instruction consistency + manifest registration + file-ownership sync)',
 )

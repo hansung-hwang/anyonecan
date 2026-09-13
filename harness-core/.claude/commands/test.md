@@ -28,4 +28,6 @@ Generates unit tests for the specified file.
 ./scripts/validate.sh
 ```
 
-If it fails, analyze the error and fix the test code.
+If it fails, determine whether the test or production code violates the
+requirement. Fix the cause within the authorized scope; do not weaken a valid
+test to make an incorrect implementation pass. Report out-of-scope fixes.

@@ -30,6 +30,9 @@ Analyze `git diff --staged` to understand what changed.
 
 ### Step 4: Confirm with User, Then Commit
 
+Show the proposed message. If the user already authorized committing these
+changes, proceed within that scope; otherwise ask for approval or revision.
+
 ## Commit Types
 
 | Type | When to Use |

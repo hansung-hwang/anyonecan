@@ -49,6 +49,14 @@ the incoming template as `<file>.new` — see the shipped guide's §3 for the ex
 ## 3. Keeping the guide and the manifest from drifting apart
 
 `scripts/check-sync.mjs` fails the build if `harness-core/docs/how-to/file-ownership.md`'s Framework-tier list
-(between its `<!-- framework-tier:start -->` / `<!-- framework-tier:end -->` markers) and
+(between its `<!-- framework-tier:start -->` / `
+- Workflow skill entrypoints: `.agents/skills/source-command-adr/SKILL.md`, `.agents/skills/source-command-commit/SKILL.md`, `.agents/skills/source-command-coordinate/SKILL.md`, `.agents/skills/source-command-coverage/SKILL.md`, `.agents/skills/source-command-done/SKILL.md`, `.agents/skills/source-command-fix/SKILL.md`, `.agents/skills/source-command-plan/SKILL.md`, `.agents/skills/source-command-review/SKILL.md`, `.agents/skills/source-command-start/SKILL.md`, `.agents/skills/source-command-team/SKILL.md`, `.agents/skills/source-command-test/SKILL.md`.
+- TypeScript portable validation: `scripts/validate.mjs`.
+
+<!-- framework-tier:end -->
+
+Keep project-specific skills outside the `source-command-*` namespace. The
+framework entrypoints reference the current shared commands, so upgrading a
+command does not require copying its body into each skill.` markers) and
 `harness-core/harness-manifest.json`'s `frameworkOwned` + every language's `languageSpecific` entries don't match
 as sets, in either direction. Run `pnpm validate` (which runs `check-sync`) after touching either file.

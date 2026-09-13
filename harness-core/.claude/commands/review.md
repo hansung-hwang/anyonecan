@@ -1,6 +1,12 @@
 # /review — Code Review
 
-Review the currently changed code against the following criteria.
+Review the requested scope against the following criteria. Read AGENTS.md
+first. Record fixed Base/Head SHAs and explicitly list any working-tree diff
+included in the review. If Head or that diff changes, re-review affected files.
+
+Report findings as requirement -> file/symbol/test location. Include exact
+validation commands, working directory, environment, results, and unverified
+areas; do not label an unexecuted check as passed.
 
 ## Review Checklist
 

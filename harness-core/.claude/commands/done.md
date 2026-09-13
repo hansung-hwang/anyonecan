@@ -35,4 +35,7 @@ next, any open blockers. Clear `Active plan` if that plan is fully done.
 
 ### 5. Confirm
 
-Report a one-line summary of what was closed out.
+Report what was closed out with requirement -> file/symbol/test locations,
+validation commands + working directory + environment + results, and the
+handoff SHA. If changes remain uncommitted, explicitly identify the owned diff
+and any pre-existing changes. Do not create a commit without authorization.

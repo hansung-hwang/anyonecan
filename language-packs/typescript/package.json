@@ -14,7 +14,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
-    "validate": "bash scripts/validate.sh",
+    "validate": "node scripts/validate.mjs",
     "prepare": "husky"
   },
   "devDependencies": {
@@ -29,5 +29,6 @@
     "prettier": "^3.0.0",
     "typescript": "^5.0.0",
     "vitest": "^2.0.0"
-  }
+  },
+  "packageManager": "pnpm@10.34.5"
 }

@@ -4,9 +4,23 @@
 # Usage: .\setup.ps1
 #        .\setup.ps1 -OutputDir "C:\projects\my-app"
 
-param([string]$OutputDir = "")
+param(
+    [string]$OutputDir = "",
+    [string]$ConfigFile = "",
+    [switch]$SkipInstall,
+    [switch]$SkipGit
+)
 
 $ErrorActionPreference = "Stop"
+
+$SetupConfig = if ($ConfigFile) { Get-Content -LiteralPath $ConfigFile -Raw -Encoding UTF8 | ConvertFrom-Json } else { $null }
+function Read-SetupValue([string]$Key, [string]$Prompt, [string]$Default = "") {
+    if (-not $ConfigFile) { return Read-Host $Prompt }
+    if ($SetupConfig.PSObject.Properties.Name -contains $Key) {
+        return [string]$SetupConfig.$Key
+    }
+    return $Default
+}
 
 function Write-Header([string]$text) {
     Write-Host ""
@@ -22,15 +36,15 @@ function Write-Info([string]$text) { Write-Host "  $text" -ForegroundColor Gray 
 # ── Collect input ──────────────────────────────────────────────────────────────
 Write-Header "Harness Engineering Framework Setup"
 
-$ProjectName = Read-Host "Project name (lowercase, hyphens allowed)"
+$ProjectName = Read-SetupValue "projectName" "Project name (lowercase, hyphens allowed)"
 if ([string]::IsNullOrWhiteSpace($ProjectName)) { Write-Error "Project name is required."; exit 1 }
 if ($ProjectName -notmatch '^[a-z0-9][a-z0-9\-]*$') {
     Write-Error "Project name may only contain lowercase letters, numbers, and hyphens."
     exit 1
 }
 
-$ProjectDescription = Read-Host "Project description"
-$Author = Read-Host "Author name"
+$ProjectDescription = Read-SetupValue "projectDescription" "Project description"
+$Author = Read-SetupValue "author" "Author name"
 
 # ── Discover language packs (data-driven: language-packs/*/pack.json) ──────────
 $ScriptDirEarly = Split-Path -Parent $MyInvocation.MyCommand.Path
@@ -45,7 +59,7 @@ foreach ($p in $Packs) {
     $suffix = if ($p -eq $DefaultPack) { " (default)" } else { "" }
     Write-Host "  $($p.order). $($p.display)$suffix"
 }
-$LangChoice = Read-Host "Enter number"
+$LangChoice = Read-SetupValue "language" "Enter number"
 $LangChoiceNorm = $LangChoice.Trim().ToLower()
 
 $SelectedPack = $null
@@ -65,7 +79,7 @@ Write-Host ""
 Write-Host "Select comment/description language (controls the language the AI writes comments in):" -ForegroundColor White
 Write-Host "  1. English (default)"
 Write-Host "  2. Korean (한국어)"
-$CommentChoice = Read-Host "Enter number"
+$CommentChoice = Read-SetupValue "commentLanguage" "Enter number"
 $CommentLanguage = switch ($CommentChoice.Trim().ToLower()) {
     { $_ -in "2", "korean", "한국어", "ko", "kr" } { "한국어 (Korean)" }
     default                                        { "English" }
@@ -75,7 +89,7 @@ Write-Host ""
 Write-Host "Project mode:" -ForegroundColor White
 Write-Host "  1. Solo (default)"
 Write-Host "  2. Team"
-$ModeChoice = Read-Host "Enter number"
+$ModeChoice = Read-SetupValue "projectMode" "Enter number"
 $ProjectMode = switch ($ModeChoice.Trim().ToLower()) {
     { $_ -in "2", "team" } { "team" }
     default                { "solo" }
@@ -83,13 +97,13 @@ $ProjectMode = switch ($ModeChoice.Trim().ToLower()) {
 
 $BasePackage = ""
 if ($SelectedPack.postGenerate -eq "java-packages") {
-    $BasePackageInput = Read-Host "Java base package (e.g. com.example.myproject)"
+    $BasePackageInput = Read-SetupValue "basePackage" "Java base package (e.g. com.example.myproject)"
     $SafeName = $ProjectName -replace '-', ''
     $BasePackage = if ([string]::IsNullOrWhiteSpace($BasePackageInput)) { "com.example.$SafeName" } else { $BasePackageInput }
 }
 
 if ([string]::IsNullOrWhiteSpace($OutputDir)) {
-    $OutputDirInput = Read-Host "Output directory (default: .\$ProjectName)"
+    $OutputDirInput = Read-SetupValue "outputDir" "Output directory (default: .\$ProjectName)"
     $OutputDir = if ([string]::IsNullOrWhiteSpace($OutputDirInput)) { ".\$ProjectName" } else { $OutputDirInput }
 }
 
@@ -115,8 +129,30 @@ Write-Info "Output dir    : $OutputDir"
 Write-Host "────────────────────────────────────────────────" -ForegroundColor DarkGray
 Write-Host ""
 
-$Confirm = Read-Host "Proceed? (y/N)"
+$Confirm = Read-SetupValue "confirm" "Proceed? (y/N)" "y"
 if ($Confirm -notmatch '^[yY]') { Write-Host "Cancelled." -ForegroundColor Yellow; exit 0 }
+
+# Refuse to overlay user files or write back into template sources.
+$OutputDir = $ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($OutputDir)
+foreach ($source in @($ScriptDir, $HarnessCoreDir, (Join-Path $ScriptDir "language-packs"))) {
+    $source = [System.IO.Path]::GetFullPath($source).TrimEnd('\', '/')
+    if ($OutputDir -eq $source -or ($source -ne $ScriptDir -and $OutputDir.StartsWith($source + [System.IO.Path]::DirectorySeparatorChar, [StringComparison]::OrdinalIgnoreCase))) {
+        throw "Unsafe output directory: framework source"
+    }
+}
+$ancestor = $OutputDir
+while ($ancestor) {
+    if (Test-Path -LiteralPath $ancestor) {
+        $item = Get-Item -LiteralPath $ancestor -Force
+        if ($item.Attributes -band [System.IO.FileAttributes]::ReparsePoint) { throw "Unsafe output directory: linked ancestor" }
+    }
+    $ancestor = Split-Path $ancestor -Parent
+}
+if (Test-Path -LiteralPath $OutputDir) {
+    if (-not (Test-Path -LiteralPath $OutputDir -PathType Container) -or @(Get-ChildItem -LiteralPath $OutputDir -Force).Count -gt 0) {
+        throw "Output directory must be empty: $OutputDir"
+    }
+}
 
 # ── 1. Copy harness-core ────────────────────────────────────────────────────────
 Write-Step "Copying harness-core..."
@@ -319,6 +355,7 @@ $MetaJson = $MetaOrdered | ConvertTo-Json -Depth 6
 [System.IO.File]::WriteAllText((Join-Path $OutputDir ".harness-meta.json"), $MetaJson, $utf8NoBom)
 
 # ── 6. Install dependencies (candidates come from pack.json's install.candidates) ──
+if (-not $SkipInstall) {
 Write-Step "Installing dependencies..."
 Push-Location $OutputDir
 $PrevErrorActionPreference = $ErrorActionPreference
@@ -359,7 +396,10 @@ try {
     Pop-Location
 }
 
+}
+
 # ── 7. git init + initial commit ─────────────────────────────────────────────────
+if (-not $SkipGit) {
 Write-Step "Initializing git..."
 Push-Location $OutputDir
 try {
@@ -371,6 +411,8 @@ try {
     Write-Host "  ⚠ Git initialization failed. Run manually." -ForegroundColor Yellow
 } finally {
     Pop-Location
+}
+
 }
 
 # ── 8. Done ───────────────────────────────────────────────────────────────────────

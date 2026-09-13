@@ -22,6 +22,10 @@ When an agent mistake occurs, harden the harness so the same mistake does not re
 
 Add the rule to the decided location.
 
+Incident-derived rules belong at the bottom of AGENTS.md's Key Invariants,
+without reordering existing bullets. State why the rule exists and where it
+is enforced. Respect File Ownership when selecting an enforcement location.
+
 ### 4. Validate
 
 ```bash

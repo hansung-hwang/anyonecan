@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import { existsSync, readFileSync, readdirSync, statSync } from 'fs'
-import { basename, join, relative } from 'path'
+import { basename, join, relative, resolve } from 'path'
+import { isBuiltin } from 'node:module'
+import ts from 'typescript'
 
 const ROOT_DIR = process.cwd()
 const SRC_DIR = join(ROOT_DIR, 'src')
@@ -30,28 +32,13 @@ const LAYER_ORDER: Record<string, number> = {
   presentation: 3,
 }
 
-const ALLOWED_NODE_BUILTINS = new Set([
-  'fs',
-  'path',
-  'url',
-  'crypto',
-  'os',
-  'stream',
-  'events',
-  'buffer',
-  'util',
-  'assert',
-  'node:fs',
-  'node:path',
-  'node:url',
-  'node:crypto',
-  'node:os',
-  'node:stream',
-  'node:events',
-  'node:buffer',
-  'node:util',
-  'node:assert',
-])
+const configPath = join(ROOT_DIR, 'tsconfig.json')
+const config = ts.readConfigFile(configPath, (file: string): string | undefined => ts.sys.readFile(file))
+if (config.error) throw new Error(ts.flattenDiagnosticMessageText(config.error.messageText, '\n'))
+const compilerConfig = ts.parseJsonConfigFileContent(config.config, ts.sys, ROOT_DIR)
+if (compilerConfig.errors.length > 0) {
+  throw new Error(compilerConfig.errors.map((error) => ts.flattenDiagnosticMessageText(error.messageText, '\n')).join('\n'))
+}
 
 function collectTsFiles(dir: string): string[] {
   const result: string[] = []
@@ -60,7 +47,7 @@ function collectTsFiles(dir: string): string[] {
     if (isIgnored(fullPath)) continue
     if (statSync(fullPath).isDirectory()) {
       result.push(...collectTsFiles(fullPath))
-    } else if (entry.endsWith('.ts') && !entry.endsWith('.test.ts')) {
+    } else if (/\.tsx?$/.test(entry) && !/\.test\.tsx?$/.test(entry) && !entry.endsWith('.d.ts')) {
       result.push(fullPath)
     }
   }
@@ -76,33 +63,44 @@ function extractLayer(filePath: string): string | null {
 
 function extractImports(filePath: string): string[] {
   const content = readFileSync(filePath, 'utf-8')
-  const importRegex = /from\s+['"]([^'"]+)['"]/g
+  const source = ts.createSourceFile(filePath, content, ts.ScriptTarget.Latest, true)
   const imports: string[] = []
-  let match: RegExpExecArray | null
-  while ((match = importRegex.exec(content)) !== null) {
-    const importPath = match[1]
-    if (importPath !== undefined) imports.push(importPath)
+  function visit(node: ts.Node): void {
+    if ((ts.isImportDeclaration(node) || ts.isExportDeclaration(node)) &&
+        node.moduleSpecifier && ts.isStringLiteralLike(node.moduleSpecifier)) {
+      imports.push(node.moduleSpecifier.text)
+    } else if (ts.isCallExpression(node) &&
+        (node.expression.kind === ts.SyntaxKind.ImportKeyword ||
+          (ts.isIdentifier(node.expression) && node.expression.text === 'require'))) {
+      const argument = node.arguments[0]
+      if (argument && ts.isStringLiteralLike(argument)) imports.push(argument.text)
+    } else if (ts.isImportEqualsDeclaration(node) && ts.isExternalModuleReference(node.moduleReference)) {
+      const expression = node.moduleReference.expression
+      if (expression && ts.isStringLiteralLike(expression)) imports.push(expression.text)
+    } else if (ts.isImportTypeNode(node) && ts.isLiteralTypeNode(node.argument) &&
+        ts.isStringLiteralLike(node.argument.literal)) {
+      imports.push(node.argument.literal.text)
+    }
+    ts.forEachChild(node, visit)
   }
+  visit(source)
   return imports
 }
 
-function resolveImportLayer(importPath: string, fromFile: string): string | null {
-  if (!importPath.startsWith('.')) return null
-  const resolved = join(fromFile, '..', importPath)
-  return extractLayer(resolved)
+function resolveLocalImport(importPath: string, fromFile: string): string | null {
+  const result = ts.resolveModuleName(importPath, fromFile, compilerConfig.options, ts.sys).resolvedModule
+  if (!result || result.isExternalLibraryImport) return null
+  return resolve(result.resolvedFileName)
 }
 
-function resolveImportFile(
-  importPath: string,
-  fromFile: string,
-  allFiles: string[],
-): string | null {
-  if (!importPath.startsWith('.')) return null
-  const base = join(fromFile, '..', importPath)
-  for (const candidate of [base, `${base}.ts`, join(base, 'index.ts')]) {
-    if (allFiles.includes(candidate)) return candidate
-  }
-  return null
+function resolveImportLayer(importPath: string, fromFile: string): string | null {
+  const resolved = resolveLocalImport(importPath, fromFile)
+  return resolved === null ? null : extractLayer(resolved)
+}
+
+function resolveImportFile(importPath: string, fromFile: string, allFiles: string[]): string | null {
+  const resolved = resolveLocalImport(importPath, fromFile)
+  return resolved !== null && allFiles.includes(resolved) ? resolved : null
 }
 
 function buildImportGraph(files: string[]): Map<string, string[]> {
@@ -177,8 +175,8 @@ describe('Architecture Dependency Rules', () => {
     for (const file of tsFiles) {
       if (extractLayer(file) !== 'domain') continue
       for (const imp of extractImports(file)) {
-        if (imp.startsWith('.')) continue
-        if (!ALLOWED_NODE_BUILTINS.has(imp)) {
+        if (resolveLocalImport(imp, file) !== null) continue
+        if (!isBuiltin(imp)) {
           violations.push(
             `[violation] ${relative(SRC_DIR, file)}: external library '${imp}' import forbidden`,
           )
@@ -201,7 +199,7 @@ describe('Architecture Dependency Rules', () => {
   })
 
   it('all source files follow kebab-case naming convention', () => {
-    const KEBAB_CASE = /^[a-z][a-z0-9]*(-[a-z0-9]+)*(\.(types|interface))?\.ts$/
+    const KEBAB_CASE = /^[a-z][a-z0-9]*(-[a-z0-9]+)*(\.(types|interface))?\.tsx?$/
     const violations: string[] = []
     for (const file of tsFiles) {
       const name = basename(file)
@@ -222,7 +220,7 @@ describe('Architecture Dependency Rules', () => {
       if (extractLayer(file) !== 'domain') continue
       const name = basename(file)
       if (name.endsWith('.types.ts') || name.endsWith('.interface.ts')) continue
-      const testFile = file.replace(/\.ts$/, '.test.ts')
+      const testFile = file.replace(/(\.tsx?)$/, '.test$1')
       if (!existsSync(testFile)) {
         violations.push(`[violation] ${relative(SRC_DIR, file)}: no corresponding test file found`)
       }

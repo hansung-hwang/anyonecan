@@ -12,9 +12,10 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
-    "check-sync": "node scripts/check-sync.mjs",
-    "validate": "bash scripts/validate.sh",
-    "prepare": "husky"
+    "check-sync": "node scripts/check-sync.mjs && node --test scripts/check-sync.test.mjs",
+    "validate": "node scripts/validate.mjs",
+    "prepare": "husky",
+    "test:framework": "node scripts/validate.mjs --framework-only"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
@@ -29,5 +30,6 @@
     "prettier": "^3.8.4",
     "typescript": "^5.9.3",
     "vitest": "^2.1.9"
-  }
+  },
+  "packageManager": "pnpm@10.34.5"
 }

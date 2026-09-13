@@ -23,6 +23,7 @@ import datetime
 import hashlib
 import json
 import os
+import re
 import sys
 
 
@@ -175,8 +176,19 @@ def main() -> int:
     if has_meta:
         with open(meta_path, "r", encoding="utf-8") as f:
             meta = json.load(f)
+    if has_meta and not isinstance(meta, dict):
+        print("Invalid metadata: expected a JSON object", file=sys.stderr)
+        return 1
+    has_baselines = meta is not None and "baselines" in meta
+    if has_baselines:
+        recorded = meta["baselines"]
+        if not isinstance(recorded, dict) or not all(
+            isinstance(value, str) and re.fullmatch(r"[0-9a-f]{64}", value)
+            for value in recorded.values()
+        ):
+            print("Invalid baselines: expected an object of SHA-256 hashes", file=sys.stderr)
+            return 1
     language = meta.get("language") if meta else None
-    has_baselines = bool(has_meta and meta.get("baselines"))
     changed_sections, new_section_hashes = changed_agents_template_sections(project_dir, harness_core, meta)
 
     old_version_path = os.path.join(project_dir, "HARNESS-VERSION")
@@ -206,14 +218,8 @@ def main() -> int:
         print("! unconditionally this one run (review with git diff). Baselines will be recorded now")
         print("! so future upgrades can detect local customizations and protect them.")
 
-    if old_version == new_version and has_meta and has_baselines and not read_only:
-        print("OK: already up to date.")
-        return 0
-    # --dry-run/--verify never take this shortcut, even when the version
-    # marker already matches -- a version string agreeing tells you nothing
-    # about whether individual managed files still match their templates
-    # (one could have been hand-reverted, or deleted, since the last real
-    # run). Both modes always run the full per-file classification below.
+    # A matching marker does not prove that files exist or merged baselines are current.
+    # Always reconcile so reruns repair missing files and finish manual merges.
 
     # HARNESS-VERSION is handled separately below (unconditional marker bump,
     # no baseline/customization concept applies to it).

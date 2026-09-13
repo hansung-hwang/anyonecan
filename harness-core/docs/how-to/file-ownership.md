@@ -61,7 +61,15 @@ comment for the pattern syntax).
 - `.github/workflows/ci.yml`
 - `.husky/pre-commit`
 - `harness-manifest.json`
+
+- Workflow skill entrypoints: `.agents/skills/source-command-adr/SKILL.md`, `.agents/skills/source-command-commit/SKILL.md`, `.agents/skills/source-command-coordinate/SKILL.md`, `.agents/skills/source-command-coverage/SKILL.md`, `.agents/skills/source-command-done/SKILL.md`, `.agents/skills/source-command-fix/SKILL.md`, `.agents/skills/source-command-plan/SKILL.md`, `.agents/skills/source-command-review/SKILL.md`, `.agents/skills/source-command-start/SKILL.md`, `.agents/skills/source-command-team/SKILL.md`, `.agents/skills/source-command-test/SKILL.md`.
+- TypeScript portable validation: `scripts/validate.mjs`.
+
 <!-- framework-tier:end -->
+
+Keep project-specific skills outside the `source-command-*` namespace. The
+framework entrypoints reference the current shared commands, so upgrading a
+command does not require copying its body into each skill.
 
 Only the paths matching your project's language pack actually exist on disk — the language-specific ones for the
 other two languages are listed for completeness, not because they're present in your project too.

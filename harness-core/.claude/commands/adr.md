@@ -35,6 +35,6 @@ Why this choice is better than the alternatives.
 - Prohibited: ...
 ```
 
-### 3. Add Reference to CLAUDE.md
+### 3. Add Reference to AGENTS.md
 
-If there are related constraints, add a `(→ docs/adr/NNN)` link to the architecture section of `CLAUDE.md` and `AGENTS.md`.
+If there are related constraints, add a `(→ docs/adr/NNN)` link to the architecture section of `AGENTS.md`.

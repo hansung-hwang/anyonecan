@@ -1,4 +1,4 @@
-#!/usr/bin/env pwsh
+﻿#!/usr/bin/env pwsh
 # upgrade.ps1 — Apply the latest harness-core / language-pack framework files
 # to an already-generated project (Windows).
 #
@@ -27,7 +27,7 @@ param(
 )
 
 # Both are read-only (nothing written); -Verify additionally always runs the
-# full per-file classification (see the early-return note below) and exits
+# full per-file classification and exits
 # non-zero if a previously-delivered file has since gone missing.
 $ReadOnly = $DryRun -or $Verify
 
@@ -171,7 +171,20 @@ $MetaPath = Join-Path $ProjectDir ".harness-meta.json"
 $HasMeta  = Test-Path $MetaPath
 $Meta     = if ($HasMeta) { Get-Content $MetaPath -Raw -Encoding UTF8 | ConvertFrom-Json } else { $null }
 $Language = if ($Meta) { $Meta.language } else { $null }
-$HasBaselines = $HasMeta -and $Meta.PSObject.Properties.Name -contains "baselines" -and $Meta.baselines
+if ($HasMeta -and $Meta -isnot [System.Management.Automation.PSCustomObject]) {
+    throw "Invalid metadata: expected a JSON object"
+}
+$HasBaselines = $HasMeta -and $Meta.PSObject.Properties.Name -contains "baselines"
+if ($HasBaselines) {
+    if ($Meta.baselines -isnot [System.Management.Automation.PSCustomObject]) {
+        throw "Invalid baselines: expected an object of SHA-256 hashes"
+    }
+    foreach ($property in $Meta.baselines.PSObject.Properties) {
+        if ($property.Value -isnot [string] -or $property.Value -cnotmatch '^[0-9a-f]{64}$') {
+            throw "Invalid baselines: expected an object of SHA-256 hashes"
+        }
+    }
+}
 $ChangedSectionsResult = Get-ChangedAgentsTemplateSections $ProjectDir $HarnessCoreDir $Meta
 
 $OldVersionPath = Join-Path $ProjectDir "HARNESS-VERSION"
@@ -196,15 +209,7 @@ if (-not $HasMeta) {
     Write-Warn "so future upgrades can detect local customizations and protect them."
 }
 
-if ($OldVersion -eq $NewVersion -and $HasMeta -and $HasBaselines -and -not $ReadOnly) {
-    Write-Ok "Already up to date."
-    exit 0
-}
-# -DryRun/-Verify never take this shortcut, even when the version marker
-# already matches -- a version string agreeing tells you nothing about
-# whether individual managed files still match their templates (one could
-# have been hand-reverted, or deleted, since the last real run). Both modes
-# always run the full per-file classification below.
+# Reconcile even at the same version to repair missing files and finish manual merges.
 
 $Manifest = Get-Content $ManifestPath -Raw -Encoding UTF8 | ConvertFrom-Json
 

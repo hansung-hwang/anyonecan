@@ -68,17 +68,29 @@ def extract_layer(file_path: Path) -> str | None:
 
 
 def extract_imports(file_path: Path) -> list[str]:
-    try:
-        tree = ast.parse(file_path.read_text(encoding="utf-8"))
-    except SyntaxError:
-        return []
+    tree = ast.parse(file_path.read_text(encoding="utf-8"))
+    package = list(file_path.relative_to(SRC_DIR).parent.parts)
     imports: list[str] = []
     for node in ast.walk(tree):
-        if isinstance(node, ast.ImportFrom) and node.module:
-            imports.append(node.module)
-        elif isinstance(node, ast.Import):
+        if isinstance(node, ast.ImportFrom):
+            if node.level:
+                if node.level > len(package):
+                    raise ValueError(f"Relative import escapes src: {file_path}")
+                base = package[:len(package) - node.level + 1]
+                if node.module:
+                    base += node.module.split(".")
+            else:
+                base = node.module.split(".") if node.module else []
+            module = ".".join(base)
+            if module:
+                imports.append(module)
             for alias in node.names:
-                imports.append(alias.name)
+                candidate = base + [alias.name]
+                candidate_path = SRC_DIR.joinpath(*candidate)
+                if candidate_path.with_suffix(".py").is_file() or candidate_path.is_dir():
+                    imports.append(".".join(candidate))
+        elif isinstance(node, ast.Import):
+            imports.extend(alias.name for alias in node.names)
     return imports
 
 
@@ -194,13 +206,14 @@ def test_domain_modules_have_tests() -> None:
         return
 
     violations: list[str] = []
-    for src_file in domain_dir.glob("*.py"):
-        if src_file.name.startswith("__"):
+    for src_file in domain_dir.rglob("*.py"):
+        if src_file.name.startswith("__") or is_ignored(src_file):
             continue
-        expected = tests_domain_dir / f"test_{src_file.name}"
+        relative = src_file.relative_to(domain_dir)
+        expected = tests_domain_dir / relative.parent / f"test_{src_file.name}"
         if not expected.exists():
             violations.append(
-                f"src/domain/{src_file.name} → tests/domain/test_{src_file.name} missing"
+                f"{src_file.relative_to(ROOT_DIR)} → {expected.relative_to(ROOT_DIR)} missing"
             )
 
     assert not violations, (

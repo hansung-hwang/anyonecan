@@ -6,6 +6,7 @@ import org.junit.jupiter.api.Test;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
+import java.net.URI;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -68,8 +69,26 @@ class DependencyTest {
         return false;
     }
 
+    private static boolean isIgnoredClassLocation(URI uri) {
+        if (!"file".equals(uri.getScheme())) {
+            return false;
+        }
+        Path compiled = Paths.get(uri).toAbsolutePath().normalize();
+        Path root = Paths.get("").toAbsolutePath().normalize();
+        for (String output : List.of("classes", "test-classes")) {
+            Path outputRoot = root.resolve("target").resolve(output);
+            if (compiled.startsWith(outputRoot)) {
+                String relative = outputRoot.relativize(compiled).toString().replace('\\', '/');
+                String source = relative.replaceAll("(?:\\$[^/]*)?\\.class$", ".java");
+                String sourceRoot = output.equals("classes") ? "src/main/java/" : "src/test/java/";
+                return isIgnored(sourceRoot + source);
+            }
+        }
+        return false;
+    }
+
     private final JavaClasses classes = new ClassFileImporter()
-            .withImportOption(location -> !isIgnored(location.toString()))
+            .withImportOption(location -> !isIgnoredClassLocation(location.asURI()))
             .importPackages(BASE_PACKAGE);
 
     @Test
@@ -132,14 +151,15 @@ class DependencyTest {
         }
 
         List<String> violations = new ArrayList<>();
-        try (var stream = Files.list(domainDir)) {
+        try (var stream = Files.walk(domainDir)) {
             for (Path file : (Iterable<Path>) stream::iterator) {
                 String name = file.getFileName().toString();
                 if (!name.endsWith(".java") || name.equals("package-info.java") || isIgnored(file.toString())) {
                     continue;
                 }
                 String className = name.substring(0, name.length() - ".java".length());
-                Path expected = testDir.resolve(className + "Test.java");
+                Path relative = domainDir.relativize(file);
+                Path expected = testDir.resolve(relative).resolveSibling(className + "Test.java");
                 if (!Files.exists(expected)) {
                     violations.add(name + " -> " + testDir.getFileName() + "/" + className + "Test.java missing");
                 }

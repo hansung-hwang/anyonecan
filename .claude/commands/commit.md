@@ -7,7 +7,7 @@ Analyzes changes, proposes a commit message, and commits if validation passes.
 ### Step 1: Validate
 
 ```bash
-pnpm typecheck && pnpm lint && pnpm test
+pnpm validate
 ```
 
 `eslint.config.js` enforces the Prohibited-list items directly
@@ -34,7 +34,8 @@ Propose a commit message in this format:
 
 ### Step 4: Confirm with User
 
-Show the proposed message to the user and await approval or revision.
+Show the proposed message. If the user already authorized committing these
+changes, proceed within that scope; otherwise ask for approval or revision.
 
 ### Step 5: Execute Commit
 

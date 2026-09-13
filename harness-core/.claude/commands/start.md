@@ -22,7 +22,8 @@ Understand the context of previous work.
 
 ### 3. Read Project Docs
 
-Read `CLAUDE.md` (Claude Code) or `AGENTS.md` (other AI tools) to review current rules and conventions.
+Read `AGENTS.md` for current rules. Read the active tool's pointer file only
+for tool-specific extras; follow its reference to AGENTS.md.
 
 ### 4. Read Work State
 
@@ -53,8 +54,5 @@ Summarize the following concisely:
 
 ### 6. Ready Message
 
-After the summary, finish with:
-
-```
-Ready. What would you like to work on?
-```
+If the user already supplied a task, continue with it after the summary.
+Otherwise ask what they would like to work on.

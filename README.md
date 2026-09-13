@@ -21,6 +21,13 @@ The same harness rules apply regardless of which AI coding tool you use.
 | Windsurf | `.windsurfrules` (pointer to `AGENTS.md`) |
 | Codex / Antigravity / others | `AGENTS.md` |
 
+`.agents/skills/source-command-*` provides skill entrypoints in both this
+repository and generated projects. Each links to AGENTS.md and the matching
+shared command; procedures are maintained once. Setup delivers them, and
+upgrade applies the same baseline/customization protection as other managed
+files. Project-specific skills should use a different name from `source-command-*`.
+`pnpm check-sync` verifies links, manifest registration, and known instruction conflicts.
+
 `AGENTS.md` is the **single source of truth** for all rules. The other
 files never duplicate rule content — they either import it (`CLAUDE.md`) or
 point to it (Cursor/Windsurf) — so every tool always sees the same rules.
@@ -157,7 +164,7 @@ later `upgrade` may overwrite. Your project ships with the full contract at
 | Tier | Examples | What `upgrade` does |
 |---|---|---|
 | **Yours** | `AGENTS.md`, `CLAUDE.md`, `README.md`, all source code, build/linter config, `.workspace/STATUS.md`·`worklog.md`·`plans/*.md`, `docs/adr/**`, `.harnessignore`, the `*project-rules*` arch test | **Never touched.** Edit freely. |
-| **Framework's** | `.claude/commands/**`, `docs/how-to/**`, `scripts/validate.*`, `scripts/lint-format-hook.*`, the `*dependencies*` arch test, `.editorconfig`, hook/CI config, `harness-manifest.json` | Overwritten when you haven't changed them. |
+| **Framework's** | `.claude/commands/**`, `.agents/skills/source-command-*/SKILL.md`, `docs/how-to/**`, `scripts/validate.*`, `scripts/lint-format-hook.*`, the `*dependencies*` arch test, `.editorconfig`, hook/CI config, `harness-manifest.json` | Overwritten when you haven't changed them. |
 | **Customizable, at a cost** | any Framework's-tier file you deliberately edit | Your version is kept; the new template arrives as `<file>.new` for you to merge. |
 
 `harness-manifest.json` in your project is the machine-readable source of
@@ -409,3 +416,47 @@ needed to add a language.
    `AGENTS.md` and `.harness-meta.json` render correctly
 
 Full contract: `docs/how-to/adding-a-language-pack.md`.
+
+## Automated framework verification (1.9.0)
+
+The framework repository requires Node.js, pnpm 10.34.5, Python 3.10+, and a
+Bash installation for generator fixtures (Git Bash on Windows). `pnpm validate`
+runs instruction checks, disposable setup/upgrade/hook/import regression
+fixtures, then TypeScript checks. It uses a Node entrypoint, so Windows no longer
+selects WSL bash for TypeScript validation. Set `HARNESS_PYTHON` to a Python
+executable when the default `python` (Windows) or `python3` is unsuitable.
+`HARNESS_BASH` and `HARNESS_JAVAC` optionally select fixture toolchains.
+`pnpm test:framework` runs only framework contracts. CI also generates and validates
+each language on Windows and Linux with Java 21 for the Java pack.
+
+Generators accept a JSON configuration for unattended use:
+
+```json
+{
+  "projectName": "my-app",
+  "projectDescription": "Example",
+  "author": "Team",
+  "language": "typescript",
+  "commentLanguage": "english",
+  "projectMode": "solo",
+  "outputDir": "../my-app"
+}
+```
+
+Run `./setup.sh --config setup.json --skip-install --skip-git` or
+`./setup.ps1 -ConfigFile setup.json -SkipInstall -SkipGit`. Omit the skip options
+for normal dependency installation and initial commit. Config mode proceeds
+without a prompt; interactive mode retains its confirmation. Java also accepts
+`basePackage`. Both generators reject nonempty targets and framework source
+paths before copying; setup is for new projects, upgrade is for existing ones.
+
+Re-running upgrade at the same version repairs missing managed files and
+reconciles manually merged `.new` files. Empty baseline maps preserve existing
+untracked-by-baseline paths; malformed baseline maps fail before writing.
+
+TypeScript architecture checks parse literal imports/exports, dynamic imports,
+require calls and type imports, resolving aliases and `.js` specifiers through
+tsconfig. Computed runtime module names cannot be resolved statically. Python
+checks resolve relative imports and nested domain test paths. Java ignore patterns
+map Maven `target/classes`/`target/test-classes` locations to source paths, including
+inner classes; nonstandard compiled-output layouts are not mapped automatically.

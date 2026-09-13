@@ -10,6 +10,57 @@ they're pulling in.
 
 See `AGENTS.md` → "Framework Versioning" for the bump rule.
 
+## [1.9.0] - 2026-09-13
+
+**Protect project files, deliver skills, and test the framework's actual contracts.**
+
+- Both upgraders distinguish absent/empty baselines and reject malformed hashes
+  before writing. Same-version runs now repair missing files and reconcile `.new`
+  merges, preserving customized files and unrelated metadata.
+- Setup rejects nonempty targets and framework source paths. JSON configuration
+  and explicit install/git skip options support unattended fixture generation.
+  Git Bash normalizes Windows output paths; PowerShell resolves relative paths
+  using its current location before checking them.
+- TypeScript formatting runs local ESLint/Prettier CLI files with Node and an
+  argument array, without a shell or `npx` downloads. Failures emit diagnostics.
+- TypeScript architecture checks use the compiler parser/resolver for aliases,
+  literal dynamic/side-effect/type imports, exports, require, TSX, and `.js`
+  specifiers. Python resolves relative imports and checks nested domain tests
+  with the same exclusion rules. Java uses ArchUnit's URI accessor and maps
+  standard Maven class paths (including inner classes) to source exclusions;
+  domain test correspondence now walks nested packages.
+- Thin `source-command-*` skills are delivered through the manifest and protected
+  by baselines like other managed files. Root/template links and registration
+  are checked automatically; project skills should use another namespace.
+- Node-based TypeScript validation removes the implicit WSL bash dependency.
+  Root validation now exercises disposable setup/upgrade/import/hook fixtures.
+  CI adds Windows/Linux smoke projects for TypeScript, Python, and Java, and
+  pnpm is pinned to the locally validated 10.34.5.
+- Validation limits: local TypeScript/Python project checks and Java URI matcher
+  compilation/execution pass. Java 21/Maven integration and hosted matrix runs
+  are configured in CI but not claimed as locally executed.
+
+## [1.8.2] - 2026-09-12
+
+**Align workflow instructions with AGENTS.md and eliminate local skill drift.**
+
+- ADR workflows now reference rules in AGENTS.md only. Start reads AGENTS.md
+  directly; review and done include its fixed-scope and handoff evidence.
+- Test workflows diagnose the failing requirement instead of assuming the
+  test is wrong. Root commit/test use the complete `pnpm validate` entrypoint.
+- Plan/start/commit/team respect task choices and authorization already given.
+  Team edits preserve unrelated upgrade metadata and role assignments do not
+  override generated-project file ownership. Fix appends incident rules to
+  Key Invariants as required by the generated AGENTS.md.
+- Existing repository skills are thin references to AGENTS.md and their
+  shared command, removing copied procedures and tool-name substitution errors.
+  This release does not add skills to generated-project setup/upgrade delivery.
+- Extended the existing root check-sync guard to cover skill links, copied
+  procedures, and the observed conflicting instructions. Disposable mutation
+  fixtures run with `pnpm check-sync`, including root validation and CI.
+- Generated AGENTS.md clarifies workflow precedence; existing projects receive
+  command fixes through upgrade and an advisory for the user-owned AGENTS.md.
+
 ## [1.8.1] - 2026-07-29
 
 **Post-implementation audit of 1.8.0 — one real defect in the Python lint hook, one doc drift:**

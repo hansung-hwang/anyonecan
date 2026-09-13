@@ -103,7 +103,7 @@ Layer dependency (unidirectional): `domain` ← `application` ← `infrastructur
 ## Validation
 
 ```bash
-pnpm validate   # typecheck + lint + test
+pnpm validate   # check-sync + typecheck + lint + test
 ```
 
 ## Steering Loop
@@ -123,6 +123,13 @@ above first — anything under `harness-core/.claude/commands/` or `harness-core
 ## Workflow Prompts
 
 Markdown files in `.claude/commands/` are **shared AI tool prompts**.
+
+Within repository guidance, workflows and skills implement this file's rules;
+they do not override its validation, file ownership, or handoff requirements.
+Respect the user's task scope and existing authorization. Correct a conflicting
+workflow at its source rather than changing project rules to fit it.
+Repository skills in `.agents/skills/` reference these commands and this file;
+do not duplicate command bodies or rename tool-specific paths by substitution.
 
 | File | Purpose | Claude Code |
 |---|---|---|

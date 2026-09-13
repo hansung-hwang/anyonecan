@@ -14,7 +14,7 @@ jobs:
 
       - uses: pnpm/action-setup@v4
         with:
-          version: latest
+          version: 10.34.5
 
       - uses: actions/setup-node@v4
         with:
@@ -24,17 +24,55 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Check sync (root <-> harness-core drift)
-        run: pnpm check-sync
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
 
-      - name: Typecheck
-        run: pnpm typecheck
-
-      - name: Lint
-        run: pnpm lint
-
-      - name: Test
-        run: pnpm test
+      - name: Validate framework contracts and source
+        run: pnpm validate
 
       - name: Coverage gate (domain >= 80%)
         run: pnpm test:coverage
+
+  language-smoke:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+        language: [typescript, python, java]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.34.5
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: temurin
+      - name: Generate without install or git side effects
+        run: python scripts/smoke-project.py ${{ matrix.language }} "${{ runner.temp }}/harness-smoke"
+      - name: TypeScript smoke
+        if: matrix.language == 'typescript'
+        working-directory: ${{ runner.temp }}/harness-smoke
+        run: |
+          pnpm install --no-frozen-lockfile
+          pnpm validate
+      - name: Python smoke
+        if: matrix.language == 'python'
+        working-directory: ${{ runner.temp }}/harness-smoke
+        run: |
+          python -m pip install mypy ruff pytest pytest-cov
+          python -m mypy src/
+          python -m ruff check src/ tests/
+          python -m pytest
+      - name: Java smoke with source-directory exclusion fixture
+        if: matrix.language == 'java'
+        working-directory: ${{ runner.temp }}/harness-smoke
+        run: mvn verify

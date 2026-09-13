@@ -25,7 +25,8 @@ Solo with no roles/roster) and `AGENTS.md`'s `## Team & Roles` section, if prese
 - Currently Team → offer to switch to Solo, or edit the existing setup (add/remove a role, reassign a teammate,
   add/remove a teammate).
 
-Confirm the choice before making changes.
+Use an explicit choice already supplied by the user; otherwise ask which
+change they want before modifying the configuration.
 
 ### 3. Switching to Solo
 
@@ -76,6 +77,9 @@ template) with:
 
 ### 6. Mirror to `.harness-meta.json`
 
+Read-modify-write only `projectMode`, `roles`, and `roster`. Preserve all other
+fields, especially `language`, `baselines`, and `agentsTemplateSections`.
+
 Set `projectMode: "team"`, `roles` to the role ids actually in use, `roster` to the person→role map. **Use this
 exact shape** — role ids are lowercase-kebab-case (a multi-word role like "Planner / PM" becomes
 `"planner-pm"`); a `roster` value is a role-id string for a single role, or — for a person with more than one
@@ -97,6 +101,7 @@ Summarize what changed: mode, roles, roster, and confirm where in `AGENTS.md` th
 
 ## Notes
 
-- This command edits `AGENTS.md` and `.harness-meta.json` directly — it is not a script. Both files are user-owned;
-  `upgrade.*` never touches them, so re-running `/team` is the only way this configuration changes.
+- This command edits AGENTS.md and the team fields of `.harness-meta.json`.
+  Upgrade preserves AGENTS.md and team fields but updates version/baseline
+  metadata in the same JSON file; never replace that file with the example alone.
 - Non-Claude Code tools: copy this file's content and use it as a prompt.

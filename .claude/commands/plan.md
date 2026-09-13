@@ -30,6 +30,7 @@ in `.workspace/plans/README.md`: Goal, Approach, Checklist, Notes.
 In `.workspace/STATUS.md`, set `Active plan` to the new file's path and fill
 in `Current Goal`.
 
-### 4. Confirm with User
+### 4. Present the Plan
 
-Summarize the plan in 2-3 sentences before starting implementation.
+Summarize the plan in 2-3 sentences before starting implementation. Continue
+within the authorized scope; ask only for missing decisions or authorization.

@@ -5,6 +5,27 @@
 #        OUTPUT_DIR=/path/to/dir ./setup.sh
 set -euo pipefail
 
+CONFIG_FILE=""
+SKIP_INSTALL=0
+SKIP_GIT=0
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        --config) CONFIG_FILE="$2"; shift 2 ;;
+        --skip-install) SKIP_INSTALL=1; shift ;;
+        --skip-git) SKIP_GIT=1; shift ;;
+        *) echo "Unknown option: $1" >&2; exit 1 ;;
+    esac
+done
+ask() {
+    local key="$1" variable="$2" prompt="$3" default="${4:-}" value
+    if [[ -z "$CONFIG_FILE" ]]; then
+        read -rp "$prompt" "$variable"
+    else
+        value=$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1], encoding="utf-8")).get(sys.argv[2], sys.argv[3]))' "$CONFIG_FILE" "$key" "$default")
+        printf -v "$variable" '%s' "${value//$'\r'/}"
+    fi
+}
+
 RED='\033[0;31m'; GREEN='\033[0;32m'; YELLOW='\033[1;33m'
 CYAN='\033[0;36m'; GRAY='\033[0;37m'; NC='\033[0m'
 
@@ -16,7 +37,7 @@ info()   { echo -e "${GRAY}  $1${NC}"; }
 # ── Collect input ──────────────────────────────────────────────────────────────
 header "Harness Engineering Framework Setup"
 
-read -rp "Project name (lowercase, hyphens allowed): " PROJECT_NAME
+ask projectName PROJECT_NAME "Project name (lowercase, hyphens allowed): "
 if [[ -z "$PROJECT_NAME" ]]; then
     echo -e "${RED}Error: project name is required.${NC}" >&2; exit 1
 fi
@@ -24,8 +45,8 @@ if [[ ! "$PROJECT_NAME" =~ ^[a-z0-9][a-z0-9\-]*$ ]]; then
     echo -e "${RED}Error: only lowercase letters, numbers, and hyphens are allowed.${NC}" >&2; exit 1
 fi
 
-read -rp "Project description: " PROJECT_DESCRIPTION
-read -rp "Author name: " AUTHOR
+ask projectDescription PROJECT_DESCRIPTION "Project description: "
+ask author AUTHOR "Author name: "
 
 # ── Discover language packs (data-driven: language-packs/*/pack.json) ──────────
 SCRIPT_DIR_EARLY="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -58,7 +79,7 @@ PACKS_RAW="${PACKS_RAW//$'\r'/}"
 echo ""
 echo "Select language:"
 echo "$PACKS_RAW" | grep '^MENU:' | sed 's/^MENU://'
-read -rp "Enter number: " LANG_CHOICE
+ask language LANG_CHOICE "Enter number: "
 
 # Normalize so a number or a language name (e.g. "python") is accepted, matching setup.ps1
 LANG_CHOICE_NORM=$(echo "${LANG_CHOICE:-}" | tr '[:upper:]' '[:lower:]' | tr -d '[:space:]')
@@ -88,7 +109,7 @@ echo ""
 echo "Select comment/description language (controls the language the AI writes comments in):"
 echo "  1. English (default)"
 echo "  2. Korean (한국어)"
-read -rp "Enter number: " COMMENT_CHOICE
+ask commentLanguage COMMENT_CHOICE "Enter number: "
 COMMENT_CHOICE_NORM=$(echo "${COMMENT_CHOICE:-1}" | tr '[:upper:]' '[:lower:]' | tr -d '[:space:]')
 case "$COMMENT_CHOICE_NORM" in
     2|korean|ko|kr|한국어) COMMENT_LANGUAGE="한국어 (Korean)" ;;
@@ -99,7 +120,7 @@ echo ""
 echo "Project mode:"
 echo "  1. Solo (default)"
 echo "  2. Team"
-read -rp "Enter number: " MODE_CHOICE
+ask projectMode MODE_CHOICE "Enter number: "
 MODE_CHOICE_NORM=$(echo "${MODE_CHOICE:-}" | tr '[:upper:]' '[:lower:]' | tr -d '[:space:]')
 case "$MODE_CHOICE_NORM" in
     2|team) PROJECT_MODE="team" ;;
@@ -109,12 +130,13 @@ esac
 BASE_PACKAGE=""
 if [[ "$POST_GENERATE" == "java-packages" ]]; then
     SAFE_NAME=$(echo "$PROJECT_NAME" | tr -d '-')
-    read -rp "Java base package (default: com.example.$SAFE_NAME): " BASE_PACKAGE_INPUT
+    ask basePackage BASE_PACKAGE_INPUT "Java base package (default: com.example.$SAFE_NAME): "
     BASE_PACKAGE="${BASE_PACKAGE_INPUT:-com.example.$SAFE_NAME}"
 fi
 
-read -rp "Output directory (default: ./$PROJECT_NAME): " OUTPUT_DIR_INPUT
+ask outputDir OUTPUT_DIR_INPUT "Output directory (default: ./$PROJECT_NAME): "
 OUTPUT_DIR="${OUTPUT_DIR_INPUT:-./$PROJECT_NAME}"
+if command -v cygpath >/dev/null 2>&1; then OUTPUT_DIR=$(cygpath -u "$OUTPUT_DIR"); fi
 
 TODAY=$(date +%Y-%m-%d)
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -141,8 +163,19 @@ info "Output dir    : $OUTPUT_DIR"
 echo "────────────────────────────────────────────────"
 echo ""
 
-read -rp "Proceed? (y/N): " CONFIRM
+ask confirm CONFIRM "Proceed? (y/N): " "y"
 if [[ ! "$CONFIRM" =~ ^[yY] ]]; then echo "Cancelled."; exit 0; fi
+
+# Canonical paths catch aliases into the source tree before any writes.
+python3 - "$OUTPUT_DIR" "$SCRIPT_DIR" << 'PYEOF'
+from pathlib import Path
+import sys
+output, source = (Path(p).resolve() for p in sys.argv[1:])
+if output == source or any(output.is_relative_to(source / p) for p in ("harness-core", "language-packs")):
+    raise SystemExit("Unsafe output directory: framework source")
+if output.exists() and (not output.is_dir() or any(output.iterdir())):
+    raise SystemExit("Output directory must be empty")
+PYEOF
 
 # ── 1. Copy harness-core ────────────────────────────────────────────────────────
 step "Copying harness-core..."
@@ -362,8 +395,9 @@ meta["agentsTemplateSections"] = agents_template_sections
 PYEOF
 
 # ── 6. Install dependencies (candidates come from pack.json's install.candidates) ──
-step "Installing dependencies..."
 cd "$OUTPUT_DIR"
+if [[ "$SKIP_INSTALL" -eq 0 ]]; then
+step "Installing dependencies..."
 
 INSTALL_DATA=$(python3 - "$SCRIPT_DIR/language-packs/$LANGUAGE/pack.json" << 'PYEOF'
 import sys, json
@@ -405,13 +439,18 @@ while IFS=$'\t' read -r tool check run retryfix successmsg; do
     fi
 done <<< "$INSTALL_DATA"
 
+fi
+
 # ── 7. git init + initial commit ─────────────────────────────────────────────────
+if [[ "$SKIP_GIT" -eq 0 ]]; then
 step "Initializing git..."
 if git init --quiet && git add . && \
    git commit --quiet -m "chore: initialize project with harness engineering framework"; then
     ok "Git initialized (initial commit created)"
 else
     echo -e "${YELLOW}  ⚠ Git initialization failed (is user.name/user.email set?). Commit manually.${NC}"
+fi
+
 fi
 
 # ── 8. Done ───────────────────────────────────────────────────────────────────────

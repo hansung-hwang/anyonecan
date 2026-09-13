@@ -81,7 +81,7 @@ Layer dependency (unidirectional): `domain` ← `application` ← `infrastructur
 Three tiers, generated from `harness-manifest.json` (refreshed by every `upgrade`, so it's always current — see
 `docs/how-to/file-ownership.md` for the full list and mechanics): **Yours** (`AGENTS.md`, `CLAUDE.md`, source,
 build config, `.workspace/**`, `docs/adr/**`, `.harnessignore`, the `*project-rules*` arch test) — edit freely,
-`upgrade` never touches these. **Framework's** (`.claude/commands/**`, `docs/how-to/**`, `scripts/validate.*`,
+`upgrade` never touches these. **Framework's** (`.claude/commands/**`, `.agents/skills/source-command-*/SKILL.md`, `docs/how-to/**`, `scripts/validate.*`,
 `scripts/lint-format-hook.*`, the `*dependencies*` arch test, hook/CI config) — don't edit; `upgrade` overwrites
 these when unmodified. **Customizable, at a cost** — edit a Framework's-tier file anyway and `upgrade` keeps your
 version and offers the template as `<file>.new` instead of overwriting.
@@ -101,7 +101,8 @@ Always run after modifying code:
 ./scripts/validate.sh
 ```
 
-Windows: use `scripts/validate.ps1` instead, if the language pack provides one.
+Windows: TypeScript uses `node scripts/validate.mjs` (or `pnpm validate`);
+Python provides `scripts/validate.ps1`. Java uses the Bash entrypoint.
 
 ## Steering Loop
 
@@ -120,6 +121,13 @@ above first.
 
 Markdown files in `.claude/commands/` are **shared AI tool prompts**.
 
+Within repository guidance, workflows and skills implement this file's rules;
+they do not override its validation, file ownership, or handoff requirements.
+Respect the user's task scope and existing authorization. If a framework-owned
+workflow conflicts, follow this file and report the conflict for an upstream fix.
+Project-specific skills should reference these commands and this file instead
+of duplicating instructions or renaming tool-specific paths by substitution.
+
 | File | Purpose | Claude Code |
 |---|---|---|
 | `start.md` | Session start — git status, recent commits, goal summary | `/start` |
@@ -134,4 +142,6 @@ Markdown files in `.claude/commands/` are **shared AI tool prompts**.
 | `coordinate.md` | Multi-agent coordination plan (opt-in; see `docs/how-to/multi-agent-collaboration.md`) | `/coordinate` |
 | `team.md` | Set/change Solo↔Team mode and role scoping (opt-in; Solo adds nothing) | `/team` |
 
-**Non-Claude Code tools**: Copy the contents of the relevant file and use it as a prompt.
+**Other tools**: Use the matching `source-command-*` skill when supported, or
+read the shared command directly. Skills reference this file and the command;
+project-specific skills should avoid the framework `source-command-*` namespace.

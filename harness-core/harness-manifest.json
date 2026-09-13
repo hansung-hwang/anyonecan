@@ -21,7 +21,18 @@
     "docs/how-to/testing-guide.md",
     ".workspace/plans/README.md",
     "scripts/status-context.sh",
-    "harness-manifest.json"
+    "harness-manifest.json",
+    ".agents/skills/source-command-adr/SKILL.md",
+    ".agents/skills/source-command-commit/SKILL.md",
+    ".agents/skills/source-command-coordinate/SKILL.md",
+    ".agents/skills/source-command-coverage/SKILL.md",
+    ".agents/skills/source-command-done/SKILL.md",
+    ".agents/skills/source-command-fix/SKILL.md",
+    ".agents/skills/source-command-plan/SKILL.md",
+    ".agents/skills/source-command-review/SKILL.md",
+    ".agents/skills/source-command-start/SKILL.md",
+    ".agents/skills/source-command-team/SKILL.md",
+    ".agents/skills/source-command-test/SKILL.md"
   ],
   "_languageSpecificComment": "Every language pack overlays .claude/settings.json, .github/workflows/ci.yml, and .husky/pre-commit with its own hook wiring (e.g. TypeScript adds a PostToolUse lint-format hook + 'pnpm validate'), so these are NOT in frameworkOwned -- overwriting them from the language-agnostic harness-core fallback would silently strip a project's language-specific hooks. When the project's language is unknown (no .harness-meta.json), upgrade skips this whole list rather than downgrading to the generic fallback.",
   "languageSpecific": {
@@ -31,7 +42,8 @@
       "src/tests/arch/dependencies.test.ts",
       ".claude/settings.json",
       ".github/workflows/ci.yml",
-      ".husky/pre-commit"
+      ".husky/pre-commit",
+      "scripts/validate.mjs"
     ],
     "python": [
       "scripts/validate.sh",
@@ -59,13 +71,23 @@
   ],
   "_bootstrapLanguageSpecificComment": "Same never-overwrite semantics as bootstrapIfMissing, but keyed by language like languageSpecific -- these seed a project-owned architecture-test file (see docs/investigations pattern from a real generated project: a custom arch check like 'RAG-heavy modules must not be imported at boot' belongs in a file upgrade never touches, not squeezed into the framework-owned dependencies test that upgrade overwrites).",
   "bootstrapLanguageSpecific": {
-    "typescript": ["src/tests/arch/project-rules.test.ts"],
-    "python": ["tests/arch/test_project_rules.py"],
-    "java": ["src/test/java/arch/ProjectRulesTest.java"]
+    "typescript": [
+      "src/tests/arch/project-rules.test.ts"
+    ],
+    "python": [
+      "tests/arch/test_project_rules.py"
+    ],
+    "java": [
+      "src/test/java/arch/ProjectRulesTest.java"
+    ]
   },
   "needsSubstitution": {
-    "src/test/java/arch/DependencyTest.java": ["BASE_PACKAGE"],
-    "docs/adr/001-clean-architecture-layers.md": ["DATE"]
+    "src/test/java/arch/DependencyTest.java": [
+      "BASE_PACKAGE"
+    ],
+    "docs/adr/001-clean-architecture-layers.md": [
+      "DATE"
+    ]
   },
   "_baselinesComment": "upgrade records a baseline (LF-normalized SHA-256) in .harness-meta.json's `baselines` map for every frameworkOwned/languageSpecific/bootstrap file it writes. On the next upgrade, a manifest path falls into one of three cases: (1) unmodified-since-baseline -- overwritten normally, baseline advances; (2) content no longer matches its baseline (project customized it) -- left untouched, new template written alongside as `<file>.new` for manual merge, baseline stays at the old hash until the project's file matches the new template again; (3) the `baselines` map exists (project is on 1.3.0+ tracking) but this specific path has no entry in it AND the file already exists on disk -- meaning the path was added to the manifest after this project's last upgrade and the project wrote the file itself -- treated the same as case 2 (never overwritten, offered as `<file>.new`), never silently overwritten. Only projects with no `baselines` map at all (genuine pre-1.3.0 .harness-meta.json) fall back to the old overwrite-everything behavior, once, with a warning, and gain baseline tracking from that point on."
 }
