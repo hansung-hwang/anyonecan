@@ -5,10 +5,9 @@
 
 ## Current Goal
 
-Framework 1.9.0 is implemented and validated in the working tree. Prior 1.8.2
+Framework 1.9.0 is implemented, validated, committed, and pushed to
+`origin/main` as `466ecfd1c7bfbcbb25b0050b0fce0ec94a22dd66`. Prior 1.8.2
 skills/AGENTS instruction fixes are retained. Work journals are closed out.
-Commit and push to origin/main are now user-authorized. Starting Base is
-`7888b529d192cacc142052b724d47417a8ffa44f`; the delivery commit carries this snapshot.
 
 ## Progress
 
@@ -41,8 +40,6 @@ hosted CI verification remain environment-dependent follow-up checks.
   `.codex/` and `.claude/settings.local.json` are untouched.
 - TypeScript validation is now Node-based; Bash is required only for generator
   fixtures. HARNESS_PYTHON / HARNESS_BASH / HARNESS_JAVAC select fixture toolchains.
-- Authorized commit scope includes setup/upgrade, language packs, root/template
-  skills and commands, AGENTS, manifest/ownership, validation/tests/CI, package
-  metadata, version/changelogs/README, and audit/plan/journals. Include new files
-  when committing, particularly .agents and the contract/validation scripts.
+- The framework delivery commit is `466ecfd`; it is confirmed equal to
+  `origin/main` after a non-force push.
 - Pre-existing nested projects and local tool settings remain untouched.
